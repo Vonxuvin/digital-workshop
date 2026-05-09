@@ -7,6 +7,8 @@ export interface MergeResult {
   newValue: number;
   position: { x: number; y: number };
   chainCount: number;
+  newBlock: Block;
+  destroyedBlocks: Block[];
 }
 
 export class MergeSystem {
@@ -66,6 +68,9 @@ export class MergeSystem {
     blockA.destroy();
     blockB.destroy();
 
+    this.mergingBodies.delete(blockA.body.label);
+    this.mergingBodies.delete(blockB.body.label);
+
     const config = BLOCK_CONFIGS[newValue] || {
       value: newValue,
       color: this.generateColor(newValue),
@@ -80,8 +85,6 @@ export class MergeSystem {
 
     const newBlock = new Block(newBody, newValue);
     this.registerBlock(newBlock);
-    this.mergingBodies.delete(blockA.body.label);
-    this.mergingBodies.delete(blockB.body.label);
 
     eventBus.emit('block:merged', {
       newValue,
@@ -98,18 +101,17 @@ export class MergeSystem {
     }, 50);
   }
 
-  private checkChainReaction(newBlock: Block): void {
-    const body = newBlock.body;
+  private checkChainReaction(block: Block): void {
     const nearbyBodies = this.physics.getAllBodies().filter(b => {
-      if (b === body || b.isStatic) return false;
-      const dist = Matter.Vector.magnitude(Matter.Vector.sub(body.position, b.position));
-      return dist < (body.circleRadius || 20) + (b.circleRadius || 20) + 5;
+      if (b === block.body || b.isStatic) return false;
+      const dist = Matter.Vector.magnitude(Matter.Vector.sub(block.body.position, b.position));
+      return dist < (block.body.circleRadius || 20) + (b.circleRadius || 20) + 5;
     });
 
     for (const other of nearbyBodies) {
       const otherBlock = this.blocks.get(other.label);
-      if (otherBlock && otherBlock.value === newBlock.value) {
-        this.mergeBlocks(newBlock, otherBlock);
+      if (otherBlock && otherBlock.value === block.value) {
+        this.mergeBlocks(block, otherBlock);
         break;
       }
     }

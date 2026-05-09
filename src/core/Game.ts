@@ -5,6 +5,7 @@ import { Block, BLOCK_CONFIGS } from '../gameplay/Block';
 import { BlockPreview } from '../gameplay/BlockPreview';
 import { MergeSystem } from '../gameplay/MergeSystem';
 import { createPlatformAdapter } from '../platform/PlatformFactory';
+import { eventBus } from '../utils/EventBus';
 
 export class Game {
   private app: Application;
@@ -43,6 +44,7 @@ export class Game {
 
     this.setupContainer();
     this.setupInput();
+    this.setupMergeListener();
     this.app.stage.addChild(this.preview);
 
     this.app.ticker.add(this.update.bind(this));
@@ -81,6 +83,22 @@ export class Game {
         this.preview.hide();
         this.startCooldown();
       }
+    });
+  }
+
+  private setupMergeListener(): void {
+    eventBus.on('block:merged', (data: any) => {
+      const { newBlock, destroyedBlocks } = data;
+
+      for (const destroyed of destroyedBlocks) {
+        const idx = this.blocks.indexOf(destroyed);
+        if (idx > -1) {
+          this.blocks.splice(idx, 1);
+        }
+      }
+
+      this.app.stage.addChild(newBlock);
+      this.blocks.push(newBlock);
     });
   }
 
