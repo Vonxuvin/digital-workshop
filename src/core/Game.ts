@@ -190,6 +190,7 @@ export class Game {
   private handleGameOver(): void {
     this.stateMachine.transition('gameover');
     this.physics.stop();
+    this.clearBlocks();
     this.audioManager.play('gameover');
     this.resultScreen.setResult({
       isWin: false,
@@ -203,8 +204,10 @@ export class Game {
   private handleLevelCompleted(data: { score: number; levelId: number }): void {
     this.stateMachine.transition('levelComplete');
     this.physics.stop();
+    this.clearBlocks();
     this.audioManager.play('levelComplete');
     const stars = this.calculateStars(data.score, data.levelId);
+    this.levelSelectScreen.updateLevelProgress(data.levelId, stars);
     this.resultScreen.setResult({
       isWin: true,
       score: data.score,
@@ -278,6 +281,7 @@ export class Game {
 
   private handleBackToMenu(): void {
     this.physics.stop();
+    this.clearBlocks();
     this.uiManager.hideCurrentScreen();
     this.uiManager.showScreen('mainMenu');
     this.stateMachine.transition('menu');
@@ -290,11 +294,7 @@ export class Game {
   }
 
   private resetGame(): void {
-    this.blocks.forEach(block => {
-      this.physics.removeBody(block.body);
-      block.destroy();
-    });
-    this.blocks = [];
+    this.clearBlocks();
 
     this.effects.forEach(effect => effect.destroy());
     this.effects = [];
@@ -303,6 +303,15 @@ export class Game {
     this.gameHUD.reset();
     this.warningLine?.reset();
     this.levelSystem?.reset();
+  }
+
+  private clearBlocks(): void {
+    this.blocks.forEach(block => {
+      this.mergeSystem.unregisterBlock(block);
+      this.physics.removeBody(block.body);
+      block.destroy();
+    });
+    this.blocks = [];
   }
 
   private dropBlock(x: number, y: number, value: number): void {
