@@ -129,6 +129,11 @@ export class GameHUD extends Container {
     this.chainText.text = '';
   }
 
+  skipAnimation(): void {
+    this.displayScore = this.currentScore;
+    this.scoreText.text = `Score: ${this.displayScore.toLocaleString()}`;
+  }
+
   destroy(): void {
     eventBus.off('score:updated', this.onScoreUpdatedBound);
     super.destroy();

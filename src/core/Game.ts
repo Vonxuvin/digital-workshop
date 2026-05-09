@@ -190,7 +190,7 @@ export class Game {
   private handleGameOver(): void {
     this.stateMachine.transition('gameover');
     this.physics.stop();
-    this.clearBlocks();
+    this.clearEverything();
     this.audioManager.play('gameover');
     this.resultScreen.setResult({
       isWin: false,
@@ -204,7 +204,8 @@ export class Game {
   private handleLevelCompleted(data: { score: number; levelId: number }): void {
     this.stateMachine.transition('levelComplete');
     this.physics.stop();
-    this.clearBlocks();
+    this.gameHUD.skipAnimation();
+    this.clearEverything();
     this.audioManager.play('levelComplete');
     const stars = this.calculateStars(data.score, data.levelId);
     this.levelSelectScreen.updateLevelProgress(data.levelId, stars);
@@ -259,6 +260,7 @@ export class Game {
     if (this.stateMachine.canTransition('paused')) {
       this.stateMachine.transition('paused');
       this.physics.stop();
+      this.preview.hide();
       this.uiManager.showScreen('pause');
     }
   }
@@ -281,7 +283,7 @@ export class Game {
 
   private handleBackToMenu(): void {
     this.physics.stop();
-    this.clearBlocks();
+    this.clearEverything();
     this.uiManager.hideCurrentScreen();
     this.uiManager.showScreen('mainMenu');
     this.stateMachine.transition('menu');
@@ -294,15 +296,18 @@ export class Game {
   }
 
   private resetGame(): void {
-    this.clearBlocks();
-
-    this.effects.forEach(effect => effect.destroy());
-    this.effects = [];
-
+    this.clearEverything();
     this.scoreSystem.reset();
     this.gameHUD.reset();
     this.warningLine?.reset();
     this.levelSystem?.reset();
+  }
+
+  private clearEverything(): void {
+    this.clearBlocks();
+    this.preview.hide();
+    this.effects.forEach(effect => effect.destroy());
+    this.effects = [];
   }
 
   private clearBlocks(): void {
@@ -325,7 +330,7 @@ export class Game {
     this.mergeSystem.registerBlock(block);
 
     this.currentValue = this.getRandomValue();
-    console.log(`[Game] 投放方块 ${value}，下一个: ${this.currentValue}`);
+    console.log(`[Game] 投放方块 ${value}, 下一个: ${this.currentValue}`);
   }
 
   private getRandomValue(): number {
