@@ -142,15 +142,6 @@ export class Game {
     this.physics.createRectangle(-25, h / 2, 50, h);
     this.physics.createRectangle(w + 25, h / 2, 50, h);
 
-    this.containerWalls = new Graphics();
-    this.containerWalls.rect(0, this.groundY, w, 50);
-    this.containerWalls.fill(0x2d2d44);
-    this.containerWalls.rect(0, 0, 3, h);
-    this.containerWalls.fill(0x3a3a5c);
-    this.containerWalls.rect(w - 3, 0, 3, h);
-    this.containerWalls.fill(0x3a3a5c);
-    this.app.stage.addChild(this.containerWalls);
-
     this.warningLine = new WarningLine(h, w);
     this.warningLine.y = h * 0.2;
     this.app.stage.addChild(this.warningLine);
@@ -293,6 +284,7 @@ export class Game {
     }
     this.levelSystem = new LevelSystem(config);
     this.currentLevelConfig = config;
+    this.drawContainerWalls();
     this.gameHUD.updateLevel(config.id, config.name);
     this.uiManager.hideCurrentScreen();
     this.stateMachine.transition('playing');
@@ -437,6 +429,7 @@ export class Game {
     this.preview.hide();
     this.effects.forEach(effect => effect.destroy());
     this.effects = [];
+    this.clearContainerWalls();
   }
 
   private clearBlocks(): void {
@@ -458,6 +451,40 @@ export class Game {
       }
     });
     this.obstacleBlocks = [];
+  }
+
+  private drawContainerWalls(): void {
+    this.clearContainerWalls();
+    const w = this.app.screen.width;
+    const h = this.app.screen.height;
+
+    this.containerWalls = new Graphics();
+    this.containerWalls.rect(0, this.groundY, w, 50);
+    this.containerWalls.fill(0x2d2d44);
+    this.containerWalls.rect(0, 0, 6, h);
+    this.containerWalls.fill(0x4a4a6a);
+    this.containerWalls.rect(w - 6, 0, 6, h);
+    this.containerWalls.fill(0x4a4a6a);
+    this.containerWalls.stroke({ width: 2, color: 0x6a6a8a });
+    this.containerWalls.moveTo(0, 0);
+    this.containerWalls.lineTo(0, h);
+    this.containerWalls.moveTo(6, 0);
+    this.containerWalls.lineTo(6, h);
+    this.containerWalls.moveTo(w - 6, 0);
+    this.containerWalls.lineTo(w - 6, h);
+    this.containerWalls.moveTo(w, 0);
+    this.containerWalls.lineTo(w, h);
+    this.containerWalls.moveTo(0, this.groundY);
+    this.containerWalls.lineTo(w, this.groundY);
+    this.app.stage.addChild(this.containerWalls);
+  }
+
+  private clearContainerWalls(): void {
+    if (this.containerWalls) {
+      this.app.stage.removeChild(this.containerWalls);
+      this.containerWalls.destroy();
+      this.containerWalls = null;
+    }
   }
 
   private dropBlock(x: number, y: number, value: number): void {
