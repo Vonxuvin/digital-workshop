@@ -284,7 +284,6 @@ export class Game {
     }
     this.levelSystem = new LevelSystem(config);
     this.currentLevelConfig = config;
-    this.drawContainerWalls();
     this.gameHUD.updateLevel(config.id, config.name);
     this.uiManager.hideCurrentScreen();
     this.stateMachine.transition('playing');
@@ -321,6 +320,7 @@ export class Game {
   private handleBackToMenu(): void {
     this.physics.stop();
     this.clearEverything();
+    this.clearContainerWalls();
     this.uiManager.hideCurrentScreen();
     this.uiManager.showScreen('mainMenu');
     this.stateMachine.transition('menu');
@@ -344,6 +344,7 @@ export class Game {
   private handleLevelSelect(): void {
     this.physics.stop();
     this.clearEverything();
+    this.clearContainerWalls();
     this.uiManager.hideCurrentScreen();
     this.uiManager.showScreen('levelSelect');
     this.stateMachine.transition('menu');
@@ -353,6 +354,7 @@ export class Game {
     this.resetGame();
     this.physics.start();
     this.levelSystem?.start();
+    this.drawContainerWalls();
     this.spawnObstacles();
     this.startAutoSpawn();
   }
@@ -429,7 +431,6 @@ export class Game {
     this.preview.hide();
     this.effects.forEach(effect => effect.destroy());
     this.effects = [];
-    this.clearContainerWalls();
   }
 
   private clearBlocks(): void {
