@@ -1,0 +1,36 @@
+{
+  "name": "digital-workshop",
+  "version": "0.1.0",
+  "description": "数字工坊 - 基于 PixiJS 的物理合成消除微信小游戏",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "build:wechat": "tsc && vite build --mode wechat",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "preview": "vite preview",
+    "lint": "tsc --noEmit"
+  },
+  "keywords": [
+    "wechat-minigame",
+    "pixijs",
+    "matter-js",
+    "physics",
+    "merge",
+    "puzzle"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "gsap": "^3.12.5",
+    "matter-js": "^0.20.0",
+    "pixi.js": "^8.6.3"
+  },
+  "devDependencies": {
+    "@types/matter-js": "^0.19.8",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7",
+    "vitest": "^2.1.8"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "deviceOrientation": "portrait",
+  "showStatusBar": false,
+  "networkTimeout": {
+    "request": 5000,
+    "connectSocket": 5000
+  },
+  "subpackages": [],
+  "plugins": {},
+  "cloud": false
+}
