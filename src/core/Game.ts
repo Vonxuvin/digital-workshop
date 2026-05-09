@@ -36,9 +36,11 @@ export class Game {
   private preview: BlockPreview;
   private mergeSystem: MergeSystem;
   private blocks: Block[] = [];
+  private obstacleBlocks: Block[] = [];
   private currentValue: number = 1;
   private canDrop = true;
   private dropCooldown = 500;
+  private autoSpawnTimer: ReturnType<typeof setInterval> | null = null;
   private groundY: number;
   private scoreSystem: ScoreSystem;
   private stateMachine: GameStateMachine;
@@ -335,6 +337,48 @@ export class Game {
     this.resetGame();
     this.physics.start();
     this.levelSystem?.start();
+    this.spawnObstacles();
+    this.startAutoSpawn();
+  }
+
+  private spawnObstacles(): void {
+    const obstacles = this.currentLevelConfig?.obstacles;
+    if (!obstacles) return;
+
+    for (const obs of obstacles) {
+      const config = BLOCK_CONFIGS[obs.value] || BLOCK_CONFIGS[1];
+      const body = this.physics.createCircle(obs.x, obs.y, config.radius, {
+        isStatic: true,
+      });
+      body.label = `obstacle_${obs.x}_${obs.y}`;
+      const block = new Block(body, obs.value);
+      this.app.stage.addChild(block);
+      this.obstacleBlocks.push(block);
+      this.mergeSystem.registerObstacle(block);
+    }
+    console.log(`[Game] 生成 ${obstacles.length} 个障碍物`);
+  }
+
+  private startAutoSpawn(): void {
+    this.stopAutoSpawn();
+    const interval = this.currentLevelConfig?.spawnInterval;
+    if (!interval || interval <= 0) return;
+
+    this.autoSpawnTimer = window.setInterval(() => {
+      if (this.stateMachine.getCurrentState() !== 'playing') return;
+      const w = this.app.screen.width;
+      const x = 50 + Math.random() * (w - 100);
+      const value = this.getRandomValue();
+      this.dropBlock(x, 80, value);
+    }, interval * 1000);
+    console.log(`[Game] 自动生成间隔: ${interval}秒`);
+  }
+
+  private stopAutoSpawn(): void {
+    if (this.autoSpawnTimer) {
+      clearInterval(this.autoSpawnTimer);
+      this.autoSpawnTimer = null;
+    }
   }
 
   private resetGame(): void {
@@ -347,6 +391,8 @@ export class Game {
 
   private clearEverything(): void {
     this.clearBlocks();
+    this.clearObstacles();
+    this.stopAutoSpawn();
     this.preview.hide();
     this.effects.forEach(effect => effect.destroy());
     this.effects = [];
@@ -361,6 +407,16 @@ export class Game {
       }
     });
     this.blocks = [];
+  }
+
+  private clearObstacles(): void {
+    this.obstacleBlocks.forEach(block => {
+      if (!block.isDestroyed) {
+        this.physics.removeBody(block.body);
+        block.destroy();
+      }
+    });
+    this.obstacleBlocks = [];
   }
 
   private dropBlock(x: number, y: number, value: number): void {

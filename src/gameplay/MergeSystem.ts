@@ -6,6 +6,7 @@ import { eventBus } from '../utils/EventBus';
 export class MergeSystem {
   private physics: PhysicsManager;
   private blocks: Map<string, Block> = new Map();
+  private obstacles: Map<string, Block> = new Map();
   private mergingBodies: Set<string> = new Set();
 
   constructor(physics: PhysicsManager) {
@@ -21,6 +22,10 @@ export class MergeSystem {
     this.blocks.delete(block.body.label);
   }
 
+  registerObstacle(block: Block): void {
+    this.obstacles.set(block.body.label, block);
+  }
+
   private setupCollisionListener(): void {
     this.physics.onCollisionStart((pair) => {
       this.handleCollision(pair.bodyA, pair.bodyB);
@@ -28,6 +33,16 @@ export class MergeSystem {
   }
 
   private handleCollision(bodyA: Matter.Body, bodyB: Matter.Body): void {
+    const isObstacleA = bodyA.label.startsWith('obstacle_');
+    const isObstacleB = bodyB.label.startsWith('obstacle_');
+
+    if (isObstacleA && isObstacleB) return;
+
+    if (isObstacleA || isObstacleB) {
+      this.handleObstacleCollision(bodyA, bodyB, isObstacleA);
+      return;
+    }
+
     if (bodyA.isStatic || bodyB.isStatic) return;
 
     const blockA = this.blocks.get(bodyA.label);
@@ -41,6 +56,28 @@ export class MergeSystem {
     this.mergingBodies.add(bodyB.label);
 
     this.mergeBlocks(blockA, blockB);
+  }
+
+  private handleObstacleCollision(bodyA: Matter.Body, bodyB: Matter.Body, aIsObstacle: boolean): void {
+    const obstacleBody = aIsObstacle ? bodyA : bodyB;
+    const playerBody = aIsObstacle ? bodyB : bodyA;
+
+    const obstacle = this.obstacles.get(obstacleBody.label);
+    const player = this.blocks.get(playerBody.label);
+
+    if (!obstacle || !player) return;
+    if (obstacle.value !== player.value) return;
+
+    this.clearObstacle(obstacle);
+  }
+
+  private clearObstacle(obstacle: Block): void {
+    const label = obstacle.body.label;
+    this.obstacles.delete(label);
+    this.physics.removeBody(obstacle.body);
+    obstacle.destroy();
+    eventBus.emit('obstacle:cleared');
+    console.log(`[MergeSystem] 障碍物已清除`);
   }
 
   private mergeBlocks(blockA: Block, blockB: Block): void {
