@@ -139,8 +139,8 @@ export class Game {
     this.groundY = h - 50;
 
     this.physics.createRectangle(w / 2, this.groundY + 25, w, 50);
-    this.physics.createRectangle(-25, h / 2, 50, h);
-    this.physics.createRectangle(w + 25, h / 2, 50, h);
+    this.physics.createRectangle(-22, h / 2, 50, h);
+    this.physics.createRectangle(w + 22, h / 2, 50, h);
 
     this.warningLine = new WarningLine(h, w);
     this.warningLine.y = h * 0.2;
