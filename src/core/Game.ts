@@ -1,9 +1,22 @@
 import { Application } from 'pixi.js';
 import { PhysicsManager } from './PhysicsManager';
 import { InputManager } from './InputManager';
+import { ScoreSystem } from '../gameplay/ScoreSystem';
+import { GameStateMachine } from './GameStateMachine';
+import { ScoreBoard } from '../ui/components/ScoreBoard';
+import { LevelSystem } from '../gameplay/LevelSystem';
+import { LevelLoader } from './LevelLoader';
+import { AudioManager } from './AudioManager';
+import { WarningLine } from '../ui/components/WarningLine';
+import { MergeEffect } from '../ui/effects/MergeEffect';
 import { Block, BLOCK_CONFIGS } from '../gameplay/Block';
 import { BlockPreview } from '../gameplay/BlockPreview';
 import { MergeSystem } from '../gameplay/MergeSystem';
+import { UIManager } from '../ui/UIManager';
+import { MainMenuScreen } from '../ui/screens/MainMenuScreen';
+import { ResultScreen } from '../ui/screens/ResultScreen';
+import { LevelSelectScreen } from '../ui/screens/LevelSelectScreen';
+import { GameHUD } from '../ui/hud/GameHUD';
 import { createPlatformAdapter } from '../platform/PlatformFactory';
 import { eventBus } from '../utils/EventBus';
 
@@ -18,6 +31,17 @@ export class Game {
   private canDrop = true;
   private dropCooldown = 500;
   private groundY: number;
+  private scoreSystem: ScoreSystem;
+  private stateMachine: GameStateMachine;
+  private scoreBoard: ScoreBoard;
+  private levelSystem: LevelSystem | null = null;
+  private warningLine: WarningLine | null = null;
+  private uiManager: UIManager;
+  private gameHUD: GameHUD;
+  private resultScreen: ResultScreen;
+  private levelSelectScreen: LevelSelectScreen;
+  private audioManager: AudioManager;
+  private effects: MergeEffect[] = [];
 
   constructor(canvas: HTMLCanvasElement) {
     this.app = new Application();
@@ -25,6 +49,14 @@ export class Game {
     this.preview = new BlockPreview();
     this.input = new InputManager(canvas);
     this.mergeSystem = new MergeSystem(this.physics);
+    this.scoreSystem = new ScoreSystem();
+    this.stateMachine = new GameStateMachine();
+    this.scoreBoard = new ScoreBoard();
+    this.uiManager = new UIManager(this.app);
+    this.gameHUD = new GameHUD();
+    this.resultScreen = new ResultScreen();
+    this.levelSelectScreen = new LevelSelectScreen();
+    this.audioManager = AudioManager.getInstance();
     this.groundY = window.innerHeight - 50;
   }
 
@@ -42,13 +74,29 @@ export class Game {
       autoDensity: true,
     });
 
+    await this.audioManager.init();
+
     this.setupContainer();
+    this.setupUI();
+    this.setupLevel();
     this.setupInput();
     this.setupMergeListener();
+    this.setupGameEvents();
+    this.setupUIEvents();
     this.app.stage.addChild(this.preview);
+
+    this.scoreBoard.x = 20;
+    this.scoreBoard.y = 20;
+    this.app.stage.addChild(this.scoreBoard);
+
+    this.stateMachine.onAnyChange((from, to) => {
+      console.log(`[Game] 状态变化: ${from} -> ${to}`);
+    });
 
     this.app.ticker.add(this.update.bind(this));
     this.physics.start();
+
+    this.uiManager.showScreen('mainMenu');
 
     console.log('[Game] 初始化完成');
   }
@@ -61,6 +109,36 @@ export class Game {
     this.physics.createRectangle(w / 2, this.groundY + 25, w, 50);
     this.physics.createRectangle(-25, h / 2, 50, h);
     this.physics.createRectangle(w + 25, h / 2, 50, h);
+
+    this.warningLine = new WarningLine(h);
+    this.warningLine.y = h * 0.2;
+    this.app.stage.addChild(this.warningLine);
+  }
+
+  private setupUI(): void {
+    const mainMenu = new MainMenuScreen();
+    this.uiManager.registerScreen('mainMenu', mainMenu);
+    this.uiManager.registerScreen('levelSelect', this.levelSelectScreen);
+    this.uiManager.registerScreen('result', this.resultScreen);
+    this.app.stage.addChild(this.gameHUD);
+  }
+
+  private setupLevel(): void {
+    const levelConfig = {
+      id: 1,
+      name: '新手教学',
+      objective: {
+        type: 'score' as const,
+        target: 500,
+      },
+      containerWidth: this.app.screen.width,
+      containerHeight: this.app.screen.height,
+      availableNumbers: [1, 2, 4],
+    };
+
+    this.levelSystem = new LevelSystem(levelConfig);
+    this.levelSystem.start();
+    this.gameHUD.updateLevel(levelConfig.id, levelConfig.name);
   }
 
   private setupInput(): void {
@@ -87,19 +165,105 @@ export class Game {
   }
 
   private setupMergeListener(): void {
-    eventBus.on('block:merged', (data: any) => {
-      const { newBlock, destroyedBlocks } = data;
+    eventBus.on('block:merged', (data: { newValue: number; position: { x: number; y: number } }) => {
+      this.audioManager.play('merge');
 
-      for (const destroyed of destroyedBlocks) {
-        const idx = this.blocks.indexOf(destroyed);
-        if (idx > -1) {
-          this.blocks.splice(idx, 1);
-        }
-      }
-
-      this.app.stage.addChild(newBlock);
-      this.blocks.push(newBlock);
+      const config = BLOCK_CONFIGS[data.newValue] || BLOCK_CONFIGS[1];
+      const effect = new MergeEffect(data.position.x, data.position.y, config.color);
+      this.app.stage.addChild(effect);
+      this.effects.push(effect);
     });
+  }
+
+  private setupGameEvents(): void {
+    eventBus.on('game:over', () => {
+      this.stateMachine.transition('gameover');
+      this.physics.stop();
+      this.audioManager.play('gameover');
+    });
+
+    eventBus.on('level:completed', () => {
+      this.stateMachine.transition('levelComplete');
+      this.physics.stop();
+      this.audioManager.play('levelComplete');
+    });
+  }
+
+  private setupUIEvents(): void {
+    eventBus.on('ui:startGame', () => {
+      this.uiManager.showScreen('levelSelect');
+    });
+
+    eventBus.on('ui:selectLevel', async (levelId: number) => {
+      const levelLoader = LevelLoader.getInstance();
+      const config = await levelLoader.loadLevel(levelId);
+      if (config) {
+        this.levelSystem = new LevelSystem(config);
+        this.gameHUD.updateLevel(config.id, config.name);
+        this.uiManager.hideCurrentScreen();
+        this.stateMachine.transition('playing');
+        this.startGame();
+      }
+    });
+
+    eventBus.on('ui:pause', () => {
+      this.stateMachine.transition('paused');
+    });
+
+    eventBus.on('ui:restart', () => {
+      this.uiManager.hideCurrentScreen();
+      this.resetGame();
+      this.stateMachine.transition('playing');
+      this.startGame();
+    });
+
+    eventBus.on('ui:backToMenu', () => {
+      this.uiManager.hideCurrentScreen();
+      this.uiManager.showScreen('mainMenu');
+      this.stateMachine.transition('menu');
+    });
+
+    eventBus.on('game:over', () => {
+      this.resultScreen.setResult({
+        isWin: false,
+        score: this.scoreSystem.getCurrentScore(),
+        stars: 0,
+        levelId: this.levelSystem?.getConfig().id || 1,
+      });
+      this.uiManager.showScreen('result');
+    });
+
+    eventBus.on('level:completed', (data: { score: number; levelId: number }) => {
+      this.resultScreen.setResult({
+        isWin: true,
+        score: data.score,
+        stars: 3,
+        levelId: data.levelId,
+      });
+      this.uiManager.showScreen('result');
+    });
+  }
+
+  private startGame(): void {
+    this.resetGame();
+    this.physics.start();
+    this.levelSystem?.start();
+  }
+
+  private resetGame(): void {
+    this.blocks.forEach(block => {
+      this.physics.removeBody(block.body);
+      block.destroy();
+    });
+    this.blocks = [];
+
+    this.effects.forEach(effect => effect.destroy());
+    this.effects = [];
+
+    this.scoreSystem.reset();
+    this.scoreBoard.reset();
+    this.warningLine?.reset();
+    this.levelSystem?.reset();
   }
 
   private dropBlock(x: number, y: number, value: number): void {
@@ -130,6 +294,23 @@ export class Game {
 
   private update(): void {
     this.blocks.forEach(block => block.syncFromBody());
+    this.scoreBoard.update(this.app.ticker.deltaMS / 16.67);
+
+    if (this.warningLine) {
+      this.warningLine.update(
+        this.blocks.map(b => ({ y: b.y, radius: b.getConfig().radius })),
+        this.app.ticker.deltaMS / 16.67
+      );
+    }
+
+    this.effects = this.effects.filter(effect => {
+      const alive = effect.update(this.app.ticker.deltaMS / 16.67);
+      if (!alive) {
+        effect.destroy();
+        return false;
+      }
+      return true;
+    });
 
     this.blocks = this.blocks.filter(block => {
       if (block.y > this.app.screen.height + 100) {
@@ -144,5 +325,17 @@ export class Game {
 
   getApp(): Application {
     return this.app;
+  }
+
+  getStateMachine(): GameStateMachine {
+    return this.stateMachine;
+  }
+
+  getScoreSystem(): ScoreSystem {
+    return this.scoreSystem;
+  }
+
+  getLevelSystem(): LevelSystem | null {
+    return this.levelSystem;
   }
 }

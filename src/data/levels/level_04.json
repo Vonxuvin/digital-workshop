@@ -1,0 +1,20 @@
+{
+  "id": 4,
+  "name": "限时生存",
+  "objective": {
+    "type": "survival",
+    "target": 60,
+    "timeLimit": 60
+  },
+  "container": {
+    "width": 400,
+    "height": 600
+  },
+  "spawn": {
+    "availableNumbers": [1, 2, 4, 8],
+    "spawnInterval": 5
+  },
+  "rewards": {
+    "stars": [30, 45, 60]
+  }
+}

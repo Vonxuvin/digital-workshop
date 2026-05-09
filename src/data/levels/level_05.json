@@ -1,0 +1,18 @@
+{
+  "id": 5,
+  "name": "综合考验",
+  "objective": {
+    "type": "score",
+    "target": 2000
+  },
+  "container": {
+    "width": 350,
+    "height": 600
+  },
+  "spawn": {
+    "availableNumbers": [1, 2, 4, 8, 16]
+  },
+  "rewards": {
+    "stars": [1000, 1500, 2000]
+  }
+}

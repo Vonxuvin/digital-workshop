@@ -1,0 +1,18 @@
+{
+  "id": 2,
+  "name": "合成挑战",
+  "objective": {
+    "type": "target_merge",
+    "target": 16
+  },
+  "container": {
+    "width": 400,
+    "height": 600
+  },
+  "spawn": {
+    "availableNumbers": [1, 2, 4, 8]
+  },
+  "rewards": {
+    "stars": [8, 12, 16]
+  }
+}

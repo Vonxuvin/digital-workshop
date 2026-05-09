@@ -1,0 +1,25 @@
+{
+  "id": 3,
+  "name": "障碍清除",
+  "objective": {
+    "type": "clear_obstacle",
+    "target": 5
+  },
+  "container": {
+    "width": 400,
+    "height": 600
+  },
+  "spawn": {
+    "availableNumbers": [1, 2, 4]
+  },
+  "obstacles": [
+    { "x": 200, "y": 400, "value": 1 },
+    { "x": 150, "y": 350, "value": 2 },
+    { "x": 250, "y": 350, "value": 1 },
+    { "x": 180, "y": 300, "value": 4 },
+    { "x": 220, "y": 300, "value": 2 }
+  ],
+  "rewards": {
+    "stars": [3, 4, 5]
+  }
+}

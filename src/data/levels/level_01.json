@@ -1,0 +1,18 @@
+{
+  "id": 1,
+  "name": "新手入门",
+  "objective": {
+    "type": "score",
+    "target": 500
+  },
+  "container": {
+    "width": 400,
+    "height": 600
+  },
+  "spawn": {
+    "availableNumbers": [1, 2, 4]
+  },
+  "rewards": {
+    "stars": [300, 400, 500]
+  }
+}
