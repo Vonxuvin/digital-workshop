@@ -345,17 +345,34 @@ export class Game {
     const obstacles = this.currentLevelConfig?.obstacles;
     if (!obstacles) return;
 
-    for (const obs of obstacles) {
+    const w = this.app.screen.width;
+    const h = this.app.screen.height;
+    const groundY = h - 50;
+    const xCenter = w / 2;
+
+    // 把障碍物放在地面上，从左到右排列
+    const positions = [
+      { x: xCenter - 120, y: groundY },
+      { x: xCenter - 60, y: groundY },
+      { x: xCenter, y: groundY },
+      { x: xCenter + 60, y: groundY },
+      { x: xCenter + 120, y: groundY },
+    ];
+
+    obstacles.forEach((obs, i) => {
       const config = BLOCK_CONFIGS[obs.value] || BLOCK_CONFIGS[1];
-      const body = this.physics.createCircle(obs.x, obs.y, config.radius, {
+      const pos = positions[i % positions.length];
+      const adjustedY = pos.y - config.radius; // 让障碍物刚好"坐"在地面上
+
+      const body = this.physics.createCircle(pos.x, adjustedY, config.radius, {
         isStatic: true,
       });
-      body.label = `obstacle_${obs.x}_${obs.y}`;
+      body.label = `obstacle_${pos.x}_${adjustedY}`;
       const block = new Block(body, obs.value);
       this.app.stage.addChild(block);
       this.obstacleBlocks.push(block);
       this.mergeSystem.registerObstacle(block);
-    }
+    });
     console.log(`[Game] 生成 ${obstacles.length} 个障碍物`);
   }
 
