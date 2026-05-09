@@ -1,4 +1,4 @@
-import { Application } from 'pixi.js';
+import { Application, Graphics } from 'pixi.js';
 import Matter from 'matter-js';
 import { PhysicsManager } from './PhysicsManager';
 import { InputManager } from './InputManager';
@@ -47,6 +47,7 @@ export class Game {
   private levelSystem: LevelSystem | null = null;
   private currentLevelConfig: LevelConfig | null = null;
   private warningLine: WarningLine | null = null;
+  private containerWalls: Graphics | null = null;
   private uiManager: UIManager;
   private gameHUD: GameHUD;
   private resultScreen: ResultScreen;
@@ -141,6 +142,15 @@ export class Game {
     this.physics.createRectangle(-25, h / 2, 50, h);
     this.physics.createRectangle(w + 25, h / 2, 50, h);
 
+    this.containerWalls = new Graphics();
+    this.containerWalls.rect(0, this.groundY, w, 50);
+    this.containerWalls.fill(0x2d2d44);
+    this.containerWalls.rect(0, 0, 3, h);
+    this.containerWalls.fill(0x3a3a5c);
+    this.containerWalls.rect(w - 3, 0, 3, h);
+    this.containerWalls.fill(0x3a3a5c);
+    this.app.stage.addChild(this.containerWalls);
+
     this.warningLine = new WarningLine(h, w);
     this.warningLine.y = h * 0.2;
     this.app.stage.addChild(this.warningLine);
@@ -212,23 +222,16 @@ export class Game {
   }
 
   private handleGameOver(): void {
-    this.levelSystem?.stopTimer();
-    this.stateMachine.transition('gameover');
-    this.physics.stop();
-    this.clearEverything();
-    this.audioManager.play('gameover');
-    this.resultScreen.setResult({
-      isWin: false,
-      score: this.scoreSystem.getCurrentScore(),
-      stars: 0,
-      levelId: this.levelSystem?.getConfig().id || 1,
-    });
-    this.uiManager.showScreen('result');
+    this.failGame();
   }
 
   private handleTimeout(): void {
+    this.failGame();
+  }
+
+  private failGame(): void {
     this.levelSystem?.stopTimer();
-    this.stateMachine.transition('gameover');
+    if (!this.stateMachine.transition('gameover')) return;
     this.physics.stop();
     this.clearEverything();
     this.audioManager.play('gameover');
@@ -300,6 +303,7 @@ export class Game {
     if (this.stateMachine.canTransition('paused')) {
       this.stateMachine.transition('paused');
       this.physics.stop();
+      this.levelSystem?.pause();
       this.preview.hide();
       this.uiManager.showScreen('pause');
     }
@@ -310,6 +314,7 @@ export class Game {
       this.stateMachine.transition('playing');
       this.uiManager.hideCurrentScreen();
       this.physics.start();
+      this.levelSystem?.resume();
     }
   }
 

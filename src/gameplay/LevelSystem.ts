@@ -26,6 +26,7 @@ export class LevelSystem {
   private obstaclesCleared = 0;
   private survivalTime = 0;
   private isCompleted = false;
+  private isPaused = false;
   private timer: ReturnType<typeof setInterval> | null = null;
   private highestMergeValue = 0;
   private onScoreUpdatedBound: (data: { totalScore: number }) => void;
@@ -63,6 +64,9 @@ export class LevelSystem {
   }
 
   private handleObstacleCleared(): void {
+    if (this.isCompleted) return;
+    const maxObstacles = this.config.obstacles?.length ?? this.config.objective.target;
+    if (this.obstaclesCleared >= maxObstacles) return;
     this.obstaclesCleared++;
     this.checkObjective();
   }
@@ -70,18 +74,31 @@ export class LevelSystem {
   start(): void {
     if (this.config.objective.timeLimit !== undefined && this.config.objective.timeLimit !== null) {
       this.survivalTime = 0;
-      this.timer = window.setInterval(() => {
-        this.survivalTime++;
-        if (this.config.objective.timeLimit !== undefined && this.config.objective.timeLimit !== null && this.survivalTime >= this.config.objective.timeLimit) {
-          if (this.config.objective.type === 'survival') {
-            this.completeLevel();
-          } else {
-            eventBus.emit('game:timeout');
-          }
-        }
-        eventBus.emit('level:timeUpdate', this.survivalTime);
-      }, 1000);
+      this.startTimer();
     }
+  }
+
+  private startTimer(): void {
+    this.timer = window.setInterval(() => {
+      if (this.isPaused || this.isCompleted) return;
+      this.survivalTime++;
+      if (this.config.objective.timeLimit !== undefined && this.config.objective.timeLimit !== null && this.survivalTime >= this.config.objective.timeLimit) {
+        if (this.config.objective.type === 'survival') {
+          this.completeLevel();
+        } else {
+          eventBus.emit('game:timeout');
+        }
+      }
+      eventBus.emit('level:timeUpdate', this.survivalTime);
+    }, 1000);
+  }
+
+  pause(): void {
+    this.isPaused = true;
+  }
+
+  resume(): void {
+    this.isPaused = false;
   }
 
   private checkObjective(): void {
@@ -152,6 +169,7 @@ export class LevelSystem {
     this.obstaclesCleared = 0;
     this.survivalTime = 0;
     this.isCompleted = false;
+    this.isPaused = false;
     this.highestMergeValue = 0;
     this.stopTimer();
   }
