@@ -11,7 +11,6 @@ export class PhysicsManager {
       gravity: { x: 0, y: 1.0, scale: 0.001 },
     });
     this.runner = Matter.Runner.create({
-      isFixed: true,
       delta: 1000 / 60,
     });
   }
