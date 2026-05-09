@@ -1,4 +1,5 @@
 import { Application } from 'pixi.js';
+import Matter from 'matter-js';
 import { PhysicsManager } from './PhysicsManager';
 import { InputManager } from './InputManager';
 import { ScoreSystem } from '../gameplay/ScoreSystem';
@@ -53,6 +54,8 @@ export class Game {
   private onResumeBound: () => void;
   private onRestartBound: () => void;
   private onBackToMenuBound: () => void;
+  private onNextLevelBound: () => void;
+  private onLevelSelectBound: () => void;
 
   constructor(canvas: HTMLCanvasElement) {
     this.app = new Application();
@@ -80,6 +83,8 @@ export class Game {
     this.onResumeBound = this.handleResume.bind(this);
     this.onRestartBound = this.handleRestart.bind(this);
     this.onBackToMenuBound = this.handleBackToMenu.bind(this);
+    this.onNextLevelBound = this.handleNextLevel.bind(this);
+    this.onLevelSelectBound = this.handleLevelSelect.bind(this);
   }
 
   async init(): Promise<void> {
@@ -173,6 +178,8 @@ export class Game {
     eventBus.on('ui:resume', this.onResumeBound);
     eventBus.on('ui:restart', this.onRestartBound);
     eventBus.on('ui:backToMenu', this.onBackToMenuBound);
+    eventBus.on('ui:nextLevel', this.onNextLevelBound);
+    eventBus.on('ui:levelSelect', this.onLevelSelectBound);
   }
 
   private handleBlockMerged(data: { newValue: number; position: { x: number; y: number } }): void {
@@ -244,7 +251,7 @@ export class Game {
     }
   }
 
-  private loadLevel(config: ReturnType<LevelSystem['getConfig']>): void {
+  private loadLevel(config: LevelConfig): void {
     if (this.levelSystem) {
       this.levelSystem.destroy();
     }
@@ -286,6 +293,29 @@ export class Game {
     this.clearEverything();
     this.uiManager.hideCurrentScreen();
     this.uiManager.showScreen('mainMenu');
+    this.stateMachine.transition('menu');
+  }
+
+  private async handleNextLevel(): Promise<void> {
+    const currentId = this.levelSystem?.getConfig().id || 1;
+    const nextId = currentId + 1;
+    this.uiManager.hideCurrentScreen();
+    this.resetGame();
+    const levelLoader = LevelLoader.getInstance();
+    const config = await levelLoader.loadLevel(nextId);
+    if (config) {
+      this.loadLevel(config);
+    } else {
+      this.uiManager.showScreen('levelSelect');
+      this.stateMachine.transition('menu');
+    }
+  }
+
+  private handleLevelSelect(): void {
+    this.physics.stop();
+    this.clearEverything();
+    this.uiManager.hideCurrentScreen();
+    this.uiManager.showScreen('levelSelect');
     this.stateMachine.transition('menu');
   }
 
@@ -366,7 +396,14 @@ export class Game {
       return true;
     });
 
-    this.blocks.forEach(block => block.syncFromBody());
+    this.blocks.forEach(block => {
+      block.syncFromBody();
+      if (block.body.isSleeping) {
+        Matter.Body.setStatic(block.body, false);
+        Matter.Sleeping.set(block.body, false);
+      }
+    });
+
     this.gameHUD.update(this.app.ticker.deltaMS / 16.67);
 
     if (this.warningLine) {
@@ -413,6 +450,8 @@ export class Game {
     eventBus.off('ui:resume', this.onResumeBound);
     eventBus.off('ui:restart', this.onRestartBound);
     eventBus.off('ui:backToMenu', this.onBackToMenuBound);
+    eventBus.off('ui:nextLevel', this.onNextLevelBound);
+    eventBus.off('ui:levelSelect', this.onLevelSelectBound);
     this.scoreSystem.destroy();
     this.levelSystem?.destroy();
     this.input.destroy();

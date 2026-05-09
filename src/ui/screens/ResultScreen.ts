@@ -14,6 +14,7 @@ export class ResultScreen extends Screen {
   private titleText!: Text;
   private scoreText!: Text;
   private starsText!: Text;
+  private nextLevelButton!: Container;
   private restartButton!: Container;
   private menuButton!: Container;
 
@@ -45,7 +46,7 @@ export class ResultScreen extends Screen {
     });
     this.titleText.anchor.set(0.5);
     this.titleText.x = 400;
-    this.titleText.y = 150;
+    this.titleText.y = 120;
     this.addChild(this.titleText);
   }
 
@@ -60,7 +61,7 @@ export class ResultScreen extends Screen {
     });
     this.scoreText.anchor.set(0.5);
     this.scoreText.x = 400;
-    this.scoreText.y = 220;
+    this.scoreText.y = 200;
     this.addChild(this.scoreText);
   }
 
@@ -75,28 +76,39 @@ export class ResultScreen extends Screen {
     });
     this.starsText.anchor.set(0.5);
     this.starsText.x = 400;
-    this.starsText.y = 280;
+    this.starsText.y = 260;
     this.addChild(this.starsText);
   }
 
   private createButtons(): void {
-    this.restartButton = this.createButton('重新开始', 320, 380, () => {
+    this.nextLevelButton = this.createButton('下一关', 0x4ECDC4, () => {
+      eventBus.emit('ui:nextLevel');
+    });
+    this.nextLevelButton.x = 400;
+    this.nextLevelButton.y = 340;
+    this.addChild(this.nextLevelButton);
+
+    this.restartButton = this.createButton('重新开始', 0xFF6B6B, () => {
       eventBus.emit('ui:restart');
     });
+    this.restartButton.x = 300;
+    this.restartButton.y = 420;
     this.addChild(this.restartButton);
 
-    this.menuButton = this.createButton('主菜单', 480, 380, () => {
-      eventBus.emit('ui:backToMenu');
+    this.menuButton = this.createButton('关卡选择', 0x95E1D3, () => {
+      eventBus.emit('ui:levelSelect');
     });
+    this.menuButton.x = 500;
+    this.menuButton.y = 420;
     this.addChild(this.menuButton);
   }
 
-  private createButton(label: string, x: number, y: number, onClick: () => void): Container {
+  private createButton(label: string, color: number, onClick: () => void): Container {
     const button = new Container();
 
     const bg = new Graphics();
-    bg.roundRect(-60, -25, 120, 50, 10);
-    bg.fill(0x4ECDC4);
+    bg.roundRect(-70, -25, 140, 50, 10);
+    bg.fill(color);
     button.addChild(bg);
 
     const text = new Text({
@@ -105,16 +117,18 @@ export class ResultScreen extends Screen {
         fontFamily: 'Arial',
         fontSize: 18,
         fill: 0xffffff,
+        fontWeight: 'bold',
       },
     });
     text.anchor.set(0.5);
     button.addChild(text);
 
-    button.x = x;
-    button.y = y;
     button.eventMode = 'static';
     button.cursor = 'pointer';
     button.on('pointerdown', onClick);
+
+    button.on('pointerover', () => { bg.scale.set(1.05); });
+    button.on('pointerout', () => { bg.scale.set(1); });
 
     return button;
   }
@@ -125,6 +139,7 @@ export class ResultScreen extends Screen {
     this.titleText.style.fill = data.isWin ? 0x4ECDC4 : 0xff4444;
     this.scoreText.text = `得分: ${data.score.toLocaleString()}`;
     this.starsText.text = '★'.repeat(data.stars) + '☆'.repeat(3 - data.stars);
+    this.nextLevelButton.visible = data.isWin;
   }
 
   show(): void {

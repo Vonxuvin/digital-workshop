@@ -110,10 +110,9 @@ export class GameHUD extends Container {
   update(delta: number): void {
     if (this.displayScore < this.currentScore) {
       const diff = this.currentScore - this.displayScore;
-      this.displayScore += Math.ceil(diff * 0.1 * delta);
-      if (this.displayScore > this.currentScore) {
-        this.displayScore = this.currentScore;
-      }
+      const clampedDelta = Math.min(delta, 3);
+      const increment = Math.max(1, Math.round(diff * 0.15 * clampedDelta));
+      this.displayScore = Math.min(this.displayScore + increment, this.currentScore);
       this.scoreText.text = `Score: ${this.displayScore.toLocaleString()}`;
     }
   }

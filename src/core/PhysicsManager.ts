@@ -9,7 +9,7 @@ export class PhysicsManager {
 
   constructor() {
     this.engine = Matter.Engine.create({
-      gravity: { x: 0, y: 1.0, scale: 0.001 },
+      gravity: { x: 0, y: 1.5, scale: 0.001 },
     });
     this.runner = Matter.Runner.create({
       delta: 1000 / 60,
@@ -34,11 +34,12 @@ export class PhysicsManager {
 
   createCircle(x: number, y: number, radius: number, options?: Matter.IBodyDefinition): Matter.Body {
     const body = Matter.Bodies.circle(x, y, radius, {
-      restitution: 0.3,
-      friction: 0.5,
-      frictionAir: 0.01,
-      density: 0.001,
-      sleepThreshold: 0.5,
+      restitution: 0.2,
+      friction: 0.8,
+      frictionAir: 0.02,
+      frictionStatic: 0.5,
+      density: 0.002,
+      sleepThreshold: Infinity,
       ...options,
     });
     body.label = `block_${++this.idCounter}`;
@@ -50,6 +51,7 @@ export class PhysicsManager {
   createRectangle(x: number, y: number, width: number, height: number, options?: Matter.IBodyDefinition): Matter.Body {
     const body = Matter.Bodies.rectangle(x, y, width, height, {
       isStatic: true,
+      friction: 0.8,
       ...options,
     });
     Matter.Composite.add(this.engine.world, body);
