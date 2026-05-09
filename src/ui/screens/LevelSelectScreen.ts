@@ -43,6 +43,7 @@ export class LevelSelectScreen extends Screen {
     { id: 4, name: '限时生存', stars: 0, unlocked: false },
     { id: 5, name: '综合考验', stars: 0, unlocked: false },
   ];
+  private levelButtons: Container[] = [];
 
   constructor() {
     super();
@@ -61,9 +62,7 @@ export class LevelSelectScreen extends Screen {
         level.unlocked = saved.unlocked;
       }
     }
-    if (this.levels.length > 0) {
-      this.levels[0].unlocked = true;
-    }
+    this.levels[0].unlocked = true;
     for (let i = 1; i < this.levels.length; i++) {
       if (this.levels[i - 1].stars > 0) {
         this.levels[i].unlocked = true;
@@ -77,7 +76,7 @@ export class LevelSelectScreen extends Screen {
       level.stars = stars;
     }
     const nextLevel = this.levels.find(l => l.id === levelId + 1);
-    if (nextLevel && stars > 0) {
+    if (nextLevel) {
       nextLevel.unlocked = true;
     }
     const progress = loadProgress();
@@ -85,6 +84,16 @@ export class LevelSelectScreen extends Screen {
       progress.set(l.id, { stars: l.stars, unlocked: l.unlocked });
     }
     saveProgress(progress);
+    this.refreshLevelButtons();
+  }
+
+  private refreshLevelButtons(): void {
+    this.levelButtons.forEach(btn => {
+      this.removeChild(btn);
+      btn.destroy();
+    });
+    this.levelButtons = [];
+    this.createLevelButtons();
   }
 
   private createTitle(): void {
@@ -107,6 +116,7 @@ export class LevelSelectScreen extends Screen {
     this.levels.forEach((level, index) => {
       const button = this.createLevelButton(level, index);
       this.addChild(button);
+      this.levelButtons.push(button);
     });
   }
 
@@ -207,6 +217,8 @@ export class LevelSelectScreen extends Screen {
   }
 
   show(): void {
+    this.loadSavedProgress();
+    this.refreshLevelButtons();
     this.visible = true;
   }
 
