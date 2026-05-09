@@ -9,7 +9,7 @@ export class PhysicsManager {
 
   constructor() {
     this.engine = Matter.Engine.create({
-      gravity: { x: 0, y: 1.2, scale: 1 },
+      gravity: { x: 0, y: 1.0, scale: 0.001 },
     });
     this.runner = Matter.Runner.create({
       delta: 1000 / 60,
