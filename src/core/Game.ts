@@ -21,6 +21,14 @@ import { GameHUD } from '../ui/hud/GameHUD';
 import { createPlatformAdapter } from '../platform/PlatformFactory';
 import { eventBus } from '../utils/EventBus';
 
+interface BlockMergedData {
+  newValue: number;
+  position: { x: number; y: number };
+  chainCount: number;
+  newBlock: Block;
+  destroyedBlocks: Block[];
+}
+
 export class Game {
   private app: Application;
   private physics: PhysicsManager;
@@ -44,8 +52,7 @@ export class Game {
   private pauseScreen: PauseScreen;
   private audioManager: AudioManager;
   private effects: MergeEffect[] = [];
-  private onBlockMergedBound: (data: { newValue: number; position: { x: number; y: number } }) => void;
-  private onBlocksDestroyedBound: (data: { blocks: Block[] }) => void;
+  private onBlockMergedBound: (data: BlockMergedData) => void;
   private onGameOverBound: () => void;
   private onLevelCompletedBound: (data: { score: number; levelId: number }) => void;
   private onStartGameBound: () => void;
@@ -74,7 +81,6 @@ export class Game {
     this.groundY = window.innerHeight - 50;
 
     this.onBlockMergedBound = this.handleBlockMerged.bind(this);
-    this.onBlocksDestroyedBound = this.handleBlocksDestroyed.bind(this);
     this.onGameOverBound = this.handleGameOver.bind(this);
     this.onLevelCompletedBound = this.handleLevelCompleted.bind(this);
     this.onStartGameBound = this.handleStartGame.bind(this);
@@ -169,7 +175,6 @@ export class Game {
 
   private setupEventListeners(): void {
     eventBus.on('block:merged', this.onBlockMergedBound);
-    eventBus.on('blocks:destroyed', this.onBlocksDestroyedBound);
     eventBus.on('game:over', this.onGameOverBound);
     eventBus.on('level:completed', this.onLevelCompletedBound);
     eventBus.on('ui:startGame', this.onStartGameBound);
@@ -182,16 +187,23 @@ export class Game {
     eventBus.on('ui:levelSelect', this.onLevelSelectBound);
   }
 
-  private handleBlockMerged(data: { newValue: number; position: { x: number; y: number } }): void {
+  private handleBlockMerged(data: BlockMergedData): void {
     this.audioManager.play('merge');
+
+    for (const destroyed of data.destroyedBlocks) {
+      const idx = this.blocks.indexOf(destroyed);
+      if (idx !== -1) {
+        this.blocks.splice(idx, 1);
+      }
+    }
+
+    this.app.stage.addChild(data.newBlock);
+    this.blocks.push(data.newBlock);
+
     const config = BLOCK_CONFIGS[data.newValue] || BLOCK_CONFIGS[1];
     const effect = new MergeEffect(data.position.x, data.position.y, config.color);
     this.app.stage.addChild(effect);
     this.effects.push(effect);
-  }
-
-  private handleBlocksDestroyed(data: { blocks: Block[] }): void {
-    this.blocks = this.blocks.filter(block => !data.blocks.includes(block));
   }
 
   private handleGameOver(): void {
@@ -342,9 +354,11 @@ export class Game {
 
   private clearBlocks(): void {
     this.blocks.forEach(block => {
-      this.mergeSystem.unregisterBlock(block);
-      this.physics.removeBody(block.body);
-      block.destroy();
+      if (!block.isDestroyed) {
+        this.mergeSystem.unregisterBlock(block);
+        this.physics.removeBody(block.body);
+        block.destroy();
+      }
     });
     this.blocks = [];
   }
@@ -399,7 +413,6 @@ export class Game {
     this.blocks.forEach(block => {
       block.syncFromBody();
       if (block.body.isSleeping) {
-        Matter.Body.setStatic(block.body, false);
         Matter.Sleeping.set(block.body, false);
       }
     });
@@ -441,7 +454,6 @@ export class Game {
 
   destroy(): void {
     eventBus.off('block:merged', this.onBlockMergedBound);
-    eventBus.off('blocks:destroyed', this.onBlocksDestroyedBound);
     eventBus.off('game:over', this.onGameOverBound);
     eventBus.off('level:completed', this.onLevelCompletedBound);
     eventBus.off('ui:startGame', this.onStartGameBound);

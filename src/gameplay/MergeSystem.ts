@@ -3,14 +3,6 @@ import { Block, BLOCK_CONFIGS } from './Block';
 import { PhysicsManager } from '../core/PhysicsManager';
 import { eventBus } from '../utils/EventBus';
 
-export interface MergeResult {
-  newValue: number;
-  position: { x: number; y: number };
-  chainCount: number;
-  newBlock: Block;
-  destroyedBlocks: Block[];
-}
-
 export class MergeSystem {
   private physics: PhysicsManager;
   private blocks: Map<string, Block> = new Map();
@@ -59,17 +51,20 @@ export class MergeSystem {
     const velocityX = (blockA.body.velocity.x + blockB.body.velocity.x) / 2;
     const velocityY = (blockA.body.velocity.y + blockB.body.velocity.y) / 2;
 
+    const labelA = blockA.body.label;
+    const labelB = blockB.body.label;
+
     this.unregisterBlock(blockA);
     this.unregisterBlock(blockB);
 
     this.physics.removeBody(blockA.body);
     this.physics.removeBody(blockB.body);
 
+    this.mergingBodies.delete(labelA);
+    this.mergingBodies.delete(labelB);
+
     blockA.destroy();
     blockB.destroy();
-
-    this.mergingBodies.delete(blockA.body.label);
-    this.mergingBodies.delete(blockB.body.label);
 
     const config = BLOCK_CONFIGS[newValue] || {
       value: newValue,
@@ -94,10 +89,6 @@ export class MergeSystem {
       destroyedBlocks: [blockA, blockB],
     });
 
-    eventBus.emit('blocks:destroyed', {
-      blocks: [blockA, blockB],
-    });
-
     console.log(`[MergeSystem] 合成: ${blockA.value} + ${blockB.value} = ${newValue}`);
 
     setTimeout(() => {
@@ -106,6 +97,8 @@ export class MergeSystem {
   }
 
   private checkChainReaction(block: Block): void {
+    if (block.isDestroyed) return;
+
     const nearbyBodies = this.physics.getAllBodies().filter(b => {
       if (b === block.body || b.isStatic) return false;
       const dist = Matter.Vector.magnitude(Matter.Vector.sub(block.body.position, b.position));
@@ -114,7 +107,7 @@ export class MergeSystem {
 
     for (const other of nearbyBodies) {
       const otherBlock = this.blocks.get(other.label);
-      if (otherBlock && otherBlock.value === block.value) {
+      if (otherBlock && !otherBlock.isDestroyed && otherBlock.value === block.value) {
         this.mergeBlocks(block, otherBlock);
         break;
       }
