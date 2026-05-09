@@ -142,18 +142,18 @@ export class Game {
     const dropY = 80;
 
     this.input.onDown((state) => {
-      if (!this.canDrop) return;
+      if (!this.canDrop || this.stateMachine.getCurrentState() !== 'playing') return;
       this.preview.show(this.currentValue, state.position.x, dropY);
     });
 
     this.input.onMove((state) => {
-      if (state.isDown && this.preview.visible) {
+      if (state.isDown && this.preview.visible && this.stateMachine.getCurrentState() === 'playing') {
         this.preview.updatePosition(state.position.x);
       }
     });
 
     this.input.onUp(() => {
-      if (this.preview.visible && this.canDrop) {
+      if (this.preview.visible && this.canDrop && this.stateMachine.getCurrentState() === 'playing') {
         this.dropBlock(this.preview.getTargetX(), dropY, this.currentValue);
         this.preview.hide();
         this.startCooldown();
@@ -308,6 +308,8 @@ export class Game {
   }
 
   private update(): void {
+    if (this.stateMachine.getCurrentState() !== 'playing') return;
+
     this.blocks = this.blocks.filter(block => {
       if (block.isDestroyed) return false;
       if (block.y > this.app.screen.height + 100) {
