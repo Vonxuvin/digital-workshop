@@ -1,0 +1,89 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { GameStateMachine } from '../src/core/GameStateMachine';
+
+describe('GameStateMachine', () => {
+  let sm: GameStateMachine;
+
+  beforeEach(() => {
+    sm = new GameStateMachine();
+  });
+
+  it('should start in menu state', () => {
+    expect(sm.getCurrentState()).toBe('menu');
+  });
+
+  it('should transition from menu to playing', () => {
+    sm.transition('playing');
+    expect(sm.getCurrentState()).toBe('playing');
+  });
+
+  it('should not transition to same state', () => {
+    sm.transition('menu');
+    expect(sm.getCurrentState()).toBe('menu');
+  });
+
+  it('should track state history', () => {
+    sm.transition('playing');
+    expect(sm.getPreviousState()).toBe('menu');
+  });
+
+  it('should return null previous state initially', () => {
+    expect(sm.getPreviousState()).toBeNull();
+  });
+
+  it('should validate transitions correctly', () => {
+    expect(sm.canTransition('playing')).toBe(true);
+    expect(sm.canTransition('paused')).toBe(false);
+    expect(sm.canTransition('gameover')).toBe(false);
+  });
+
+  it('should validate playing transitions', () => {
+    sm.transition('playing');
+    expect(sm.canTransition('paused')).toBe(true);
+    expect(sm.canTransition('gameover')).toBe(true);
+    expect(sm.canTransition('levelComplete')).toBe(true);
+    expect(sm.canTransition('menu')).toBe(false);
+  });
+
+  it('should validate paused transitions', () => {
+    sm.transition('playing');
+    sm.transition('paused');
+    expect(sm.canTransition('playing')).toBe(true);
+    expect(sm.canTransition('menu')).toBe(true);
+  });
+
+  it('should validate gameover transitions', () => {
+    sm.transition('playing');
+    sm.transition('gameover');
+    expect(sm.canTransition('menu')).toBe(true);
+    expect(sm.canTransition('playing')).toBe(true);
+  });
+
+  it('should validate levelComplete transitions', () => {
+    sm.transition('playing');
+    sm.transition('levelComplete');
+    expect(sm.canTransition('menu')).toBe(true);
+    expect(sm.canTransition('playing')).toBe(true);
+  });
+
+  it('should fire onEnter callback', () => {
+    const callback = vi.fn();
+    sm.onEnter('playing', callback);
+    sm.transition('playing');
+    expect(callback).toHaveBeenCalledWith('menu', 'playing');
+  });
+
+  it('should fire onAnyChange callback', () => {
+    const callback = vi.fn();
+    sm.onAnyChange(callback);
+    sm.transition('playing');
+    expect(callback).toHaveBeenCalledWith('menu', 'playing');
+  });
+
+  it('should reset to menu', () => {
+    sm.transition('playing');
+    sm.reset();
+    expect(sm.getCurrentState()).toBe('menu');
+    expect(sm.getPreviousState()).toBeNull();
+  });
+});

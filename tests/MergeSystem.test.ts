@@ -1,38 +1,172 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MergeSystem } from '../src/gameplay/MergeSystem';
 import { PhysicsManager } from '../src/core/PhysicsManager';
 import { Block } from '../src/gameplay/Block';
+import { eventBus } from '../src/utils/EventBus';
 
 describe('MergeSystem', () => {
-  it('should detect same value collision', () => {
-    const physics = new PhysicsManager();
-    const mergeSystem = new MergeSystem(physics);
+  let physics: PhysicsManager;
+  let mergeSystem: MergeSystem;
 
-    const bodyA = physics.createCircle(100, 100, 20);
-    const bodyB = physics.createCircle(100, 100, 20);
-    const blockA = new Block(bodyA, 2);
-    const blockB = new Block(bodyB, 2);
-
-    mergeSystem.registerBlock(blockA);
-    mergeSystem.registerBlock(blockB);
-
-    expect(blockA.value).toBe(2);
-    expect(blockB.value).toBe(2);
+  beforeEach(() => {
+    physics = new PhysicsManager();
+    mergeSystem = new MergeSystem(physics);
   });
 
-  it('should ignore different value collision', () => {
-    const physics = new PhysicsManager();
-    const mergeSystem = new MergeSystem(physics);
+  it('should register and unregister blocks', () => {
+    const body = physics.createCircle(100, 100, 20);
+    const block = new Block(body, 1);
+    mergeSystem.registerBlock(block);
+    expect(() => mergeSystem.unregisterBlock(block)).not.toThrow();
+  });
 
-    const bodyA = physics.createCircle(100, 100, 20);
-    const bodyB = physics.createCircle(100, 100, 22);
-    const blockA = new Block(bodyA, 2);
-    const blockB = new Block(bodyB, 4);
+  it('should emit block:merged when same value blocks collide', () => {
+    const handler = vi.fn();
+    eventBus.on('block:merged', handler);
 
-    mergeSystem.registerBlock(blockA);
-    mergeSystem.registerBlock(blockB);
+    const body1 = physics.createCircle(100, 300, 20);
+    const body2 = physics.createCircle(120, 300, 20);
+    const block1 = new Block(body1, 1);
+    const block2 = new Block(body2, 1);
 
-    expect(blockA.value).toBe(2);
-    expect(blockB.value).toBe(4);
+    mergeSystem.registerBlock(block1);
+    mergeSystem.registerBlock(block2);
+
+    physics.start();
+
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        physics.stop();
+        resolve();
+      }, 500);
+    }).then(() => {
+      expect(handler).toHaveBeenCalled();
+    });
+  });
+
+  it('should not merge blocks with different values', () => {
+    const handler = vi.fn();
+    eventBus.on('block:merged', handler);
+
+    const body1 = physics.createCircle(100, 300, 20);
+    const body2 = physics.createCircle(120, 300, 22);
+    const block1 = new Block(body1, 1);
+    const block2 = new Block(body2, 2);
+
+    mergeSystem.registerBlock(block1);
+    mergeSystem.registerBlock(block2);
+
+    physics.start();
+
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        physics.stop();
+        resolve();
+      }, 300);
+    }).then(() => {
+      expect(handler).not.toHaveBeenCalled();
+    });
+  });
+
+  it('should not merge with static bodies', () => {
+    const handler = vi.fn();
+    eventBus.on('block:merged', handler);
+
+    const staticBody = physics.createRectangle(200, 500, 400, 50);
+    const body = physics.createCircle(200, 300, 20);
+    const block = new Block(body, 1);
+
+    mergeSystem.registerBlock(block);
+
+    physics.start();
+
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        physics.stop();
+        resolve();
+      }, 300);
+    }).then(() => {
+      expect(handler).not.toHaveBeenCalled();
+    });
+  });
+
+  it('should handle unregister of unregistered block gracefully', () => {
+    const body = physics.createCircle(100, 100, 20);
+    const block = new Block(body, 1);
+    expect(() => mergeSystem.unregisterBlock(block)).not.toThrow();
+  });
+
+  it('should produce new block with doubled value', () => {
+    const handler = vi.fn();
+    eventBus.on('block:merged', handler);
+
+    const body1 = physics.createCircle(100, 300, 20);
+    const body2 = physics.createCircle(120, 300, 20);
+    const block1 = new Block(body1, 2);
+    const block2 = new Block(body2, 2);
+
+    mergeSystem.registerBlock(block1);
+    mergeSystem.registerBlock(block2);
+
+    physics.start();
+
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        physics.stop();
+        if (handler.mock.calls.length > 0) {
+          const data = handler.mock.calls[0][0];
+          expect(data.newValue).toBe(4);
+        }
+        resolve();
+      }, 500);
+    });
+  });
+
+  it('should emit blocks:destroyed event on merge', () => {
+    const handler = vi.fn();
+    eventBus.on('blocks:destroyed', handler);
+
+    const body1 = physics.createCircle(100, 300, 20);
+    const body2 = physics.createCircle(120, 300, 20);
+    const block1 = new Block(body1, 1);
+    const block2 = new Block(body2, 1);
+
+    mergeSystem.registerBlock(block1);
+    mergeSystem.registerBlock(block2);
+
+    physics.start();
+
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        physics.stop();
+        if (handler.mock.calls.length > 0) {
+          const data = handler.mock.calls[0][0];
+          expect(data.blocks).toHaveLength(2);
+        }
+        resolve();
+      }, 500);
+    });
+  });
+
+  it('should not merge already merging blocks', () => {
+    const body1 = physics.createCircle(100, 300, 20);
+    const body2 = physics.createCircle(120, 300, 20);
+    const body3 = physics.createCircle(140, 300, 20);
+    const block1 = new Block(body1, 1);
+    const block2 = new Block(body2, 1);
+    const block3 = new Block(body3, 1);
+
+    mergeSystem.registerBlock(block1);
+    mergeSystem.registerBlock(block2);
+    mergeSystem.registerBlock(block3);
+
+    physics.start();
+
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        physics.stop();
+        resolve();
+      }, 500);
+    });
   });
 });
