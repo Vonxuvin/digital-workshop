@@ -221,7 +221,7 @@ export class Game {
   }
 
   private failGame(): void {
-    this.levelSystem?.stopTimer();
+    this.levelSystem?.forceComplete();
     if (!this.stateMachine.transition('gameover')) return;
     this.physics.stop();
     this.clearEverything();
@@ -462,21 +462,25 @@ export class Game {
     this.containerWalls = new Graphics();
     this.containerWalls.rect(0, this.groundY, w, 50);
     this.containerWalls.fill(0x2d2d44);
-    this.containerWalls.rect(0, 0, 6, h);
+    this.containerWalls.rect(0, 0, 6, this.groundY);
     this.containerWalls.fill(0x4a4a6a);
-    this.containerWalls.rect(w - 6, 0, 6, h);
+    this.containerWalls.rect(w - 6, 0, 6, this.groundY);
     this.containerWalls.fill(0x4a4a6a);
-    this.containerWalls.stroke({ width: 2, color: 0x6a6a8a });
     this.containerWalls.moveTo(0, 0);
-    this.containerWalls.lineTo(0, h);
+    this.containerWalls.lineTo(0, this.groundY);
+    this.containerWalls.stroke({ width: 2, color: 0x6a6a8a });
     this.containerWalls.moveTo(6, 0);
-    this.containerWalls.lineTo(6, h);
+    this.containerWalls.lineTo(6, this.groundY);
+    this.containerWalls.stroke({ width: 1, color: 0x5a5a7a });
     this.containerWalls.moveTo(w - 6, 0);
-    this.containerWalls.lineTo(w - 6, h);
+    this.containerWalls.lineTo(w - 6, this.groundY);
+    this.containerWalls.stroke({ width: 1, color: 0x5a5a7a });
     this.containerWalls.moveTo(w, 0);
-    this.containerWalls.lineTo(w, h);
+    this.containerWalls.lineTo(w, this.groundY);
+    this.containerWalls.stroke({ width: 2, color: 0x6a6a8a });
     this.containerWalls.moveTo(0, this.groundY);
     this.containerWalls.lineTo(w, this.groundY);
+    this.containerWalls.stroke({ width: 2, color: 0x6a6a8a });
     this.app.stage.addChild(this.containerWalls);
   }
 

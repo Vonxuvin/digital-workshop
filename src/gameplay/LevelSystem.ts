@@ -137,6 +137,11 @@ export class LevelSystem {
     }
   }
 
+  forceComplete(): void {
+    this.isCompleted = true;
+    this.stopTimer();
+  }
+
   getConfig(): LevelConfig {
     return this.config;
   }
