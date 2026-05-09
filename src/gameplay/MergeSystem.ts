@@ -78,20 +78,28 @@ export class MergeSystem {
     });
     Matter.Body.setVelocity(newBody, { x: velocityX, y: velocityY });
 
+    const newBlock = new Block(newBody, newValue);
+    this.registerBlock(newBlock);
+    this.mergingBodies.delete(blockA.body.label);
+    this.mergingBodies.delete(blockB.body.label);
+
     eventBus.emit('block:merged', {
       newValue,
       position: { x: posX, y: posY },
       chainCount: 1,
+      newBlock,
+      destroyedBlocks: [blockA, blockB],
     });
 
     console.log(`[MergeSystem] 合成: ${blockA.value} + ${blockB.value} = ${newValue}`);
 
     setTimeout(() => {
-      this.checkChainReaction(newBody, newValue);
+      this.checkChainReaction(newBlock);
     }, 50);
   }
 
-  private checkChainReaction(body: Matter.Body, value: number): void {
+  private checkChainReaction(newBlock: Block): void {
+    const body = newBlock.body;
     const nearbyBodies = this.physics.getAllBodies().filter(b => {
       if (b === body || b.isStatic) return false;
       const dist = Matter.Vector.magnitude(Matter.Vector.sub(body.position, b.position));
@@ -100,13 +108,8 @@ export class MergeSystem {
 
     for (const other of nearbyBodies) {
       const otherBlock = this.blocks.get(other.label);
-      if (otherBlock && otherBlock.value === value) {
-        this.mergingBodies.add(body.label);
-        this.mergingBodies.add(other.label);
-        const newBlock = this.blocks.get(body.label);
-        if (newBlock) {
-          this.mergeBlocks(newBlock, otherBlock);
-        }
+      if (otherBlock && otherBlock.value === newBlock.value) {
+        this.mergeBlocks(newBlock, otherBlock);
         break;
       }
     }
