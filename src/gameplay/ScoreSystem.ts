@@ -28,19 +28,19 @@ export class ScoreSystem {
   private chainCount = 0;
   private chainTimer: number | null = null;
   private readonly chainTimeout = 2000;
+  private onMergeBound: (data: { newValue: number; chainCount: number }) => void;
 
   constructor() {
+    this.onMergeBound = this.handleMerge.bind(this);
     this.setupEventListeners();
   }
 
   private setupEventListeners(): void {
-    eventBus.on('block:merged', (data: { newValue: number; chainCount: number }) => {
-      this.handleMerge(data.newValue, data.chainCount);
-    });
+    eventBus.on('block:merged', this.onMergeBound);
   }
 
-  private handleMerge(newValue: number, chainCount: number): void {
-    const config = SCORE_CONFIGS[newValue] || { baseScore: newValue * 10, chainMultiplier: 1.0 };
+  private handleMerge(data: { newValue: number; chainCount: number }): void {
+    const config = SCORE_CONFIGS[data.newValue] || { baseScore: data.newValue * 10, chainMultiplier: 1.0 };
 
     this.chainCount++;
 
@@ -64,7 +64,7 @@ export class ScoreSystem {
       baseScore: config.baseScore,
     });
 
-    console.log(`[ScoreSystem] 合成 ${newValue}，获得 ${earnedScore} 分，连锁 x${this.chainCount}`);
+    console.log(`[ScoreSystem] 合成 ${data.newValue}，获得 ${earnedScore} 分，连锁 x${this.chainCount}`);
   }
 
   getCurrentScore(): number {
@@ -82,5 +82,10 @@ export class ScoreSystem {
       clearTimeout(this.chainTimer);
       this.chainTimer = null;
     }
+  }
+
+  destroy(): void {
+    eventBus.off('block:merged', this.onMergeBound);
+    this.reset();
   }
 }

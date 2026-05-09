@@ -16,6 +16,8 @@ export interface LevelConfig {
   containerHeight: number;
   availableNumbers: number[];
   spawnInterval?: number;
+  obstacles?: Array<{ x: number; y: number; value: number }>;
+  rewards?: { stars: number[] };
 }
 
 export class LevelSystem {
@@ -24,39 +26,53 @@ export class LevelSystem {
   private obstaclesCleared = 0;
   private survivalTime = 0;
   private isCompleted = false;
-  private timer: number | null = null;
+  private timer: ReturnType<typeof setInterval> | null = null;
+  private highestMergeValue = 0;
+  private onScoreUpdatedBound: (data: { totalScore: number }) => void;
+  private onBlockMergedBound: (data: { newValue: number }) => void;
+  private onObstacleClearedBound: () => void;
 
   constructor(config: LevelConfig) {
     this.config = config;
+    this.onScoreUpdatedBound = this.handleScoreUpdated.bind(this);
+    this.onBlockMergedBound = this.handleBlockMerged.bind(this);
+    this.onObstacleClearedBound = this.handleObstacleCleared.bind(this);
     this.setupEventListeners();
   }
 
   private setupEventListeners(): void {
-    eventBus.on('score:updated', (data: { totalScore: number }) => {
-      this.currentScore = data.totalScore;
-      this.checkObjective();
-    });
+    eventBus.on('score:updated', this.onScoreUpdatedBound);
+    eventBus.on('block:merged', this.onBlockMergedBound);
+    eventBus.on('obstacle:cleared', this.onObstacleClearedBound);
+  }
 
-    eventBus.on('block:merged', (data: { newValue: number }) => {
-      if (this.config.objective.type === 'target_merge') {
-        if (data.newValue >= this.config.objective.target) {
-          this.completeLevel();
-        }
+  private handleScoreUpdated(data: { totalScore: number }): void {
+    this.currentScore = data.totalScore;
+    this.checkObjective();
+  }
+
+  private handleBlockMerged(data: { newValue: number }): void {
+    if (data.newValue > this.highestMergeValue) {
+      this.highestMergeValue = data.newValue;
+    }
+    if (this.config.objective.type === 'target_merge') {
+      if (data.newValue >= this.config.objective.target) {
+        this.completeLevel();
       }
-    });
+    }
+  }
 
-    eventBus.on('obstacle:cleared', () => {
-      this.obstaclesCleared++;
-      this.checkObjective();
-    });
+  private handleObstacleCleared(): void {
+    this.obstaclesCleared++;
+    this.checkObjective();
   }
 
   start(): void {
-    if (this.config.objective.timeLimit) {
+    if (this.config.objective.timeLimit !== undefined && this.config.objective.timeLimit !== null) {
       this.survivalTime = 0;
       this.timer = window.setInterval(() => {
         this.survivalTime++;
-        if (this.config.objective.timeLimit && this.survivalTime >= this.config.objective.timeLimit) {
+        if (this.config.objective.timeLimit !== undefined && this.config.objective.timeLimit !== null && this.survivalTime >= this.config.objective.timeLimit) {
           if (this.config.objective.type === 'survival') {
             this.completeLevel();
           } else {
@@ -112,13 +128,16 @@ export class LevelSystem {
     const objective = this.config.objective;
     switch (objective.type) {
       case 'score':
-        return Math.min(this.currentScore / objective.target, 1);
+        return objective.target > 0 ? Math.min(this.currentScore / objective.target, 1) : 1;
       case 'target_merge':
-        return 0;
+        if (objective.target <= 0) return 1;
+        return Math.min(this.highestMergeValue / objective.target, 1);
       case 'clear_obstacle':
-        return Math.min(this.obstaclesCleared / objective.target, 1);
+        return objective.target > 0 ? Math.min(this.obstaclesCleared / objective.target, 1) : 1;
       case 'survival':
-        return objective.timeLimit ? this.survivalTime / objective.timeLimit : 0;
+        return (objective.timeLimit !== undefined && objective.timeLimit !== null && objective.timeLimit > 0)
+          ? this.survivalTime / objective.timeLimit
+          : 0;
       default:
         return 0;
     }
@@ -133,6 +152,14 @@ export class LevelSystem {
     this.obstaclesCleared = 0;
     this.survivalTime = 0;
     this.isCompleted = false;
+    this.highestMergeValue = 0;
+    this.stopTimer();
+  }
+
+  destroy(): void {
+    eventBus.off('score:updated', this.onScoreUpdatedBound);
+    eventBus.off('block:merged', this.onBlockMergedBound);
+    eventBus.off('obstacle:cleared', this.onObstacleClearedBound);
     this.stopTimer();
   }
 }

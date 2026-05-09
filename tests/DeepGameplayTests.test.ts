@@ -177,17 +177,17 @@ describe('LevelSystem Deep Tests', () => {
     });
   });
 
-  describe('BUG: getProgress() returns 0 for target_merge type', () => {
-    it('always returns 0 for target_merge regardless of merge progress', () => {
+  describe('FIXED: getProgress() returns actual progress for target_merge type', () => {
+    it('returns correct progress for target_merge based on highestMergeValue', () => {
       ls = new LevelSystem(mergeConfig);
       expect(ls.getProgress()).toBe(0);
 
       eventBus.emit('block:merged', { newValue: 8, chainCount: 1 });
-      expect(ls.getProgress()).toBe(0);
+      expect(ls.getProgress()).toBeCloseTo(8 / 16);
 
       eventBus.emit('block:merged', { newValue: 16, chainCount: 1 });
       expect(ls.isLevelCompleted()).toBe(true);
-      expect(ls.getProgress()).toBe(0);
+      expect(ls.getProgress()).toBe(1);
     });
   });
 

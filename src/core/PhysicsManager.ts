@@ -5,6 +5,7 @@ export class PhysicsManager {
   private runner: Matter.Runner;
   private bodies: Map<number, Matter.Body> = new Map();
   private idCounter = 0;
+  private running = false;
 
   constructor() {
     this.engine = Matter.Engine.create({
@@ -16,11 +17,19 @@ export class PhysicsManager {
   }
 
   start(): void {
+    if (this.running) return;
+    this.running = true;
     Matter.Runner.run(this.runner, this.engine);
   }
 
   stop(): void {
+    if (!this.running) return;
+    this.running = false;
     Matter.Runner.stop(this.runner);
+  }
+
+  isRunning(): boolean {
+    return this.running;
   }
 
   createCircle(x: number, y: number, radius: number, options?: Matter.IBodyDefinition): Matter.Body {

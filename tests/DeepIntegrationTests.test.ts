@@ -224,12 +224,13 @@ describe('Deep Integration Tests', () => {
         expect(sm.canTransition('paused')).toBe(false);
       });
 
-      it('transition() does not validate against canTransition rules', () => {
+      it('transition() now validates against canTransition rules', () => {
         sm.transition('playing');
         sm.transition('paused');
         expect(sm.canTransition('gameover')).toBe(false);
-        sm.transition('gameover');
-        expect(sm.getCurrentState()).toBe('gameover');
+        const result = sm.transition('gameover');
+        expect(result).toBe(false);
+        expect(sm.getCurrentState()).toBe('paused');
       });
     });
   });
@@ -575,7 +576,7 @@ describe('Deep Integration Tests', () => {
         expect(ls.isLevelCompleted()).toBe(true);
       });
 
-      it('BUG: survival with timeLimit of 0 never starts timer (0 is falsy)', () => {
+      it('FIXED: survival with timeLimit of 0 now starts timer (0 is not undefined/null)', () => {
         const config: LevelConfig = {
           id: 23,
           name: 'Zero Time Limit',
@@ -587,7 +588,7 @@ describe('Deep Integration Tests', () => {
         ls = new LevelSystem(config);
         ls.start();
         vi.advanceTimersByTime(1000);
-        expect(ls.isLevelCompleted()).toBe(false);
+        expect(ls.isLevelCompleted()).toBe(true);
       });
 
       it('should handle very large timeLimit values', () => {
@@ -607,7 +608,7 @@ describe('Deep Integration Tests', () => {
         expect(ls.getProgress()).toBeLessThan(1);
       });
 
-      it('should return 0 progress for target_merge type regardless of state', () => {
+      it('should return actual progress for target_merge type based on highestMergeValue', () => {
         const config: LevelConfig = {
           id: 25,
           name: 'Merge Progress',
@@ -619,7 +620,7 @@ describe('Deep Integration Tests', () => {
         ls = new LevelSystem(config);
         expect(ls.getProgress()).toBe(0);
         eventBus.emit('block:merged', { newValue: 16, chainCount: 1 });
-        expect(ls.getProgress()).toBe(0);
+        expect(ls.getProgress()).toBeCloseTo(16 / 32);
       });
 
       it('should handle score objective with extremely large target', () => {
@@ -892,10 +893,11 @@ describe('Deep Integration Tests', () => {
         expect(sm.getCurrentState()).toBe('menu');
       });
 
-      it('should allow invalid transitions via transition() (no validation)', () => {
+      it('transition() now validates against canTransition rules and blocks invalid transitions', () => {
         expect(sm.canTransition('gameover')).toBe(false);
-        sm.transition('gameover');
-        expect(sm.getCurrentState()).toBe('gameover');
+        const result = sm.transition('gameover');
+        expect(result).toBe(false);
+        expect(sm.getCurrentState()).toBe('menu');
       });
     });
   });

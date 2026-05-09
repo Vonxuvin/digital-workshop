@@ -1,7 +1,8 @@
 import { Container, Text, Graphics } from 'pixi.js';
+import { Screen } from '../UIManager';
 import { eventBus } from '../../utils/EventBus';
 
-export class PauseScreen extends Container {
+export class PauseScreen extends Screen {
   constructor() {
     super();
     this.visible = false;

@@ -25,6 +25,10 @@ export class LevelLoader {
 
       const data = await response.json();
       const config = this.parseLevelConfig(data);
+      if (!config) {
+        console.error(`[LevelLoader] 关卡 ${levelId} 数据格式无效`);
+        return null;
+      }
       this.levelConfigs.set(levelId, config);
       return config;
     } catch (error) {
@@ -33,7 +37,13 @@ export class LevelLoader {
     }
   }
 
-  private parseLevelConfig(data: any): LevelConfig {
+  private parseLevelConfig(data: any): LevelConfig | null {
+    if (!data || typeof data !== 'object') return null;
+    if (typeof data.id !== 'number' || typeof data.name !== 'string') return null;
+    if (!data.objective || typeof data.objective.type !== 'string' || typeof data.objective.target !== 'number') return null;
+    if (!data.container || typeof data.container.width !== 'number' || typeof data.container.height !== 'number') return null;
+    if (!data.spawn || !Array.isArray(data.spawn.availableNumbers)) return null;
+
     return {
       id: data.id,
       name: data.name,
@@ -46,6 +56,8 @@ export class LevelLoader {
       containerHeight: data.container.height,
       availableNumbers: data.spawn.availableNumbers,
       spawnInterval: data.spawn.spawnInterval,
+      obstacles: data.obstacles || undefined,
+      rewards: data.rewards || undefined,
     };
   }
 

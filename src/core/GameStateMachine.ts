@@ -2,6 +2,16 @@ export type GameState = 'menu' | 'playing' | 'paused' | 'gameover' | 'levelCompl
 
 type StateCallback = (from: GameState, to: GameState) => void;
 
+const MAX_HISTORY_SIZE = 100;
+
+const VALID_TRANSITIONS: Record<GameState, GameState[]> = {
+  'menu': ['playing'],
+  'playing': ['paused', 'gameover', 'levelComplete'],
+  'paused': ['playing', 'menu'],
+  'gameover': ['menu', 'playing'],
+  'levelComplete': ['menu', 'playing'],
+};
+
 export class GameStateMachine {
   private currentState: GameState = 'menu';
   private stateHistory: GameState[] = [];
@@ -15,23 +25,56 @@ export class GameStateMachine {
     this.listeners.get(state)!.push(callback);
   }
 
+  offEnter(state: GameState, callback: StateCallback): void {
+    const callbacks = this.listeners.get(state);
+    if (callbacks) {
+      const index = callbacks.indexOf(callback);
+      if (index > -1) callbacks.splice(index, 1);
+    }
+  }
+
   onAnyChange(callback: StateCallback): void {
     this.globalListeners.push(callback);
   }
 
-  transition(to: GameState): void {
+  offAnyChange(callback: StateCallback): void {
+    const index = this.globalListeners.indexOf(callback);
+    if (index > -1) this.globalListeners.splice(index, 1);
+  }
+
+  transition(to: GameState): boolean {
     const from = this.currentState;
-    if (from === to) return;
+    if (from === to) return false;
+    if (!this.canTransition(to)) {
+      console.warn(`[StateMachine] 非法状态转换: ${from} -> ${to}`);
+      return false;
+    }
 
     this.stateHistory.push(from);
+    if (this.stateHistory.length > MAX_HISTORY_SIZE) {
+      this.stateHistory.shift();
+    }
     this.currentState = to;
 
-    this.globalListeners.forEach(cb => cb(from, to));
+    this.globalListeners.forEach(cb => {
+      try {
+        cb(from, to);
+      } catch (error) {
+        console.error('[StateMachine] 全局监听器执行出错:', error);
+      }
+    });
 
     const stateListeners = this.listeners.get(to) || [];
-    stateListeners.forEach(cb => cb(from, to));
+    stateListeners.forEach(cb => {
+      try {
+        cb(from, to);
+      } catch (error) {
+        console.error(`[StateMachine] 状态监听器(${to})执行出错:`, error);
+      }
+    });
 
     console.log(`[StateMachine] ${from} -> ${to}`);
+    return true;
   }
 
   getCurrentState(): GameState {
@@ -45,14 +88,7 @@ export class GameStateMachine {
   }
 
   canTransition(to: GameState): boolean {
-    const validTransitions: Record<GameState, GameState[]> = {
-      'menu': ['playing'],
-      'playing': ['paused', 'gameover', 'levelComplete'],
-      'paused': ['playing', 'menu'],
-      'gameover': ['menu', 'playing'],
-      'levelComplete': ['menu', 'playing'],
-    };
-    return validTransitions[this.currentState]?.includes(to) || false;
+    return VALID_TRANSITIONS[this.currentState]?.includes(to) || false;
   }
 
   reset(): void {

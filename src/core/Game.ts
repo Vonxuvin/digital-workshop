@@ -3,7 +3,7 @@ import { PhysicsManager } from './PhysicsManager';
 import { InputManager } from './InputManager';
 import { ScoreSystem } from '../gameplay/ScoreSystem';
 import { GameStateMachine } from './GameStateMachine';
-import { LevelSystem } from '../gameplay/LevelSystem';
+import { LevelSystem, LevelConfig } from '../gameplay/LevelSystem';
 import { LevelLoader } from './LevelLoader';
 import { AudioManager } from './AudioManager';
 import { WarningLine } from '../ui/components/WarningLine';
@@ -34,6 +34,7 @@ export class Game {
   private scoreSystem: ScoreSystem;
   private stateMachine: GameStateMachine;
   private levelSystem: LevelSystem | null = null;
+  private currentLevelConfig: LevelConfig | null = null;
   private warningLine: WarningLine | null = null;
   private uiManager: UIManager;
   private gameHUD: GameHUD;
@@ -42,6 +43,16 @@ export class Game {
   private pauseScreen: PauseScreen;
   private audioManager: AudioManager;
   private effects: MergeEffect[] = [];
+  private onBlockMergedBound: (data: { newValue: number; position: { x: number; y: number } }) => void;
+  private onBlocksDestroyedBound: (data: { blocks: Block[] }) => void;
+  private onGameOverBound: () => void;
+  private onLevelCompletedBound: (data: { score: number; levelId: number }) => void;
+  private onStartGameBound: () => void;
+  private onSelectLevelBound: (levelId: number) => void;
+  private onPauseBound: () => void;
+  private onResumeBound: () => void;
+  private onRestartBound: () => void;
+  private onBackToMenuBound: () => void;
 
   constructor(canvas: HTMLCanvasElement) {
     this.app = new Application();
@@ -58,6 +69,17 @@ export class Game {
     this.pauseScreen = new PauseScreen();
     this.audioManager = AudioManager.getInstance();
     this.groundY = window.innerHeight - 50;
+
+    this.onBlockMergedBound = this.handleBlockMerged.bind(this);
+    this.onBlocksDestroyedBound = this.handleBlocksDestroyed.bind(this);
+    this.onGameOverBound = this.handleGameOver.bind(this);
+    this.onLevelCompletedBound = this.handleLevelCompleted.bind(this);
+    this.onStartGameBound = this.handleStartGame.bind(this);
+    this.onSelectLevelBound = this.handleSelectLevel.bind(this);
+    this.onPauseBound = this.handlePause.bind(this);
+    this.onResumeBound = this.handleResume.bind(this);
+    this.onRestartBound = this.handleRestart.bind(this);
+    this.onBackToMenuBound = this.handleBackToMenu.bind(this);
   }
 
   async init(): Promise<void> {
@@ -78,11 +100,8 @@ export class Game {
 
     this.setupContainer();
     this.setupUI();
-    this.setupLevel();
     this.setupInput();
-    this.setupMergeListener();
-    this.setupGameEvents();
-    this.setupUIEvents();
+    this.setupEventListeners();
     this.app.stage.addChild(this.preview);
     this.app.stage.addChild(this.gameHUD);
 
@@ -107,7 +126,7 @@ export class Game {
     this.physics.createRectangle(-25, h / 2, 50, h);
     this.physics.createRectangle(w + 25, h / 2, 50, h);
 
-    this.warningLine = new WarningLine(h);
+    this.warningLine = new WarningLine(h, w);
     this.warningLine.y = h * 0.2;
     this.app.stage.addChild(this.warningLine);
   }
@@ -118,24 +137,6 @@ export class Game {
     this.uiManager.registerScreen('levelSelect', this.levelSelectScreen);
     this.uiManager.registerScreen('result', this.resultScreen);
     this.uiManager.registerScreen('pause', this.pauseScreen);
-  }
-
-  private setupLevel(): void {
-    const levelConfig = {
-      id: 1,
-      name: '新手教学',
-      objective: {
-        type: 'score' as const,
-        target: 500,
-      },
-      containerWidth: this.app.screen.width,
-      containerHeight: this.app.screen.height,
-      availableNumbers: [1, 2, 4],
-    };
-
-    this.levelSystem = new LevelSystem(levelConfig);
-    this.levelSystem.start();
-    this.gameHUD.updateLevel(levelConfig.id, levelConfig.name);
   }
 
   private setupInput(): void {
@@ -161,102 +162,125 @@ export class Game {
     });
   }
 
-  private setupMergeListener(): void {
-    eventBus.on('block:merged', (data: { newValue: number; position: { x: number; y: number } }) => {
-      this.audioManager.play('merge');
-
-      const config = BLOCK_CONFIGS[data.newValue] || BLOCK_CONFIGS[1];
-      const effect = new MergeEffect(data.position.x, data.position.y, config.color);
-      this.app.stage.addChild(effect);
-      this.effects.push(effect);
-    });
-
-    eventBus.on('blocks:destroyed', (data: { blocks: Block[] }) => {
-      this.blocks = this.blocks.filter(block => !data.blocks.includes(block));
-    });
+  private setupEventListeners(): void {
+    eventBus.on('block:merged', this.onBlockMergedBound);
+    eventBus.on('blocks:destroyed', this.onBlocksDestroyedBound);
+    eventBus.on('game:over', this.onGameOverBound);
+    eventBus.on('level:completed', this.onLevelCompletedBound);
+    eventBus.on('ui:startGame', this.onStartGameBound);
+    eventBus.on('ui:selectLevel', this.onSelectLevelBound);
+    eventBus.on('ui:pause', this.onPauseBound);
+    eventBus.on('ui:resume', this.onResumeBound);
+    eventBus.on('ui:restart', this.onRestartBound);
+    eventBus.on('ui:backToMenu', this.onBackToMenuBound);
   }
 
-  private setupGameEvents(): void {
-    eventBus.on('game:over', () => {
-      this.stateMachine.transition('gameover');
-      this.physics.stop();
-      this.audioManager.play('gameover');
-    });
-
-    eventBus.on('level:completed', () => {
-      this.stateMachine.transition('levelComplete');
-      this.physics.stop();
-      this.audioManager.play('levelComplete');
-    });
+  private handleBlockMerged(data: { newValue: number; position: { x: number; y: number } }): void {
+    this.audioManager.play('merge');
+    const config = BLOCK_CONFIGS[data.newValue] || BLOCK_CONFIGS[1];
+    const effect = new MergeEffect(data.position.x, data.position.y, config.color);
+    this.app.stage.addChild(effect);
+    this.effects.push(effect);
   }
 
-  private setupUIEvents(): void {
-    eventBus.on('ui:startGame', () => {
-      this.uiManager.showScreen('levelSelect');
-    });
+  private handleBlocksDestroyed(data: { blocks: Block[] }): void {
+    this.blocks = this.blocks.filter(block => !data.blocks.includes(block));
+  }
 
-    eventBus.on('ui:selectLevel', async (levelId: number) => {
-      const levelLoader = LevelLoader.getInstance();
-      const config = await levelLoader.loadLevel(levelId);
-      if (config) {
-        this.levelSystem = new LevelSystem(config);
-        this.gameHUD.updateLevel(config.id, config.name);
-        this.uiManager.hideCurrentScreen();
-        this.stateMachine.transition('playing');
-        this.startGame();
-      }
+  private handleGameOver(): void {
+    this.stateMachine.transition('gameover');
+    this.physics.stop();
+    this.audioManager.play('gameover');
+    this.resultScreen.setResult({
+      isWin: false,
+      score: this.scoreSystem.getCurrentScore(),
+      stars: 0,
+      levelId: this.levelSystem?.getConfig().id || 1,
     });
+    this.uiManager.showScreen('result');
+  }
 
-    eventBus.on('ui:pause', () => {
-      if (this.stateMachine.canTransition('paused')) {
-        this.stateMachine.transition('paused');
-        this.physics.stop();
-        this.uiManager.showScreen('pause');
-      }
+  private handleLevelCompleted(data: { score: number; levelId: number }): void {
+    this.stateMachine.transition('levelComplete');
+    this.physics.stop();
+    this.audioManager.play('levelComplete');
+    const stars = this.calculateStars(data.score, data.levelId);
+    this.resultScreen.setResult({
+      isWin: true,
+      score: data.score,
+      stars,
+      levelId: data.levelId,
     });
+    this.uiManager.showScreen('result');
+  }
 
-    eventBus.on('ui:resume', () => {
-      if (this.stateMachine.canTransition('playing')) {
-        this.stateMachine.transition('playing');
-        this.uiManager.hideCurrentScreen();
-        this.physics.start();
-      }
-    });
+  private calculateStars(score: number, levelId: number): number {
+    const config = this.levelSystem?.getConfig();
+    if (config?.rewards?.stars) {
+      const thresholds = config.rewards.stars;
+      if (score >= thresholds[2]) return 3;
+      if (score >= thresholds[1]) return 2;
+      if (score >= thresholds[0]) return 1;
+    }
+    if (score >= 1000) return 3;
+    if (score >= 500) return 2;
+    if (score >= 100) return 1;
+    return 1;
+  }
 
-    eventBus.on('ui:restart', () => {
-      this.uiManager.hideCurrentScreen();
-      this.resetGame();
+  private handleStartGame(): void {
+    this.uiManager.showScreen('levelSelect');
+  }
+
+  private async handleSelectLevel(levelId: number): Promise<void> {
+    const levelLoader = LevelLoader.getInstance();
+    const config = await levelLoader.loadLevel(levelId);
+    if (config) {
+      this.loadLevel(config);
+    }
+  }
+
+  private loadLevel(config: ReturnType<LevelSystem['getConfig']>): void {
+    if (this.levelSystem) {
+      this.levelSystem.destroy();
+    }
+    this.levelSystem = new LevelSystem(config);
+    this.currentLevelConfig = config;
+    this.gameHUD.updateLevel(config.id, config.name);
+    this.uiManager.hideCurrentScreen();
+    this.stateMachine.transition('playing');
+    this.startGame();
+  }
+
+  private handlePause(): void {
+    if (this.stateMachine.canTransition('paused')) {
+      this.stateMachine.transition('paused');
+      this.physics.stop();
+      this.uiManager.showScreen('pause');
+    }
+  }
+
+  private handleResume(): void {
+    if (this.stateMachine.canTransition('playing')) {
       this.stateMachine.transition('playing');
-      this.startGame();
-      this.physics.start();
-    });
-
-    eventBus.on('ui:backToMenu', () => {
-      this.physics.stop();
       this.uiManager.hideCurrentScreen();
-      this.uiManager.showScreen('mainMenu');
-      this.stateMachine.transition('menu');
-    });
+      this.physics.start();
+    }
+  }
 
-    eventBus.on('game:over', () => {
-      this.resultScreen.setResult({
-        isWin: false,
-        score: this.scoreSystem.getCurrentScore(),
-        stars: 0,
-        levelId: this.levelSystem?.getConfig().id || 1,
-      });
-      this.uiManager.showScreen('result');
-    });
+  private handleRestart(): void {
+    this.uiManager.hideCurrentScreen();
+    this.resetGame();
+    this.stateMachine.transition('playing');
+    this.startGame();
+    this.physics.start();
+  }
 
-    eventBus.on('level:completed', (data: { score: number; levelId: number }) => {
-      this.resultScreen.setResult({
-        isWin: true,
-        score: data.score,
-        stars: 3,
-        levelId: data.levelId,
-      });
-      this.uiManager.showScreen('result');
-    });
+  private handleBackToMenu(): void {
+    this.physics.stop();
+    this.uiManager.hideCurrentScreen();
+    this.uiManager.showScreen('mainMenu');
+    this.stateMachine.transition('menu');
   }
 
   private startGame(): void {
@@ -296,8 +320,15 @@ export class Game {
   }
 
   private getRandomValue(): number {
-    const values = [1, 1, 1, 1, 2, 2, 2, 4, 4, 8];
-    return values[Math.floor(Math.random() * values.length)];
+    const availableNumbers = this.currentLevelConfig?.availableNumbers || [1, 2, 4];
+    const weights: number[] = [];
+    for (const num of availableNumbers) {
+      const w = Math.max(1, Math.floor(8 / num));
+      for (let i = 0; i < w; i++) {
+        weights.push(num);
+      }
+    }
+    return weights[Math.floor(Math.random() * weights.length)];
   }
 
   private startCooldown(): void {
@@ -355,5 +386,22 @@ export class Game {
 
   getLevelSystem(): LevelSystem | null {
     return this.levelSystem;
+  }
+
+  destroy(): void {
+    eventBus.off('block:merged', this.onBlockMergedBound);
+    eventBus.off('blocks:destroyed', this.onBlocksDestroyedBound);
+    eventBus.off('game:over', this.onGameOverBound);
+    eventBus.off('level:completed', this.onLevelCompletedBound);
+    eventBus.off('ui:startGame', this.onStartGameBound);
+    eventBus.off('ui:selectLevel', this.onSelectLevelBound);
+    eventBus.off('ui:pause', this.onPauseBound);
+    eventBus.off('ui:resume', this.onResumeBound);
+    eventBus.off('ui:restart', this.onRestartBound);
+    eventBus.off('ui:backToMenu', this.onBackToMenuBound);
+    this.scoreSystem.destroy();
+    this.levelSystem?.destroy();
+    this.input.destroy();
+    this.physics.stop();
   }
 }

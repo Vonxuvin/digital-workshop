@@ -8,9 +8,11 @@ export class GameHUD extends Container {
   private pauseButton!: Container;
   private currentScore = 0;
   private displayScore = 0;
+  private onScoreUpdatedBound: (data: { totalScore: number; earnedScore: number; chainCount: number }) => void;
 
   constructor() {
     super();
+    this.onScoreUpdatedBound = this.handleScoreUpdated.bind(this);
     this.createScoreDisplay();
     this.createChainDisplay();
     this.createLevelDisplay();
@@ -93,18 +95,16 @@ export class GameHUD extends Container {
   }
 
   private setupEventListeners(): void {
-    eventBus.on('score:updated', (data: {
-      totalScore: number;
-      earnedScore: number;
-      chainCount: number;
-    }) => {
-      this.currentScore = data.totalScore;
-      if (data.chainCount > 1) {
-        this.chainText.text = `连锁 x${data.chainCount}!`;
-      } else {
-        this.chainText.text = '';
-      }
-    });
+    eventBus.on('score:updated', this.onScoreUpdatedBound);
+  }
+
+  private handleScoreUpdated(data: { totalScore: number; earnedScore: number; chainCount: number }): void {
+    this.currentScore = data.totalScore;
+    if (data.chainCount > 1) {
+      this.chainText.text = `连锁 x${data.chainCount}!`;
+    } else {
+      this.chainText.text = '';
+    }
   }
 
   update(delta: number): void {
@@ -127,5 +127,10 @@ export class GameHUD extends Container {
     this.displayScore = 0;
     this.scoreText.text = 'Score: 0';
     this.chainText.text = '';
+  }
+
+  destroy(): void {
+    eventBus.off('score:updated', this.onScoreUpdatedBound);
+    super.destroy();
   }
 }

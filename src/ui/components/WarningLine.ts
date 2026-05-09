@@ -4,14 +4,16 @@ import { eventBus } from '../../utils/EventBus';
 export class WarningLine extends Container {
   private graphics: Graphics;
   private warningHeight: number;
+  private containerWidth: number;
   private isWarning = false;
   private flashTimer = 0;
   private warningDuration = 0;
   private readonly WARNING_THRESHOLD = 3000;
 
-  constructor(containerHeight: number) {
+  constructor(containerHeight: number, containerWidth: number = 800) {
     super();
     this.warningHeight = containerHeight * 0.2;
+    this.containerWidth = containerWidth;
 
     this.graphics = new Graphics();
     this.addChild(this.graphics);
@@ -22,10 +24,10 @@ export class WarningLine extends Container {
     this.graphics.clear();
 
     this.graphics.moveTo(0, 0);
-    this.graphics.lineTo(800, 0);
+    this.graphics.lineTo(this.containerWidth, 0);
     this.graphics.stroke({ width: 2, color: 0xff4444, alpha: 0.8 });
 
-    for (let i = 0; i < 800; i += 20) {
+    for (let i = 0; i < this.containerWidth; i += 20) {
       this.graphics.moveTo(i, -5);
       this.graphics.lineTo(i + 10, -5);
     }

@@ -2,6 +2,8 @@ import { Container, Text, Graphics } from 'pixi.js';
 import { Screen } from '../UIManager';
 import { eventBus } from '../../utils/EventBus';
 
+const STORAGE_KEY = 'level_progress';
+
 interface LevelInfo {
   id: number;
   name: string;
@@ -9,20 +11,80 @@ interface LevelInfo {
   unlocked: boolean;
 }
 
+function loadProgress(): Map<number, { stars: number; unlocked: boolean }> {
+  const progress = new Map<number, { stars: number; unlocked: boolean }>();
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const data = JSON.parse(saved);
+      if (typeof data === 'object' && data !== null) {
+        for (const [key, value] of Object.entries(data)) {
+          progress.set(Number(key), value as { stars: number; unlocked: boolean });
+        }
+      }
+    }
+  } catch {}
+  return progress;
+}
+
+function saveProgress(progress: Map<number, { stars: number; unlocked: boolean }>): void {
+  try {
+    const obj: Record<number, { stars: number; unlocked: boolean }> = {};
+    progress.forEach((value, key) => { obj[key] = value; });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
+  } catch {}
+}
+
 export class LevelSelectScreen extends Screen {
   private levels: LevelInfo[] = [
     { id: 1, name: '新手入门', stars: 0, unlocked: true },
-    { id: 2, name: '合成挑战', stars: 0, unlocked: true },
-    { id: 3, name: '障碍清除', stars: 0, unlocked: true },
-    { id: 4, name: '限时生存', stars: 0, unlocked: true },
-    { id: 5, name: '综合考验', stars: 0, unlocked: true },
+    { id: 2, name: '合成挑战', stars: 0, unlocked: false },
+    { id: 3, name: '障碍清除', stars: 0, unlocked: false },
+    { id: 4, name: '限时生存', stars: 0, unlocked: false },
+    { id: 5, name: '综合考验', stars: 0, unlocked: false },
   ];
 
   constructor() {
     super();
+    this.loadSavedProgress();
     this.createTitle();
     this.createLevelButtons();
     this.createBackButton();
+  }
+
+  private loadSavedProgress(): void {
+    const progress = loadProgress();
+    for (const level of this.levels) {
+      const saved = progress.get(level.id);
+      if (saved) {
+        level.stars = saved.stars;
+        level.unlocked = saved.unlocked;
+      }
+    }
+    if (this.levels.length > 0) {
+      this.levels[0].unlocked = true;
+    }
+    for (let i = 1; i < this.levels.length; i++) {
+      if (this.levels[i - 1].stars > 0) {
+        this.levels[i].unlocked = true;
+      }
+    }
+  }
+
+  updateLevelProgress(levelId: number, stars: number): void {
+    const level = this.levels.find(l => l.id === levelId);
+    if (level && stars > level.stars) {
+      level.stars = stars;
+    }
+    const nextLevel = this.levels.find(l => l.id === levelId + 1);
+    if (nextLevel && stars > 0) {
+      nextLevel.unlocked = true;
+    }
+    const progress = loadProgress();
+    for (const l of this.levels) {
+      progress.set(l.id, { stars: l.stars, unlocked: l.unlocked });
+    }
+    saveProgress(progress);
   }
 
   private createTitle(): void {

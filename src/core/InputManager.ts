@@ -17,19 +17,29 @@ export class InputManager {
   private onMoveCallbacks: InputCallback[] = [];
   private onDownCallbacks: InputCallback[] = [];
   private onUpCallbacks: InputCallback[] = [];
+  private canvas: HTMLCanvasElement;
+  private boundHandleDown: (e: MouseEvent) => void;
+  private boundHandleMove: (e: MouseEvent) => void;
+  private boundHandleUp: () => void;
+  private boundHandleTouch: (e: TouchEvent) => void;
 
   constructor(canvas: HTMLCanvasElement) {
-    this.setupEvents(canvas);
+    this.canvas = canvas;
+    this.boundHandleDown = this.handleDown.bind(this);
+    this.boundHandleMove = this.handleMove.bind(this);
+    this.boundHandleUp = this.handleUp.bind(this);
+    this.boundHandleTouch = this.handleTouch.bind(this);
+    this.setupEvents();
   }
 
-  private setupEvents(canvas: HTMLCanvasElement): void {
-    canvas.addEventListener('mousedown', this.handleDown.bind(this));
-    canvas.addEventListener('mousemove', this.handleMove.bind(this));
-    canvas.addEventListener('mouseup', this.handleUp.bind(this));
+  private setupEvents(): void {
+    this.canvas.addEventListener('mousedown', this.boundHandleDown);
+    this.canvas.addEventListener('mousemove', this.boundHandleMove);
+    this.canvas.addEventListener('mouseup', this.boundHandleUp);
 
-    canvas.addEventListener('touchstart', this.handleTouch.bind(this));
-    canvas.addEventListener('touchmove', this.handleTouch.bind(this));
-    canvas.addEventListener('touchend', this.handleUp.bind(this));
+    this.canvas.addEventListener('touchstart', this.boundHandleTouch);
+    this.canvas.addEventListener('touchmove', this.boundHandleTouch);
+    this.canvas.addEventListener('touchend', this.boundHandleUp);
   }
 
   private handleDown(e: MouseEvent): void {
@@ -87,5 +97,17 @@ export class InputManager {
 
   getState(): InputState {
     return { ...this.state };
+  }
+
+  destroy(): void {
+    this.canvas.removeEventListener('mousedown', this.boundHandleDown);
+    this.canvas.removeEventListener('mousemove', this.boundHandleMove);
+    this.canvas.removeEventListener('mouseup', this.boundHandleUp);
+    this.canvas.removeEventListener('touchstart', this.boundHandleTouch);
+    this.canvas.removeEventListener('touchmove', this.boundHandleTouch);
+    this.canvas.removeEventListener('touchend', this.boundHandleUp);
+    this.onDownCallbacks = [];
+    this.onMoveCallbacks = [];
+    this.onUpCallbacks = [];
   }
 }

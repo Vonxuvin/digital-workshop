@@ -12,53 +12,58 @@ describe('GameStateMachine', () => {
     sm = new GameStateMachine();
   });
 
-  describe('BUG: transition() does not validate against canTransition() rules', () => {
-    it('[BUG] transition() allows invalid transition from menu to paused', () => {
+  describe('FIXED: transition() now validates against canTransition() rules', () => {
+    it('transition() blocks invalid transition from menu to paused', () => {
       expect(sm.canTransition('paused')).toBe(false);
-      sm.transition('paused');
-      expect(sm.getCurrentState()).toBe('paused');
-    });
-
-    it('[BUG] transition() allows invalid transition from menu to gameover', () => {
-      expect(sm.canTransition('gameover')).toBe(false);
-      sm.transition('gameover');
-      expect(sm.getCurrentState()).toBe('gameover');
-    });
-
-    it('[BUG] transition() allows invalid transition from menu to levelComplete', () => {
-      expect(sm.canTransition('levelComplete')).toBe(false);
-      sm.transition('levelComplete');
-      expect(sm.getCurrentState()).toBe('levelComplete');
-    });
-
-    it('[BUG] canTransition() returns false but transition() still performs the transition', () => {
-      expect(sm.canTransition('paused')).toBe(false);
-      sm.transition('paused');
-      expect(sm.getCurrentState()).toBe('paused');
-      expect(sm.getPreviousState()).toBe('menu');
-    });
-
-    it('[BUG] transition() allows invalid transition from playing to menu', () => {
-      sm.transition('playing');
-      expect(sm.canTransition('menu')).toBe(false);
-      sm.transition('menu');
+      const result = sm.transition('paused');
+      expect(result).toBe(false);
       expect(sm.getCurrentState()).toBe('menu');
     });
 
-    it('[BUG] onEnter fires for target state even on invalid transitions', () => {
+    it('transition() blocks invalid transition from menu to gameover', () => {
+      expect(sm.canTransition('gameover')).toBe(false);
+      const result = sm.transition('gameover');
+      expect(result).toBe(false);
+      expect(sm.getCurrentState()).toBe('menu');
+    });
+
+    it('transition() blocks invalid transition from menu to levelComplete', () => {
+      expect(sm.canTransition('levelComplete')).toBe(false);
+      const result = sm.transition('levelComplete');
+      expect(result).toBe(false);
+      expect(sm.getCurrentState()).toBe('menu');
+    });
+
+    it('canTransition() returns false and transition() returns false without changing state', () => {
+      expect(sm.canTransition('paused')).toBe(false);
+      const result = sm.transition('paused');
+      expect(result).toBe(false);
+      expect(sm.getCurrentState()).toBe('menu');
+      expect(sm.getPreviousState()).toBeNull();
+    });
+
+    it('transition() blocks invalid transition from playing to menu', () => {
+      sm.transition('playing');
+      expect(sm.canTransition('menu')).toBe(false);
+      const result = sm.transition('menu');
+      expect(result).toBe(false);
+      expect(sm.getCurrentState()).toBe('playing');
+    });
+
+    it('onEnter does not fire for invalid transitions', () => {
       const pausedCallback = vi.fn();
       sm.onEnter('paused', pausedCallback);
       expect(sm.canTransition('paused')).toBe(false);
       sm.transition('paused');
-      expect(pausedCallback).toHaveBeenCalledWith('menu', 'paused');
+      expect(pausedCallback).not.toHaveBeenCalled();
     });
 
-    it('[BUG] onAnyChange fires even on invalid transitions', () => {
+    it('onAnyChange does not fire for invalid transitions', () => {
       const anyCallback = vi.fn();
       sm.onAnyChange(anyCallback);
       expect(sm.canTransition('paused')).toBe(false);
       sm.transition('paused');
-      expect(anyCallback).toHaveBeenCalledWith('menu', 'paused');
+      expect(anyCallback).not.toHaveBeenCalled();
     });
   });
 
@@ -182,20 +187,20 @@ describe('EventBus', () => {
     bus = new EventBus();
   });
 
-  describe('BUG: No error isolation in emit()', () => {
-    it('[BUG] a throwing callback stops subsequent callbacks from executing', () => {
+  describe('FIXED: Error isolation in emit()', () => {
+    it('a throwing callback does not stop subsequent callbacks from executing', () => {
       const cb1 = vi.fn(() => {
         throw new Error('boom');
       });
       const cb2 = vi.fn();
       bus.on('test', cb1);
       bus.on('test', cb2);
-      expect(() => bus.emit('test')).toThrow('boom');
+      expect(() => bus.emit('test')).not.toThrow();
       expect(cb1).toHaveBeenCalledTimes(1);
-      expect(cb2).not.toHaveBeenCalled();
+      expect(cb2).toHaveBeenCalledTimes(1);
     });
 
-    it('[BUG] error in middle callback prevents later callbacks', () => {
+    it('error in middle callback does not prevent later callbacks', () => {
       const cb1 = vi.fn();
       const cb2 = vi.fn(() => {
         throw new Error('mid error');
@@ -204,10 +209,10 @@ describe('EventBus', () => {
       bus.on('test', cb1);
       bus.on('test', cb2);
       bus.on('test', cb3);
-      expect(() => bus.emit('test')).toThrow('mid error');
+      expect(() => bus.emit('test')).not.toThrow();
       expect(cb1).toHaveBeenCalledTimes(1);
       expect(cb2).toHaveBeenCalledTimes(1);
-      expect(cb3).not.toHaveBeenCalled();
+      expect(cb3).toHaveBeenCalledTimes(1);
     });
   });
 

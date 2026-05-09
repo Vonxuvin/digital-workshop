@@ -10,6 +10,14 @@ export class EventBus {
     this.events.get(event)!.push(callback);
   }
 
+  once(event: string, callback: EventCallback): void {
+    const wrapper: EventCallback = (...args) => {
+      this.off(event, wrapper);
+      callback(...args);
+    };
+    this.on(event, wrapper);
+  }
+
   off(event: string, callback: EventCallback): void {
     const callbacks = this.events.get(event);
     if (callbacks) {
@@ -18,10 +26,21 @@ export class EventBus {
     }
   }
 
+  offAll(event: string): void {
+    this.events.delete(event);
+  }
+
   emit(event: string, ...args: any[]): void {
     const callbacks = this.events.get(event);
     if (callbacks) {
-      callbacks.forEach(cb => cb(...args));
+      const snapshot = [...callbacks];
+      for (const cb of snapshot) {
+        try {
+          cb(...args);
+        } catch (error) {
+          console.error(`[EventBus] 事件 "${event}" 回调执行出错:`, error);
+        }
+      }
     }
   }
 }
