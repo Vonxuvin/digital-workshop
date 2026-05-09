@@ -295,6 +295,7 @@ export class Game {
       this.stateMachine.transition('paused');
       this.physics.stop();
       this.levelSystem?.pause();
+      this.stopAutoSpawn();
       this.preview.hide();
       this.uiManager.showScreen('pause');
     }
@@ -306,6 +307,7 @@ export class Game {
       this.uiManager.hideCurrentScreen();
       this.physics.start();
       this.levelSystem?.resume();
+      this.startAutoSpawn();
     }
   }
 
