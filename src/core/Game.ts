@@ -15,6 +15,7 @@ import { UIManager } from '../ui/UIManager';
 import { MainMenuScreen } from '../ui/screens/MainMenuScreen';
 import { ResultScreen } from '../ui/screens/ResultScreen';
 import { LevelSelectScreen } from '../ui/screens/LevelSelectScreen';
+import { PauseScreen } from '../ui/screens/PauseScreen';
 import { GameHUD } from '../ui/hud/GameHUD';
 import { createPlatformAdapter } from '../platform/PlatformFactory';
 import { eventBus } from '../utils/EventBus';
@@ -38,6 +39,7 @@ export class Game {
   private gameHUD: GameHUD;
   private resultScreen: ResultScreen;
   private levelSelectScreen: LevelSelectScreen;
+  private pauseScreen: PauseScreen;
   private audioManager: AudioManager;
   private effects: MergeEffect[] = [];
 
@@ -53,6 +55,7 @@ export class Game {
     this.gameHUD = new GameHUD();
     this.resultScreen = new ResultScreen();
     this.levelSelectScreen = new LevelSelectScreen();
+    this.pauseScreen = new PauseScreen();
     this.audioManager = AudioManager.getInstance();
     this.groundY = window.innerHeight - 50;
   }
@@ -114,6 +117,7 @@ export class Game {
     this.uiManager.registerScreen('mainMenu', mainMenu);
     this.uiManager.registerScreen('levelSelect', this.levelSelectScreen);
     this.uiManager.registerScreen('result', this.resultScreen);
+    this.uiManager.registerScreen('pause', this.pauseScreen);
   }
 
   private setupLevel(): void {
@@ -204,7 +208,19 @@ export class Game {
     });
 
     eventBus.on('ui:pause', () => {
-      this.stateMachine.transition('paused');
+      if (this.stateMachine.canTransition('paused')) {
+        this.stateMachine.transition('paused');
+        this.physics.stop();
+        this.uiManager.showScreen('pause');
+      }
+    });
+
+    eventBus.on('ui:resume', () => {
+      if (this.stateMachine.canTransition('playing')) {
+        this.stateMachine.transition('playing');
+        this.uiManager.hideCurrentScreen();
+        this.physics.start();
+      }
     });
 
     eventBus.on('ui:restart', () => {
@@ -212,9 +228,11 @@ export class Game {
       this.resetGame();
       this.stateMachine.transition('playing');
       this.startGame();
+      this.physics.start();
     });
 
     eventBus.on('ui:backToMenu', () => {
+      this.physics.stop();
       this.uiManager.hideCurrentScreen();
       this.uiManager.showScreen('mainMenu');
       this.stateMachine.transition('menu');
