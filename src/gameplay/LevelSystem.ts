@@ -136,7 +136,7 @@ export class LevelSystem {
         return objective.target > 0 ? Math.min(this.obstaclesCleared / objective.target, 1) : 1;
       case 'survival':
         return (objective.timeLimit !== undefined && objective.timeLimit !== null && objective.timeLimit > 0)
-          ? this.survivalTime / objective.timeLimit
+          ? Math.min(this.survivalTime / objective.timeLimit, 1)
           : 0;
       default:
         return 0;

@@ -56,6 +56,7 @@ export class Game {
   private effects: MergeEffect[] = [];
   private onBlockMergedBound: (data: BlockMergedData) => void;
   private onGameOverBound: () => void;
+  private onTimeoutBound: () => void;
   private onLevelCompletedBound: (data: { score: number; levelId: number }) => void;
   private onStartGameBound: () => void;
   private onSelectLevelBound: (levelId: number) => void;
@@ -84,6 +85,7 @@ export class Game {
 
     this.onBlockMergedBound = this.handleBlockMerged.bind(this);
     this.onGameOverBound = this.handleGameOver.bind(this);
+    this.onTimeoutBound = this.handleTimeout.bind(this);
     this.onLevelCompletedBound = this.handleLevelCompleted.bind(this);
     this.onStartGameBound = this.handleStartGame.bind(this);
     this.onSelectLevelBound = this.handleSelectLevel.bind(this);
@@ -178,6 +180,7 @@ export class Game {
   private setupEventListeners(): void {
     eventBus.on('block:merged', this.onBlockMergedBound);
     eventBus.on('game:over', this.onGameOverBound);
+    eventBus.on('game:timeout', this.onTimeoutBound);
     eventBus.on('level:completed', this.onLevelCompletedBound);
     eventBus.on('ui:startGame', this.onStartGameBound);
     eventBus.on('ui:selectLevel', this.onSelectLevelBound);
@@ -209,6 +212,22 @@ export class Game {
   }
 
   private handleGameOver(): void {
+    this.levelSystem?.stopTimer();
+    this.stateMachine.transition('gameover');
+    this.physics.stop();
+    this.clearEverything();
+    this.audioManager.play('gameover');
+    this.resultScreen.setResult({
+      isWin: false,
+      score: this.scoreSystem.getCurrentScore(),
+      stars: 0,
+      levelId: this.levelSystem?.getConfig().id || 1,
+    });
+    this.uiManager.showScreen('result');
+  }
+
+  private handleTimeout(): void {
+    this.levelSystem?.stopTimer();
     this.stateMachine.transition('gameover');
     this.physics.stop();
     this.clearEverything();
@@ -528,6 +547,7 @@ export class Game {
   destroy(): void {
     eventBus.off('block:merged', this.onBlockMergedBound);
     eventBus.off('game:over', this.onGameOverBound);
+    eventBus.off('game:timeout', this.onTimeoutBound);
     eventBus.off('level:completed', this.onLevelCompletedBound);
     eventBus.off('ui:startGame', this.onStartGameBound);
     eventBus.off('ui:selectLevel', this.onSelectLevelBound);
