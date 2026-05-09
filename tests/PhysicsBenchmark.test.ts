@@ -40,8 +40,11 @@ describe('Physics Benchmark', () => {
 
     const bodies: Matter.Body[] = [];
     for (let i = 0; i < 30; i++) {
-      const body = Matter.Bodies.circle(200 + (i % 10) * 40, 100 + Math.floor(i / 10) * 40, 20);
-      Matter.Body.setVelocity(body, { x: 2, y: 2 });
+      const body = Matter.Bodies.circle(250, 100, 20);
+      Matter.Body.setVelocity(body, {
+        x: (Math.random() - 0.5) * 10,
+        y: (Math.random() - 0.5) * 10,
+      });
       bodies.push(body);
     }
     Matter.Composite.add(engine.world, bodies);
@@ -51,6 +54,6 @@ describe('Physics Benchmark', () => {
     }
 
     console.log(`Collision events: ${collisionCount}`);
-    expect(collisionCount).toBeGreaterThanOrEqual(0);
+    expect(collisionCount).toBeGreaterThan(0);
   });
 });
