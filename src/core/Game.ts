@@ -173,6 +173,10 @@ export class Game {
       this.app.stage.addChild(effect);
       this.effects.push(effect);
     });
+
+    eventBus.on('blocks:destroyed', (data: { blocks: Block[] }) => {
+      this.blocks = this.blocks.filter(block => !data.blocks.includes(block));
+    });
   }
 
   private setupGameEvents(): void {
@@ -293,6 +297,17 @@ export class Game {
   }
 
   private update(): void {
+    this.blocks = this.blocks.filter(block => {
+      if (block.isDestroyed) return false;
+      if (block.y > this.app.screen.height + 100) {
+        this.mergeSystem.unregisterBlock(block);
+        this.physics.removeBody(block.body);
+        block.destroy();
+        return false;
+      }
+      return true;
+    });
+
     this.blocks.forEach(block => block.syncFromBody());
     this.scoreBoard.update(this.app.ticker.deltaMS / 16.67);
 
@@ -307,16 +322,6 @@ export class Game {
       const alive = effect.update(this.app.ticker.deltaMS / 16.67);
       if (!alive) {
         effect.destroy();
-        return false;
-      }
-      return true;
-    });
-
-    this.blocks = this.blocks.filter(block => {
-      if (block.y > this.app.screen.height + 100) {
-        this.mergeSystem.unregisterBlock(block);
-        this.physics.removeBody(block.body);
-        block.destroy();
         return false;
       }
       return true;

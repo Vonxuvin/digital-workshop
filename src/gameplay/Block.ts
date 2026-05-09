@@ -24,6 +24,7 @@ export class Block extends Container {
   private config: BlockConfig;
   private graphics: Graphics;
   private valueText: Text;
+  private _destroyed: boolean = false;
 
   constructor(body: Matter.Body, value: number) {
     super();
@@ -61,6 +62,7 @@ export class Block extends Container {
   }
 
   syncFromBody(): void {
+    if (this._destroyed) return;
     this.x = this.body.position.x;
     this.y = this.body.position.y;
     this.rotation = this.body.angle;
@@ -70,7 +72,13 @@ export class Block extends Container {
     return this.config;
   }
 
+  get isDestroyed(): boolean {
+    return this._destroyed;
+  }
+
   destroy(): void {
+    if (this._destroyed) return;
+    this._destroyed = true;
     this.graphics.destroy();
     this.valueText.destroy();
     super.destroy();

@@ -94,6 +94,10 @@ export class MergeSystem {
       destroyedBlocks: [blockA, blockB],
     });
 
+    eventBus.emit('blocks:destroyed', {
+      blocks: [blockA, blockB],
+    });
+
     console.log(`[MergeSystem] 合成: ${blockA.value} + ${blockB.value} = ${newValue}`);
 
     setTimeout(() => {
