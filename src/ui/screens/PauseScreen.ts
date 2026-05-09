@@ -13,7 +13,7 @@ export class PauseScreen extends Screen {
   private createOverlay(): void {
     const overlay = new Graphics();
     overlay.rect(0, 0, 800, 600);
-    overlay.fill(0x000000, 0.7);
+    overlay.fill({ color: 0x000000, alpha: 0.7 });
     this.addChild(overlay);
   }
 
