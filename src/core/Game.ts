@@ -119,10 +119,16 @@ export class Game {
     this.setupInput();
     this.setupEventListeners();
     this.app.stage.addChild(this.preview);
+    this.gameHUD.visible = false;
     this.app.stage.addChild(this.gameHUD);
 
     this.stateMachine.onAnyChange((from, to) => {
       console.log(`[Game] 状态变化: ${from} -> ${to}`);
+      const isPlaying = to === 'playing';
+      this.gameHUD.visible = isPlaying;
+      if (this.warningLine) {
+        this.warningLine.visible = isPlaying;
+      }
     });
 
     this.app.ticker.add(this.update.bind(this));
@@ -144,6 +150,7 @@ export class Game {
 
     this.warningLine = new WarningLine(h, w);
     this.warningLine.y = h * 0.2;
+    this.warningLine.visible = false;
     this.app.stage.addChild(this.warningLine);
   }
 
