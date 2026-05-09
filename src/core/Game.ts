@@ -3,7 +3,6 @@ import { PhysicsManager } from './PhysicsManager';
 import { InputManager } from './InputManager';
 import { ScoreSystem } from '../gameplay/ScoreSystem';
 import { GameStateMachine } from './GameStateMachine';
-import { ScoreBoard } from '../ui/components/ScoreBoard';
 import { LevelSystem } from '../gameplay/LevelSystem';
 import { LevelLoader } from './LevelLoader';
 import { AudioManager } from './AudioManager';
@@ -33,7 +32,6 @@ export class Game {
   private groundY: number;
   private scoreSystem: ScoreSystem;
   private stateMachine: GameStateMachine;
-  private scoreBoard: ScoreBoard;
   private levelSystem: LevelSystem | null = null;
   private warningLine: WarningLine | null = null;
   private uiManager: UIManager;
@@ -51,7 +49,6 @@ export class Game {
     this.mergeSystem = new MergeSystem(this.physics);
     this.scoreSystem = new ScoreSystem();
     this.stateMachine = new GameStateMachine();
-    this.scoreBoard = new ScoreBoard();
     this.uiManager = new UIManager(this.app);
     this.gameHUD = new GameHUD();
     this.resultScreen = new ResultScreen();
@@ -84,10 +81,7 @@ export class Game {
     this.setupGameEvents();
     this.setupUIEvents();
     this.app.stage.addChild(this.preview);
-
-    this.scoreBoard.x = 20;
-    this.scoreBoard.y = 20;
-    this.app.stage.addChild(this.scoreBoard);
+    this.app.stage.addChild(this.gameHUD);
 
     this.stateMachine.onAnyChange((from, to) => {
       console.log(`[Game] 状态变化: ${from} -> ${to}`);
@@ -120,7 +114,6 @@ export class Game {
     this.uiManager.registerScreen('mainMenu', mainMenu);
     this.uiManager.registerScreen('levelSelect', this.levelSelectScreen);
     this.uiManager.registerScreen('result', this.resultScreen);
-    this.app.stage.addChild(this.gameHUD);
   }
 
   private setupLevel(): void {
@@ -265,7 +258,7 @@ export class Game {
     this.effects = [];
 
     this.scoreSystem.reset();
-    this.scoreBoard.reset();
+    this.gameHUD.reset();
     this.warningLine?.reset();
     this.levelSystem?.reset();
   }
@@ -309,7 +302,7 @@ export class Game {
     });
 
     this.blocks.forEach(block => block.syncFromBody());
-    this.scoreBoard.update(this.app.ticker.deltaMS / 16.67);
+    this.gameHUD.update(this.app.ticker.deltaMS / 16.67);
 
     if (this.warningLine) {
       this.warningLine.update(
