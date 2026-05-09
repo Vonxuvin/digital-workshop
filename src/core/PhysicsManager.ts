@@ -1,0 +1,82 @@
+import Matter from 'matter-js';
+
+export class PhysicsManager {
+  private engine: Matter.Engine;
+  private runner: Matter.Runner;
+  private bodies: Map<number, Matter.Body> = new Map();
+  private idCounter = 0;
+
+  constructor() {
+    this.engine = Matter.Engine.create({
+      gravity: { x: 0, y: 1.0, scale: 0.001 },
+    });
+    this.runner = Matter.Runner.create({
+      isFixed: true,
+      delta: 1000 / 60,
+    });
+  }
+
+  start(): void {
+    Matter.Runner.run(this.runner, this.engine);
+  }
+
+  stop(): void {
+    Matter.Runner.stop(this.runner);
+  }
+
+  createCircle(x: number, y: number, radius: number, options?: Matter.IBodyDefinition): Matter.Body {
+    const body = Matter.Bodies.circle(x, y, radius, {
+      restitution: 0.3,
+      friction: 0.5,
+      frictionAir: 0.01,
+      density: 0.001,
+      sleepThreshold: 0.5,
+      ...options,
+    });
+    body.label = `block_${++this.idCounter}`;
+    this.bodies.set(this.idCounter, body);
+    Matter.Composite.add(this.engine.world, body);
+    return body;
+  }
+
+  createRectangle(x: number, y: number, width: number, height: number, options?: Matter.IBodyDefinition): Matter.Body {
+    const body = Matter.Bodies.rectangle(x, y, width, height, {
+      isStatic: true,
+      ...options,
+    });
+    Matter.Composite.add(this.engine.world, body);
+    return body;
+  }
+
+  removeBody(body: Matter.Body): void {
+    Matter.Composite.remove(this.engine.world, body);
+    for (const [id, b] of this.bodies) {
+      if (b === body) {
+        this.bodies.delete(id);
+        break;
+      }
+    }
+  }
+
+  getBodyPosition(body: Matter.Body): { x: number; y: number; angle: number } {
+    return {
+      x: body.position.x,
+      y: body.position.y,
+      angle: body.angle,
+    };
+  }
+
+  onCollisionStart(callback: (pair: Matter.Pair) => void): void {
+    Matter.Events.on(this.engine, 'collisionStart', (event) => {
+      event.pairs.forEach(callback);
+    });
+  }
+
+  getEngine(): Matter.Engine {
+    return this.engine;
+  }
+
+  getAllBodies(): Matter.Body[] {
+    return Array.from(this.bodies.values());
+  }
+}
