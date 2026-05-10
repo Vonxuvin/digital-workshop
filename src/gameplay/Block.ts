@@ -25,11 +25,13 @@ export class Block extends Container {
   private graphics: Graphics;
   private valueText: Text;
   private _destroyed: boolean = false;
+  public isRainbow: boolean = false;
 
-  constructor(body: Matter.Body, value: number) {
+  constructor(body: Matter.Body, value: number, isRainbow: boolean = false) {
     super();
     this.body = body;
     this.value = value;
+    this.isRainbow = isRainbow;
     this.config = BLOCK_CONFIGS[value] || BLOCK_CONFIGS[1];
 
     this.graphics = new Graphics();
@@ -53,12 +55,21 @@ export class Block extends Container {
 
   private drawBlock(): void {
     this.graphics.clear();
-    this.graphics.circle(0, 0, this.config.radius + 2);
-    this.graphics.fill({ color: this.config.color, alpha: 0.3 });
-    this.graphics.circle(0, 0, this.config.radius);
-    this.graphics.fill(this.config.color);
-    this.graphics.circle(-this.config.radius * 0.3, -this.config.radius * 0.3, this.config.radius * 0.25);
-    this.graphics.fill({ color: 0xffffff, alpha: 0.3 });
+    if (this.isRainbow) {
+      this.graphics.circle(0, 0, this.config.radius + 2);
+      this.graphics.fill({ color: 0xffffff, alpha: 0.3 });
+      this.graphics.circle(0, 0, this.config.radius);
+      this.graphics.fill(0xFF69B4);
+      this.graphics.circle(-this.config.radius * 0.25, -this.config.radius * 0.25, this.config.radius * 0.35);
+      this.graphics.fill({ color: 0xFFD700, alpha: 0.6 });
+    } else {
+      this.graphics.circle(0, 0, this.config.radius + 2);
+      this.graphics.fill({ color: this.config.color, alpha: 0.3 });
+      this.graphics.circle(0, 0, this.config.radius);
+      this.graphics.fill(this.config.color);
+      this.graphics.circle(-this.config.radius * 0.3, -this.config.radius * 0.3, this.config.radius * 0.25);
+      this.graphics.fill({ color: 0xffffff, alpha: 0.3 });
+    }
   }
 
   syncFromBody(): void {
