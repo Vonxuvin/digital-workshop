@@ -7,7 +7,7 @@ export class ExplosionEffect extends PIXI.Container {
   private onComplete: (() => void) | undefined;
   private rings: PIXI.Graphics[] = [];
   private particles: PIXI.Graphics[] = [];
-  private flash: PIXI.Graphics;
+  private flash!: PIXI.Graphics;
   private animationId: number = 0;
   private startTime: number = 0;
 

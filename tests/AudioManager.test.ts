@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { AudioManager } from '../src/core/AudioManager';
 
 describe('AudioManager', () => {
@@ -21,20 +21,20 @@ describe('AudioManager', () => {
     expect(() => am.play('levelComplete')).not.toThrow();
   });
 
-  it('should not play when disabled', () => {
+  it('should not play when muted', () => {
     const am = AudioManager.getInstance();
-    am.setEnabled(false);
-    expect(am.isEnabled()).toBe(false);
+    am.setMuted(true);
+    expect(am.isCurrentlyMuted()).toBe(true);
     expect(() => am.play('merge')).not.toThrow();
-    am.setEnabled(true);
+    am.setMuted(false);
   });
 
-  it('should toggle enabled state', () => {
+  it('should toggle muted state', () => {
     const am = AudioManager.getInstance();
-    am.setEnabled(false);
-    expect(am.isEnabled()).toBe(false);
-    am.setEnabled(true);
-    expect(am.isEnabled()).toBe(true);
+    am.setMuted(false);
+    expect(am.isCurrentlyMuted()).toBe(false);
+    am.setMuted(true);
+    expect(am.isCurrentlyMuted()).toBe(true);
   });
 
   it('should not throw for unknown sound when no AudioContext', () => {

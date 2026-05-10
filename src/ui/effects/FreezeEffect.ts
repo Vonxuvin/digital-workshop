@@ -61,7 +61,7 @@ export class FreezeEffect extends PIXI.Container {
     }
   }
 
-  private playEntrance(): void {
+  public playEntrance(): void {
     this.startTime = performance.now();
     
     const animateEntrance = () => {
