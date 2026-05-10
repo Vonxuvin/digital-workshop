@@ -1,4 +1,5 @@
 import { eventBus } from '../utils/EventBus';
+import type { ModifierConfig } from './modifiers/ContainerModifier';
 
 export type ObjectiveType = 'score' | 'target_merge' | 'clear_obstacle' | 'survival';
 
@@ -12,12 +13,20 @@ export interface LevelConfig {
   id: number;
   name: string;
   objective: LevelObjective;
-  containerWidth: number;
-  containerHeight: number;
-  availableNumbers: number[];
-  spawnInterval?: number;
+  container: {
+    width: number;
+    height: number;
+    shape: 'rectangle';
+  };
+  spawn: {
+    availableNumbers: number[];
+    spawnInterval?: number;
+  };
+  modifiers?: ModifierConfig[];
   obstacles?: Array<{ x: number; y: number; value: number }>;
-  rewards?: { stars: number[] };
+  rewards: {
+    stars: [number, number, number];
+  };
 }
 
 export interface LevelCompletedData {
@@ -96,6 +105,23 @@ export class LevelSystem {
       }
       eventBus.emit('level:timeUpdate', this.survivalTime);
     }, 1000);
+  }
+
+  // 为了向后兼容，提供一些快捷方法
+  get containerWidth(): number {
+    return this.config.container.width;
+  }
+
+  get containerHeight(): number {
+    return this.config.container.height;
+  }
+
+  get availableNumbers(): number[] {
+    return this.config.spawn.availableNumbers;
+  }
+
+  get spawnInterval(): number | undefined {
+    return this.config.spawn.spawnInterval;
   }
 
   pause(): void {

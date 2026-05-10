@@ -213,7 +213,7 @@ export class LevelLoader {
     const validation = this.validateConfig(data);
     if (!validation.valid) return null;
 
-    return {
+    const config = {
       id: data.id,
       name: data.name,
       objective: {
@@ -221,13 +221,45 @@ export class LevelLoader {
         target: data.objective.target,
         timeLimit: data.objective.timeLimit,
       },
-      containerWidth: data.container.width,
-      containerHeight: data.container.height,
-      availableNumbers: data.spawn.availableNumbers,
-      spawnInterval: data.spawn.spawnInterval,
+      container: {
+        width: data.container.width,
+        height: data.container.height,
+        shape: data.container.shape || 'rectangle',
+      },
+      spawn: {
+        availableNumbers: data.spawn.availableNumbers,
+        spawnInterval: data.spawn.spawnInterval,
+      },
+      modifiers: data.modifiers || undefined,
       obstacles: data.obstacles || undefined,
-      rewards: data.rewards || undefined,
+      rewards: data.rewards || { stars: [0, 0, 0] },
     };
+
+    // 为了向后兼容，添加访问器属性
+    Object.defineProperties(config, {
+      containerWidth: {
+        get() { return this.container.width; },
+        enumerable: true,
+        configurable: true,
+      },
+      containerHeight: {
+        get() { return this.container.height; },
+        enumerable: true,
+        configurable: true,
+      },
+      availableNumbers: {
+        get() { return this.spawn.availableNumbers; },
+        enumerable: true,
+        configurable: true,
+      },
+      spawnInterval: {
+        get() { return this.spawn.spawnInterval; },
+        enumerable: true,
+        configurable: true,
+      },
+    });
+
+    return config as LevelConfig;
   }
 
   getLevelConfig(levelId: number): LevelConfig | null {

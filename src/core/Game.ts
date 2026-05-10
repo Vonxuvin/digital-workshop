@@ -29,6 +29,7 @@ import { BombProp } from '../gameplay/props/BombProp';
 import { RainbowProp } from '../gameplay/props/RainbowProp';
 import { ExplosionEffect } from '../ui/effects/ExplosionEffect';
 import { FreezeEffect } from '../ui/effects/FreezeEffect';
+import { ModifierManager } from '../gameplay/modifiers/ModifierManager';
 
 interface BlockMergedData {
   newValue: number;
@@ -92,11 +93,13 @@ export class Game {
   private bombTargetMode = false;
   private freezeEffect: FreezeEffect | null = null;
   private rainbowRemaining = 0;
+  private modifierManager: ModifierManager;
 
   constructor(canvas: HTMLCanvasElement) {
     Game.instance = this;
     this.app = new Application();
     this.physics = new PhysicsManager();
+    this.modifierManager = ModifierManager.getInstance(this.physics);
     this.preview = new BlockPreview();
     this.input = new InputManager(canvas);
     this.mergeSystem = new MergeSystem(this.physics);
@@ -438,11 +441,19 @@ export class Game {
     this.gameHUD.updateLevel(config.id, config.name);
     this.uiManager.hideCurrentScreen();
     this.resetGame();
+    
+    // 初始化容器变形器
+    this.modifierManager.setContainerSize(this.app.screen.width, this.app.screen.height);
+    if (config.modifiers && config.modifiers.length > 0) {
+      this.modifierManager.loadFromLevelConfig(config.modifiers);
+    }
+    
     this.physics.start();
     this.levelSystem?.start();
     this.drawContainerWalls();
     this.spawnObstacles();
     this.startAutoSpawn();
+    this.modifierManager.startAll();
     if (this.levelSystem) {
       this.gameHUD.setObjectiveProgress(this.levelSystem.getProgress());
     }
@@ -455,6 +466,7 @@ export class Game {
       this.stateMachine.transition('paused');
       this.physics.stop();
       this.levelSystem?.pause();
+      this.modifierManager.pauseAll();
       this.stopAutoSpawn();
       this.preview.hide();
       this.uiManager.showScreen('pause');
@@ -467,6 +479,7 @@ export class Game {
       this.uiManager.hideCurrentScreen();
       this.physics.start();
       this.levelSystem?.resume();
+      this.modifierManager.resumeAll();
       this.startAutoSpawn();
     }
   }
@@ -481,6 +494,12 @@ export class Game {
     this.drawContainerWalls();
     this.spawnObstacles();
     this.startAutoSpawn();
+    // 重新加载和启动变形器
+    if (this.currentLevelConfig?.modifiers) {
+      this.modifierManager.setContainerSize(this.app.screen.width, this.app.screen.height);
+      this.modifierManager.loadFromLevelConfig(this.currentLevelConfig.modifiers);
+      this.modifierManager.startAll();
+    }
     if (this.levelSystem) {
       this.gameHUD.setObjectiveProgress(this.levelSystem.getProgress());
     }
@@ -621,7 +640,7 @@ export class Game {
 
   private startAutoSpawn(): void {
     this.stopAutoSpawn();
-    const interval = this.currentLevelConfig?.spawnInterval;
+    const interval = this.currentLevelConfig?.spawn.spawnInterval;
     if (!interval || interval <= 0) return;
 
     this.autoSpawnTimer = window.setInterval(() => {
@@ -652,6 +671,8 @@ export class Game {
       this.freezeEffect.destroy();
       this.freezeEffect = null;
     }
+    this.modifierManager.stopAll();
+    this.modifierManager.clearAll();
   }
 
   private clearEverything(): void {
@@ -742,7 +763,7 @@ export class Game {
   }
 
   private getRandomValue(): number {
-    const availableNumbers = this.currentLevelConfig?.availableNumbers || [1, 2, 4];
+    const availableNumbers = this.currentLevelConfig?.spawn.availableNumbers || [1, 2, 4];
     const weights: number[] = [];
     for (const num of availableNumbers) {
       const w = Math.max(1, Math.floor(8 / num));

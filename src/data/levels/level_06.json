@@ -1,0 +1,32 @@
+{
+  "id": 6,
+  "name": "移动挡板挑战",
+  "objective": {
+    "type": "score",
+    "target": 3000
+  },
+  "container": {
+    "width": 400,
+    "height": 600,
+    "shape": "rectangle"
+  },
+  "spawn": {
+    "availableNumbers": [1, 2, 4],
+    "spawnInterval": 0
+  },
+  "modifiers": [
+    {
+      "type": "paddle",
+      "enabled": true,
+      "side": "left",
+      "extendDuration": 2,
+      "retractDuration": 1,
+      "extendLength": 80,
+      "triggerInterval": 5,
+      "yPosition": 360
+    }
+  ],
+  "rewards": {
+    "stars": [1000, 2000, 3000]
+  }
+}
