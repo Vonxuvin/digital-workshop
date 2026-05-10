@@ -1,11 +1,15 @@
+
 import { Container, Text, Graphics } from 'pixi.js';
 import { eventBus } from '../../utils/EventBus';
+import { UIProgressBar } from '../components/UIProgressBar';
 
 export class GameHUD extends Container {
   private scoreText!: Text;
   private chainText!: Text;
   private levelText!: Text;
   private pauseButton!: Container;
+  private timerText!: Text;
+  private objectiveBar!: UIProgressBar;
   private currentScore = 0;
   private displayScore = 0;
   private onScoreUpdatedBound: (data: { totalScore: number; earnedScore: number; chainCount: number }) => void;
@@ -17,6 +21,8 @@ export class GameHUD extends Container {
     this.createChainDisplay();
     this.createLevelDisplay();
     this.createPauseButton();
+    this.createTimerDisplay();
+    this.createObjectiveBar();
     this.setupEventListeners();
   }
 
@@ -94,6 +100,63 @@ export class GameHUD extends Container {
     this.addChild(this.pauseButton);
   }
 
+  private createTimerDisplay(): void {
+    this.timerText = new Text({
+      text: '',
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 20,
+        fill: 0xff6b6b,
+        fontWeight: 'bold',
+      },
+    });
+    this.timerText.anchor.set(0.5, 0);
+    this.timerText.x = 400;
+    this.timerText.y = 10;
+    this.timerText.visible = false;
+    this.addChild(this.timerText);
+  }
+
+  updateTimer(seconds: number): void {
+    if (seconds >= 0) {
+      this.timerText.visible = true;
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      this.timerText.text = `${mins}:${secs.toString().padStart(2, '0')}`;
+      if (seconds <= 10) {
+        this.timerText.style.fill = 0xff4444;
+      } else {
+        this.timerText.style.fill = 0xff6b6b;
+      }
+    } else {
+      this.timerText.visible = false;
+    }
+  }
+
+  private createObjectiveBar(): void {
+    this.objectiveBar = new UIProgressBar(150, 12, 0x333333, 0x4ECDC4);
+    this.objectiveBar.x = 580;
+    this.objectiveBar.y = 85;
+
+    const label = new Text({
+      text: '进度',
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 12,
+        fill: 0x999999,
+      },
+    });
+    label.x = 0;
+    label.y = -16;
+    this.objectiveBar.addChild(label);
+
+    this.addChild(this.objectiveBar);
+  }
+
+  setObjectiveProgress(progress: number): void {
+    this.objectiveBar.setProgress(progress);
+  }
+
   private setupEventListeners(): void {
     eventBus.on('score:updated', this.onScoreUpdatedBound);
   }
@@ -126,6 +189,9 @@ export class GameHUD extends Container {
     this.displayScore = 0;
     this.scoreText.text = 'Score: 0';
     this.chainText.text = '';
+    this.timerText.visible = false;
+    this.timerText.text = '';
+    this.objectiveBar.setProgress(0);
   }
 
   skipAnimation(): void {

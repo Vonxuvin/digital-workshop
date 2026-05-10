@@ -3,26 +3,41 @@ import { Screen } from '../UIManager';
 import { eventBus } from '../../utils/EventBus';
 
 export class PauseScreen extends Screen {
+  private contentContainer!: Container;
+  private title!: Text;
+  private continueButton!: Container;
+  private restartButton!: Container;
+  private menuButton!: Container;
+  private overlay!: Graphics;
+  private currentScreenWidth = 800;
+  private currentScreenHeight = 600;
+  private initialized = false;
+
   constructor() {
     super();
     this.visible = false;
+  }
+
+  private initialize(): void {
+    if (this.initialized) return;
     this.createOverlay();
     this.createContent();
+    this.initialized = true;
   }
 
   private createOverlay(): void {
-    const overlay = new Graphics();
-    overlay.rect(0, 0, 800, 600);
-    overlay.fill({ color: 0x000000, alpha: 0.7 });
-    this.addChild(overlay);
+    this.overlay = new Graphics();
+    this.overlay.rect(0, 0, this.currentScreenWidth, this.currentScreenHeight);
+    this.overlay.fill({ color: 0x000000, alpha: 0.7 });
+    this.addChild(this.overlay);
   }
 
   private createContent(): void {
-    const container = new Container();
-    container.x = 400;
-    container.y = 300;
+    this.contentContainer = new Container();
+    this.contentContainer.x = this.currentScreenWidth / 2;
+    this.contentContainer.y = this.currentScreenHeight / 2;
 
-    const title = new Text({
+    this.title = new Text({
       text: '游戏暂停',
       style: {
         fontFamily: 'Arial',
@@ -31,32 +46,32 @@ export class PauseScreen extends Screen {
         fontWeight: 'bold',
       },
     });
-    title.anchor.set(0.5);
-    title.y = -80;
-    container.addChild(title);
+    this.title.anchor.set(0.5);
+    this.title.y = -80;
+    this.contentContainer.addChild(this.title);
 
-    const continueBtn = this.createButton('继续游戏', 0x4ECDC4);
-    continueBtn.y = 0;
-    continueBtn.on('pointerdown', () => {
+    this.continueButton = this.createButton('继续游戏', 0x4ECDC4);
+    this.continueButton.y = 0;
+    this.continueButton.on('pointerdown', () => {
       eventBus.emit('ui:resume');
     });
-    container.addChild(continueBtn);
+    this.contentContainer.addChild(this.continueButton);
 
-    const restartBtn = this.createButton('重新开始', 0xFF6B6B);
-    restartBtn.y = 60;
-    restartBtn.on('pointerdown', () => {
+    this.restartButton = this.createButton('重新开始', 0xFF6B6B);
+    this.restartButton.y = 60;
+    this.restartButton.on('pointerdown', () => {
       eventBus.emit('ui:restart');
     });
-    container.addChild(restartBtn);
+    this.contentContainer.addChild(this.restartButton);
 
-    const menuBtn = this.createButton('返回主菜单', 0x95E1D3);
-    menuBtn.y = 120;
-    menuBtn.on('pointerdown', () => {
+    this.menuButton = this.createButton('返回主菜单', 0x95E1D3);
+    this.menuButton.y = 120;
+    this.menuButton.on('pointerdown', () => {
       eventBus.emit('ui:backToMenu');
     });
-    container.addChild(menuBtn);
+    this.contentContainer.addChild(this.menuButton);
 
-    this.addChild(container);
+    this.addChild(this.contentContainer);
   }
 
   private createButton(text: string, color: number): Container {
@@ -92,7 +107,10 @@ export class PauseScreen extends Screen {
     return btn;
   }
 
-  show(): void {
+  show(screenWidth?: number, screenHeight?: number): void {
+    this.currentScreenWidth = screenWidth || 800;
+    this.currentScreenHeight = screenHeight || 600;
+    this.initialize();
     this.visible = true;
   }
 
