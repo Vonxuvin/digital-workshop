@@ -8,6 +8,8 @@ export class MergeSystem {
   private blocks: Map<string, Block> = new Map();
   private obstacles: Map<string, Block> = new Map();
   private mergingBodies: Set<string> = new Set();
+  private maxChainDepth = 10;
+  private currentChainDepth = 0;
 
   constructor(physics: PhysicsManager) {
     this.physics = physics;
@@ -33,6 +35,8 @@ export class MergeSystem {
   }
 
   private handleCollision(bodyA: Matter.Body, bodyB: Matter.Body): void {
+    this.currentChainDepth = 0;
+
     const isObstacleA = bodyA.label.startsWith('obstacle_');
     const isObstacleB = bodyB.label.startsWith('obstacle_');
 
@@ -135,6 +139,7 @@ export class MergeSystem {
 
   private checkChainReaction(block: Block): void {
     if (block.isDestroyed) return;
+    if (this.currentChainDepth >= this.maxChainDepth) return;
 
     const nearbyBodies = this.physics.getAllBodies().filter(b => {
       if (b === block.body || b.isStatic) return false;
@@ -145,6 +150,7 @@ export class MergeSystem {
     for (const other of nearbyBodies) {
       const otherBlock = this.blocks.get(other.label);
       if (otherBlock && !otherBlock.isDestroyed && otherBlock.value === block.value) {
+        this.currentChainDepth++;
         this.mergeBlocks(block, otherBlock);
         break;
       }

@@ -6,6 +6,7 @@ export class PhysicsManager {
   private bodies: Map<number, Matter.Body> = new Map();
   private idCounter = 0;
   private running = false;
+  private readonly fixedStep = 1000 / 60;
 
   constructor() {
     this.engine = Matter.Engine.create({
@@ -26,6 +27,29 @@ export class PhysicsManager {
     if (!this.running) return;
     this.running = false;
     Matter.Runner.stop(this.runner);
+  }
+
+  step(dt: number): void {
+    Matter.Engine.update(this.engine, dt);
+  }
+
+  fixedUpdate(accumulator: number): number {
+    while (accumulator >= this.fixedStep) {
+      Matter.Engine.update(this.engine, this.fixedStep);
+      accumulator -= this.fixedStep;
+    }
+    return accumulator;
+  }
+
+  clearAll(): void {
+    Matter.Composite.clear(this.engine.world, false);
+    this.bodies.clear();
+    this.idCounter = 0;
+  }
+
+  setGravity(x: number, y: number): void {
+    this.engine.gravity.x = x;
+    this.engine.gravity.y = y;
   }
 
   isRunning(): boolean {

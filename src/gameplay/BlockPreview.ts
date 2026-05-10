@@ -5,6 +5,7 @@ export class BlockPreview extends Container {
   private graphics: Graphics;
   private currentValue: number = 1;
   private targetX: number = 0;
+  private trajectoryLength: number = 500;
 
   constructor() {
     super();
@@ -31,6 +32,13 @@ export class BlockPreview extends Container {
     this.x = x;
   }
 
+  setNextValue(value: number): void {
+    this.currentValue = value;
+    if (this.visible) {
+      this.draw();
+    }
+  }
+
   private draw(): void {
     const config = BLOCK_CONFIGS[this.currentValue] || BLOCK_CONFIGS[1];
     this.graphics.clear();
@@ -44,9 +52,16 @@ export class BlockPreview extends Container {
       this.graphics.stroke({ width: 2, color: config.color, alpha: 0.6 });
     }
 
-    this.graphics.moveTo(0, radius);
-    this.graphics.lineTo(0, 300);
-    this.graphics.stroke({ width: 1, color: 0xffffff, alpha: 0.3 });
+    const dashLength = 12;
+    const gapLength = 8;
+    let currentY = radius + 4;
+    while (currentY < this.trajectoryLength) {
+      const endY = Math.min(currentY + dashLength, this.trajectoryLength);
+      this.graphics.moveTo(0, currentY);
+      this.graphics.lineTo(0, endY);
+      this.graphics.stroke({ width: 2, color: 0xffffff, alpha: 0.4 });
+      currentY = endY + gapLength;
+    }
   }
 
   getTargetX(): number {
