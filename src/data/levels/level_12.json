@@ -1,0 +1,33 @@
+{
+  "id": 12,
+  "name": "生存挑战",
+  "objective": {
+    "type": "survival",
+    "target": 90,
+    "timeLimit": 90
+  },
+  "container": {
+    "width": 400,
+    "height": 600,
+    "shape": "rectangle"
+  },
+  "spawn": {
+    "availableNumbers": [1, 2, 4, 8],
+    "spawnInterval": 3
+  },
+  "modifiers": [
+    {
+      "type": "paddle",
+      "enabled": true,
+      "side": "right",
+      "extendDuration": 3,
+      "retractDuration": 1.5,
+      "extendLength": 100,
+      "triggerInterval": 4,
+      "yPosition": 400
+    }
+  ],
+  "rewards": {
+    "stars": [30, 60, 90]
+  }
+}

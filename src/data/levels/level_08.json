@@ -1,0 +1,30 @@
+{
+  "id": 8,
+  "name": "空间收缩",
+  "objective": {
+    "type": "score",
+    "target": 5000
+  },
+  "container": {
+    "width": 400,
+    "height": 600,
+    "shape": "rectangle"
+  },
+  "spawn": {
+    "availableNumbers": [1, 2, 4, 8],
+    "spawnInterval": 0
+  },
+  "modifiers": [
+    {
+      "type": "shrink",
+      "enabled": true,
+      "targetWidth": 200,
+      "shrinkSpeed": 10,
+      "minWidth": 150,
+      "triggerInterval": 30
+    }
+  ],
+  "rewards": {
+    "stars": [2000, 3500, 5000]
+  }
+}

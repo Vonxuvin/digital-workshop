@@ -1,0 +1,30 @@
+{
+  "id": 7,
+  "name": "旋转实验室",
+  "objective": {
+    "type": "target_merge",
+    "target": 64
+  },
+  "container": {
+    "width": 400,
+    "height": 600,
+    "shape": "rectangle"
+  },
+  "spawn": {
+    "availableNumbers": [1, 2, 4, 8],
+    "spawnInterval": 0
+  },
+  "modifiers": [
+    {
+      "type": "rotate",
+      "enabled": true,
+      "rotationSpeed": 15,
+      "maxAngle": 10,
+      "oscillate": true,
+      "duration": 60
+    }
+  ],
+  "rewards": {
+    "stars": [32, 48, 64]
+  }
+}

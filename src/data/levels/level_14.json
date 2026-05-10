@@ -1,0 +1,54 @@
+{
+  "id": 14,
+  "name": "通道挡板",
+  "objective": {
+    "type": "clear_obstacle",
+    "target": 12
+  },
+  "container": {
+    "width": 400,
+    "height": 600,
+    "shape": "rectangle"
+  },
+  "spawn": {
+    "availableNumbers": [1, 2, 4, 8, 16],
+    "spawnInterval": 0
+  },
+  "modifiers": [
+    {
+      "type": "fork",
+      "enabled": true,
+      "forkY": 250,
+      "leftAngle": 18,
+      "rightAngle": 18,
+      "channelWidth": 130
+    },
+    {
+      "type": "paddle",
+      "enabled": true,
+      "side": "left",
+      "extendDuration": 2.5,
+      "retractDuration": 1.2,
+      "extendLength": 90,
+      "triggerInterval": 6,
+      "yPosition": 420
+    }
+  ],
+  "obstacles": [
+    { "x": 80, "y": 380, "value": 8 },
+    { "x": 320, "y": 380, "value": 8 },
+    { "x": 120, "y": 440, "value": 4 },
+    { "x": 280, "y": 440, "value": 4 },
+    { "x": 80, "y": 500, "value": 2 },
+    { "x": 320, "y": 500, "value": 2 },
+    { "x": 160, "y": 500, "value": 16 },
+    { "x": 240, "y": 500, "value": 16 },
+    { "x": 120, "y": 560, "value": 4 },
+    { "x": 280, "y": 560, "value": 4 },
+    { "x": 200, "y": 560, "value": 32 },
+    { "x": 200, "y": 400, "value": 8 }
+  ],
+  "rewards": {
+    "stars": [6, 9, 12]
+  }
+}

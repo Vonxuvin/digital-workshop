@@ -1,0 +1,68 @@
+{
+  "id": 15,
+  "name": "大师挑战",
+  "objective": {
+    "type": "target_merge",
+    "target": 256
+  },
+  "container": {
+    "width": 400,
+    "height": 600,
+    "shape": "rectangle"
+  },
+  "spawn": {
+    "availableNumbers": [1, 2, 4, 8, 16, 32, 64],
+    "spawnInterval": 0
+  },
+  "modifiers": [
+    {
+      "type": "paddle",
+      "enabled": true,
+      "side": "left",
+      "extendDuration": 2,
+      "retractDuration": 1,
+      "extendLength": 70,
+      "triggerInterval": 4,
+      "yPosition": 340
+    },
+    {
+      "type": "paddle",
+      "enabled": true,
+      "side": "right",
+      "extendDuration": 2,
+      "retractDuration": 1,
+      "extendLength": 70,
+      "triggerInterval": 4,
+      "yPosition": 380,
+      "startDelay": 2
+    },
+    {
+      "type": "rotate",
+      "enabled": true,
+      "rotationSpeed": 18,
+      "maxAngle": 15,
+      "oscillate": true,
+      "duration": 180
+    },
+    {
+      "type": "shrink",
+      "enabled": true,
+      "targetWidth": 150,
+      "shrinkSpeed": 15,
+      "minWidth": 130,
+      "triggerInterval": 40,
+      "startDelay": 30
+    },
+    {
+      "type": "fork",
+      "enabled": true,
+      "forkY": 280,
+      "leftAngle": 20,
+      "rightAngle": 20,
+      "channelWidth": 120
+    }
+  ],
+  "rewards": {
+    "stars": [128, 192, 256]
+  }
+}

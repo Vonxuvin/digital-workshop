@@ -1,0 +1,30 @@
+{
+  "id": 11,
+  "name": "极限合成",
+  "objective": {
+    "type": "target_merge",
+    "target": 128
+  },
+  "container": {
+    "width": 350,
+    "height": 600,
+    "shape": "rectangle"
+  },
+  "spawn": {
+    "availableNumbers": [1, 2, 4, 8, 16],
+    "spawnInterval": 0
+  },
+  "modifiers": [
+    {
+      "type": "shrink",
+      "enabled": true,
+      "targetWidth": 180,
+      "shrinkSpeed": 8,
+      "minWidth": 160,
+      "triggerInterval": 25
+    }
+  ],
+  "rewards": {
+    "stars": [64, 96, 128]
+  }
+}
