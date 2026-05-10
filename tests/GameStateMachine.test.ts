@@ -86,4 +86,52 @@ describe('GameStateMachine', () => {
     expect(sm.getCurrentState()).toBe('menu');
     expect(sm.getPreviousState()).toBeNull();
   });
+
+  describe('boot and loading states', () => {
+    it('can start from boot state via constructor', () => {
+      const bootSm = new GameStateMachine('boot');
+      expect(bootSm.getCurrentState()).toBe('boot');
+    });
+
+    it('boot can only transition to loading', () => {
+      const bootSm = new GameStateMachine('boot');
+      expect(bootSm.canTransition('loading')).toBe(true);
+      expect(bootSm.canTransition('menu')).toBe(false);
+      expect(bootSm.canTransition('playing')).toBe(false);
+      expect(bootSm.canTransition('paused')).toBe(false);
+      expect(bootSm.canTransition('gameover')).toBe(false);
+      expect(bootSm.canTransition('levelComplete')).toBe(false);
+    });
+
+    it('loading can only transition to menu', () => {
+      const bootSm = new GameStateMachine('boot');
+      bootSm.transition('loading');
+      expect(bootSm.canTransition('menu')).toBe(true);
+      expect(bootSm.canTransition('playing')).toBe(false);
+      expect(bootSm.canTransition('boot')).toBe(false);
+    });
+
+    it('full boot flow: boot -> loading -> menu -> playing', () => {
+      const bootSm = new GameStateMachine('boot');
+      expect(bootSm.transition('loading')).toBe(true);
+      expect(bootSm.getCurrentState()).toBe('loading');
+      expect(bootSm.transition('menu')).toBe(true);
+      expect(bootSm.getCurrentState()).toBe('menu');
+      expect(bootSm.transition('playing')).toBe(true);
+      expect(bootSm.getCurrentState()).toBe('playing');
+    });
+
+    it('boot cannot skip to menu', () => {
+      const bootSm = new GameStateMachine('boot');
+      expect(bootSm.transition('menu')).toBe(false);
+      expect(bootSm.getCurrentState()).toBe('boot');
+    });
+
+    it('loading cannot skip to playing', () => {
+      const bootSm = new GameStateMachine('boot');
+      bootSm.transition('loading');
+      expect(bootSm.transition('playing')).toBe(false);
+      expect(bootSm.getCurrentState()).toBe('loading');
+    });
+  });
 });

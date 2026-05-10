@@ -4,8 +4,12 @@ import { Container } from 'pixi.js';
 
 class MockApp {
   stage = {
-    addChild: () => {},
+    children: [] as Container[],
+    addChild(child: Container) {
+      this.children.push(child);
+    },
   };
+  screen = { width: 800, height: 600 };
 }
 
 class MockScreen extends Screen {

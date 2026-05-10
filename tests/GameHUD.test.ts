@@ -55,4 +55,53 @@ describe('GameHUD', () => {
     const handler = vi.fn();
     eventBus.on('ui:pause', handler);
   });
+
+  it('should not contain any floating ball (nextBlockPreview) after initialization', () => {
+    const children = hud.children;
+    for (const child of children) {
+      if (child.label === 'nextBlockPreview' || child.label === 'next-block-preview') {
+        fail('GameHUD should not contain a floating nextBlockPreview component');
+      }
+    }
+  });
+
+  it('should have no visible floating elements after reset', () => {
+    hud.reset();
+    const allChildren = hud.children;
+    for (const child of allChildren) {
+      const containerChild = child as unknown as { label?: string; visible?: boolean };
+      if (containerChild.label && (
+        containerChild.label.toLowerCase().includes('preview') ||
+        containerChild.label.toLowerCase().includes('next')
+      )) {
+        expect(containerChild.visible).toBe(false);
+      }
+    }
+  });
+
+  it('should correctly set objective progress', () => {
+    hud.setObjectiveProgress(0.5);
+    hud.setObjectiveProgress(1);
+    hud.setObjectiveProgress(0);
+  });
+
+  it('should handle timer display updates', () => {
+    hud.updateTimer(60);
+    hud.updateTimer(10);
+    hud.updateTimer(-1);
+  });
+
+  it('should skip animation and show final score immediately', () => {
+    eventBus.emit('score:updated', {
+      totalScore: 9999,
+      earnedScore: 1000,
+      chainCount: 5,
+    });
+    hud.skipAnimation();
+  });
+
+  it('should destroy cleanly and remove event listeners', () => {
+    hud.destroy();
+    expect(() => hud.destroy()).not.toThrow();
+  });
 });
