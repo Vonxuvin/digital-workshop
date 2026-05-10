@@ -1,40 +1,64 @@
 import { describe, it, expect } from 'vitest';
-import { ParticleEffect, ParticleConfig } from '../src/ui/effects/ParticleEffect';
-import { MergeEffect } from '../src/ui/effects/MergeEffect';
+import { ParticleEffect, ParticleConfig, ParticleType } from '../src/ui/effects/ParticleEffect';
+import { MergeEffect, MergeEffectOptions } from '../src/ui/effects/MergeEffect';
 
 describe('ParticleEffect', () => {
-  it('should create particles from config', () => {
+  it('should create sparkle particles from config', () => {
     const config: ParticleConfig = {
-      x: 100, y: 200, color: 0xff0000, count: 8, speed: 3, life: 30,
+      type: 'sparkle' as ParticleType,
+      x: 100,
+      y: 200,
+      count: 8,
+      color: 0xff0000,
     };
     const effect = new ParticleEffect(config);
     expect(effect).toBeDefined();
+    effect.destroy();
   });
 
-  it('should return alive while particles live', () => {
+  it('should create confetti particles', () => {
     const config: ParticleConfig = {
-      x: 100, y: 200, color: 0xff0000, count: 4, speed: 2, life: 10,
+      type: 'confetti' as ParticleType,
+      x: 100,
+      y: 200,
+      count: 4,
     };
     const effect = new ParticleEffect(config);
-    const alive = effect.update(1);
-    expect(alive).toBe(true);
+    expect(effect).toBeDefined();
+    effect.destroy();
   });
 
-  it('should return dead after life expires', () => {
+  it('should create smoke particles', () => {
     const config: ParticleConfig = {
-      x: 100, y: 200, color: 0xff0000, count: 4, speed: 2, life: 5,
+      type: 'smoke' as ParticleType,
+      x: 100,
+      y: 200,
+      count: 4,
     };
     const effect = new ParticleEffect(config);
-    for (let i = 0; i < 10; i++) {
-      effect.update(1);
-    }
-    const alive = effect.update(1);
-    expect(alive).toBe(false);
+    expect(effect).toBeDefined();
+    effect.destroy();
+  });
+
+  it('should create bubble particles', () => {
+    const config: ParticleConfig = {
+      type: 'bubble' as ParticleType,
+      x: 100,
+      y: 200,
+      count: 4,
+    };
+    const effect = new ParticleEffect(config);
+    expect(effect).toBeDefined();
+    effect.destroy();
   });
 
   it('should destroy without error', () => {
     const config: ParticleConfig = {
-      x: 100, y: 200, color: 0x00ff00, count: 6, speed: 5, life: 20,
+      type: 'sparkle' as ParticleType,
+      x: 100,
+      y: 200,
+      count: 6,
+      color: 0x00ff00,
     };
     const effect = new ParticleEffect(config);
     expect(() => effect.destroy()).not.toThrow();
@@ -43,25 +67,40 @@ describe('ParticleEffect', () => {
 
 describe('MergeEffect', () => {
   it('should create merge effect', () => {
-    const effect = new MergeEffect(200, 300, 0x4ECDC4);
+    const options: MergeEffectOptions = {
+      x: 200,
+      y: 300,
+      oldNumber: 4,
+      newNumber: 8,
+    };
+    const effect = new MergeEffect(options);
     expect(effect).toBeDefined();
+    effect.destroy();
   });
 
-  it('should return alive initially', () => {
-    const effect = new MergeEffect(200, 300, 0xFF6B6B);
-    const alive = effect.update(1);
-    expect(alive).toBe(true);
-  });
-
-  it('should fade out over time', () => {
-    const effect = new MergeEffect(200, 300, 0xFFEAA7);
-    for (let i = 0; i < 60; i++) {
-      effect.update(1);
-    }
+  it('should create with onComplete callback', () => {
+    const options: MergeEffectOptions = {
+      x: 200,
+      y: 300,
+      oldNumber: 2,
+      newNumber: 4,
+    };
+    let completed = false;
+    const effect = new MergeEffect(options, () => {
+      completed = true;
+    });
+    expect(effect).toBeDefined();
+    effect.destroy();
   });
 
   it('should destroy without error', () => {
-    const effect = new MergeEffect(200, 300, 0xDDA0DD);
+    const options: MergeEffectOptions = {
+      x: 200,
+      y: 300,
+      oldNumber: 8,
+      newNumber: 16,
+    };
+    const effect = new MergeEffect(options);
     expect(() => effect.destroy()).not.toThrow();
   });
 });

@@ -58,14 +58,8 @@ export class LevelSelectScreen extends Screen {
     if (nextLevel) {
       nextLevel.unlocked = true;
     }
-    const score = 0;
-    this.saveManager.updateLevelProgress(levelId, stars, score);
-    for (const l of this.levels) {
-      const progress = this.saveManager.getLevelProgress(l.id);
-      if (l.stars > progress.stars) {
-        this.saveManager.updateLevelProgress(l.id, l.stars, progress.highScore);
-      }
-    }
+    this.saveManager.updateLevelProgress(levelId, stars, 0);
+    this.saveManager.save();
     this.refreshLevelButtons();
   }
 

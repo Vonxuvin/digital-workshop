@@ -20,6 +20,13 @@ export interface LevelConfig {
   rewards?: { stars: number[] };
 }
 
+export interface LevelCompletedData {
+  levelId: number;
+  score: number;
+  time: number;
+  highestMergeValue: number;
+}
+
 export class LevelSystem {
   private config: LevelConfig;
   private currentScore = 0;
@@ -56,15 +63,13 @@ export class LevelSystem {
     if (data.newValue > this.highestMergeValue) {
       this.highestMergeValue = data.newValue;
     }
-    if (this.config.objective.type === 'target_merge') {
-      if (data.newValue >= this.config.objective.target) {
-        this.completeLevel();
-      }
-    }
+    this.checkObjective();
   }
 
   private handleObstacleCleared(): void {
     if (this.isCompleted) return;
+    if (this.config.objective.type !== 'clear_obstacle') return;
+
     const maxObstacles = this.config.obstacles?.length ?? this.config.objective.target;
     if (this.obstaclesCleared >= maxObstacles) return;
     this.obstaclesCleared++;
@@ -111,6 +116,11 @@ export class LevelSystem {
           this.completeLevel();
         }
         break;
+      case 'target_merge':
+        if (this.highestMergeValue >= objective.target) {
+          this.completeLevel();
+        }
+        break;
       case 'clear_obstacle':
         if (this.obstaclesCleared >= objective.target) {
           this.completeLevel();
@@ -123,11 +133,13 @@ export class LevelSystem {
     if (this.isCompleted) return;
     this.isCompleted = true;
     this.stopTimer();
-    eventBus.emit('level:completed', {
+    const eventData: LevelCompletedData = {
       levelId: this.config.id,
       score: this.currentScore,
       time: this.survivalTime,
-    });
+      highestMergeValue: this.highestMergeValue,
+    };
+    eventBus.emit('level:completed', eventData);
   }
 
   stopTimer(): void {

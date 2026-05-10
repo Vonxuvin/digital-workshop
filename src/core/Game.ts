@@ -22,6 +22,13 @@ import { GameHUD } from '../ui/hud/GameHUD';
 import { createPlatformAdapter } from '../platform/PlatformFactory';
 import { eventBus } from '../utils/EventBus';
 import { PerformanceMonitor } from '../utils/PerformanceMonitor';
+import { PropSystem } from '../gameplay/props/PropSystem';
+import { PropType } from '../gameplay/props/Prop';
+import { FreezeProp } from '../gameplay/props/FreezeProp';
+import { BombProp } from '../gameplay/props/BombProp';
+import { RainbowProp } from '../gameplay/props/RainbowProp';
+import { ExplosionEffect } from '../ui/effects/ExplosionEffect';
+import { FreezeEffect } from '../ui/effects/FreezeEffect';
 
 interface BlockMergedData {
   newValue: number;
@@ -57,7 +64,8 @@ export class Game {
   private levelSelectScreen: LevelSelectScreen;
   private pauseScreen: PauseScreen;
   private audioManager: AudioManager;
-  private effects: MergeEffect[] = [];
+  private propSystem: PropSystem;
+  private effects: any[] = [];
   private resizeTimer: ReturnType<typeof setTimeout> | null = null;
   private performanceMonitor: PerformanceMonitor;
   private physicsAccumulator = 0;
@@ -75,6 +83,15 @@ export class Game {
   private onBackToMenuBound: () => void;
   private onNextLevelBound: () => void;
   private onLevelSelectBound: () => void;
+  private onBombExplodeBound: (data: { x: number; y: number; radius: number }) => void;
+  private onFreezeActivatedBound: (data: { duration: number; endTime: number }) => void;
+  private onFreezeDeactivatedBound: () => void;
+  private onPropTargetModeBound: (data: { type?: PropType; enabled: boolean }) => void;
+  private onNextRainbowBlockBound: (data: { isRainbow: boolean; remaining: number }) => void;
+  private onRainbowConsumedBound: (data: { remainingBlocks: number }) => void;
+  private bombTargetMode = false;
+  private freezeEffect: FreezeEffect | null = null;
+  private rainbowRemaining = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     Game.instance = this;
@@ -86,11 +103,12 @@ export class Game {
     this.scoreSystem = new ScoreSystem();
     this.stateMachine = new GameStateMachine('boot');
     this.uiManager = new UIManager(this.app);
-    this.gameHUD = new GameHUD();
     this.resultScreen = new ResultScreen();
     this.levelSelectScreen = new LevelSelectScreen();
     this.pauseScreen = new PauseScreen();
     this.audioManager = AudioManager.getInstance();
+    this.propSystem = PropSystem.getInstance();
+    this.gameHUD = new GameHUD(this.propSystem);
     this.performanceMonitor = new PerformanceMonitor();
     this.groundY = window.innerHeight - 50;
 
@@ -106,6 +124,12 @@ export class Game {
     this.onBackToMenuBound = this.handleBackToMenu.bind(this);
     this.onNextLevelBound = this.handleNextLevel.bind(this);
     this.onLevelSelectBound = this.handleLevelSelect.bind(this);
+    this.onBombExplodeBound = this.handleBombExplode.bind(this);
+    this.onFreezeActivatedBound = this.handleFreezeActivated.bind(this);
+    this.onFreezeDeactivatedBound = this.handleFreezeDeactivated.bind(this);
+    this.onPropTargetModeBound = this.handlePropTargetMode.bind(this);
+    this.onNextRainbowBlockBound = this.handleNextRainbowBlock.bind(this);
+    this.onRainbowConsumedBound = this.handleRainbowConsumed.bind(this);
   }
 
   static getInstance(): Game {
@@ -141,7 +165,8 @@ export class Game {
     this.stateMachine.transition('loading');
 
     await this.audioManager.init();
-
+    await this.loadLevelConfig();
+    this.initializeProps();
     this.setupContainer();
     this.setupUI();
     this.setupInput();
@@ -234,16 +259,22 @@ export class Game {
 
     this.input.onDown((state) => {
       if (!this.canDrop || this.stateMachine.getCurrentState() !== 'playing') return;
+      if (this.bombTargetMode) return;
       this.preview.show(this.currentValue, state.position.x, dropY);
     });
 
     this.input.onMove((state) => {
-      if (state.isDown && this.preview.visible && this.stateMachine.getCurrentState() === 'playing') {
+      if (state.isDown && this.preview.visible && this.stateMachine.getCurrentState() === 'playing' && !this.bombTargetMode) {
         this.preview.updatePosition(state.position.x);
       }
     });
 
     this.input.onUp(() => {
+      if (this.bombTargetMode && this.stateMachine.getCurrentState() === 'playing') {
+        const pos = this.input.getState().position;
+        this.gameHUD.usePropAtPosition(pos.x, pos.y);
+        return;
+      }
       if (this.preview.visible && this.canDrop && this.stateMachine.getCurrentState() === 'playing') {
         this.dropBlock(this.preview.getTargetX(), dropY, this.currentValue);
         this.preview.hide();
@@ -265,6 +296,12 @@ export class Game {
     eventBus.on('ui:backToMenu', this.onBackToMenuBound);
     eventBus.on('ui:nextLevel', this.onNextLevelBound);
     eventBus.on('ui:levelSelect', this.onLevelSelectBound);
+    eventBus.on('props:bomb:explode', this.onBombExplodeBound);
+    eventBus.on('props:freeze:activated', this.onFreezeActivatedBound);
+    eventBus.on('props:freeze:deactivated', this.onFreezeDeactivatedBound);
+    eventBus.on('ui:propTargetMode', this.onPropTargetModeBound);
+    eventBus.on('gameplay:nextBlock', this.onNextRainbowBlockBound);
+    eventBus.on('props:rainbow:consumed', this.onRainbowConsumedBound);
   }
 
   private handleBlockMerged(data: BlockMergedData): void {
@@ -281,7 +318,12 @@ export class Game {
     this.blocks.push(data.newBlock);
 
     const config = BLOCK_CONFIGS[data.newValue] || BLOCK_CONFIGS[1];
-    const effect = new MergeEffect(data.position.x, data.position.y, config.color);
+    const effect = new MergeEffect({
+      x: data.position.x,
+      y: data.position.y,
+      oldNumber: data.newValue / 2,
+      newNumber: data.newValue
+    });
     this.app.stage.addChild(effect);
     this.effects.push(effect);
   }
@@ -334,6 +376,14 @@ export class Game {
       if (score >= thresholds[1]) return 2;
       if (score >= thresholds[0]) return 1;
     }
+
+    if (config?.objective.type === 'target_merge') {
+      const target = config.objective.target;
+      if (score >= target * 30) return 3;
+      if (score >= target * 20) return 2;
+      if (score >= target * 10) return 1;
+    }
+
     if (score >= 1000) return 3;
     if (score >= 500) return 2;
     if (score >= 100) return 1;
@@ -349,6 +399,33 @@ export class Game {
     const config = await levelLoader.loadLevel(levelId);
     if (config) {
       this.loadLevel(config);
+    }
+  }
+
+  private async loadLevelConfig(): Promise<void> {
+    try {
+      const response = await fetch('/src/data/props/props.json');
+      const data = await response.json();
+      await this.propSystem.loadConfig(data.props || []);
+    } catch (e) {
+      console.warn('[Game] 加载道具配置失败，使用默认配置');
+      await this.propSystem.loadConfig([
+        { id: 'prop_bomb', type: PropType.BOMB, name: '炸弹', description: '销毁指定区域内所有方块', icon: 'bomb', maxCount: 3, cooldown: 1000, price: 50 },
+        { id: 'prop_rainbow', type: PropType.RAINBOW, name: '彩虹方块', description: '可与任意数字合成', icon: 'rainbow', maxCount: 3, cooldown: 1000, price: 80 },
+        { id: 'prop_freeze', type: PropType.FREEZE, name: '冻结', description: '暂停物理模拟5秒', icon: 'freeze', maxCount: 3, cooldown: 1000, price: 60 },
+      ]);
+    }
+  }
+
+  private initializeProps(): void {
+    this.propSystem.initialize([
+      { type: PropType.BOMB, count: 3 },
+      { type: PropType.RAINBOW, count: 3 },
+      { type: PropType.FREEZE, count: 3 },
+    ]);
+    const freezeProp = this.propSystem.getProp(PropType.FREEZE) as FreezeProp;
+    if (freezeProp) {
+      freezeProp.setPhysicsManager(this.physics);
     }
   }
 
@@ -369,6 +446,7 @@ export class Game {
     if (this.levelSystem) {
       this.gameHUD.setObjectiveProgress(this.levelSystem.getProgress());
     }
+    this.gameHUD.updatePropButtons();
     this.stateMachine.transition('playing');
   }
 
@@ -396,6 +474,8 @@ export class Game {
   private handleRestart(): void {
     this.uiManager.hideCurrentScreen();
     this.resetGame();
+    this.propSystem.reset();
+    this.initializeProps();
     this.physics.start();
     this.levelSystem?.start();
     this.drawContainerWalls();
@@ -438,6 +518,71 @@ export class Game {
     this.uiManager.hideCurrentScreen();
     this.uiManager.showScreen('levelSelect');
     this.stateMachine.transition('menu');
+  }
+
+  private handleBombExplode(data: { x: number; y: number; radius: number }): void {
+    console.log('[Game] handleBombExplode 被调用', data);
+    const bombProp = this.propSystem.getProp(PropType.BOMB) as BombProp;
+    if (!bombProp) {
+      console.error('[Game] BombProp 未找到');
+      return;
+    }
+
+    const affectedBlocks = bombProp.getAffectedBlocks(this.blocks, data.x, data.y);
+    for (const block of affectedBlocks) {
+      const idx = this.blocks.indexOf(block);
+      if (idx !== -1) {
+        this.blocks.splice(idx, 1);
+      }
+      this.mergeSystem.unregisterBlock(block);
+      this.physics.removeBody(block.body);
+      block.destroy();
+    }
+
+    const effect = new ExplosionEffect(data.x, data.y, data.radius);
+    console.log('[Game] 创建爆炸效果', { x: data.x, y: data.y, radius: data.radius });
+    this.app.stage.addChild(effect);
+    console.log('[Game] 爆炸效果已添加到舞台，子元素数量:', this.app.stage.children.length);
+    this.effects.push(effect);
+
+    this.audioManager.play('explosion');
+
+    if (this.levelSystem) {
+      this.gameHUD.setObjectiveProgress(this.levelSystem.getProgress());
+    }
+  }
+
+  private handleFreezeActivated(data: { duration: number; endTime: number }): void {
+    const w = this.app.screen.width;
+    const h = this.app.screen.height;
+    this.freezeEffect = new FreezeEffect(w, h);
+    this.app.stage.addChildAt(this.freezeEffect, 0);
+    this.freezeEffect.playEntrance();
+    this.audioManager.play('freeze');
+  }
+
+  private handleFreezeDeactivated(): void {
+    if (this.freezeEffect) {
+      this.freezeEffect.playExit();
+      this.freezeEffect = null;
+    }
+  }
+
+  private handlePropTargetMode(data: { type?: PropType; enabled: boolean }): void {
+    this.bombTargetMode = data.enabled === true;
+    if (this.bombTargetMode) {
+      this.preview.hide();
+    }
+  }
+
+  private handleNextRainbowBlock(data: { isRainbow: boolean; remaining: number }): void {
+    if (data.isRainbow) {
+      this.rainbowRemaining = data.remaining;
+    }
+  }
+
+  private handleRainbowConsumed(data: { remainingBlocks: number }): void {
+    this.rainbowRemaining = data.remainingBlocks;
   }
 
   private spawnObstacles(): void {
@@ -501,6 +646,12 @@ export class Game {
     this.gameHUD.reset();
     this.warningLine?.reset();
     this.levelSystem?.reset();
+    this.bombTargetMode = false;
+    this.rainbowRemaining = 0;
+    if (this.freezeEffect) {
+      this.freezeEffect.destroy();
+      this.freezeEffect = null;
+    }
   }
 
   private clearEverything(): void {
@@ -576,13 +727,18 @@ export class Game {
     const body = this.physics.createCircle(x, y, config.radius, {
       density: config.mass * 0.001,
     });
-    const block = new Block(body, value);
+    const isRainbowBlock = this.rainbowRemaining > 0;
+    const block = new Block(body, value, isRainbowBlock);
+    if (isRainbowBlock) {
+      const rainbowProp = this.propSystem.getProp(PropType.RAINBOW) as RainbowProp;
+      rainbowProp.consumeRainbowBlock();
+    }
     this.app.stage.addChild(block);
     this.blocks.push(block);
     this.mergeSystem.registerBlock(block);
 
     this.currentValue = this.getRandomValue();
-    console.log(`[Game] 投放方块 ${value}, 下一个: ${this.currentValue}`);
+    console.log(`[Game] 投放方块 ${value}${isRainbowBlock ? '(彩虹)' : ''}, 下一个: ${this.currentValue}`);
   }
 
   private getRandomValue(): number {
@@ -647,11 +803,6 @@ export class Game {
     }
 
     this.effects = this.effects.filter(effect => {
-      const alive = effect.update(this.app.ticker.deltaMS / 16.67);
-      if (!alive) {
-        effect.destroy();
-        return false;
-      }
       return true;
     });
   }
@@ -685,6 +836,12 @@ export class Game {
     eventBus.off('ui:backToMenu', this.onBackToMenuBound);
     eventBus.off('ui:nextLevel', this.onNextLevelBound);
     eventBus.off('ui:levelSelect', this.onLevelSelectBound);
+    eventBus.off('props:bomb:explode', this.onBombExplodeBound);
+    eventBus.off('props:freeze:activated', this.onFreezeActivatedBound);
+    eventBus.off('props:freeze:deactivated', this.onFreezeDeactivatedBound);
+    eventBus.off('ui:propTargetMode', this.onPropTargetModeBound);
+    eventBus.off('gameplay:nextBlock', this.onNextRainbowBlockBound);
+    eventBus.off('props:rainbow:consumed', this.onRainbowConsumedBound);
     this.scoreSystem.destroy();
     this.levelSystem?.destroy();
     this.input.destroy();

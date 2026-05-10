@@ -2,6 +2,9 @@
 import { Container, Text, Graphics } from 'pixi.js';
 import { eventBus } from '../../utils/EventBus';
 import { UIProgressBar } from '../components/UIProgressBar';
+import { PropButton } from '../components/PropButton';
+import { PropSystem } from '../../gameplay/props/PropSystem';
+import { PropType } from '../../gameplay/props/Prop';
 
 export class GameHUD extends Container {
   private scoreText!: Text;
@@ -13,13 +16,21 @@ export class GameHUD extends Container {
   private currentScore = 0;
   private displayScore = 0;
   private onScoreUpdatedBound: (data: { totalScore: number; earnedScore: number; chainCount: number }) => void;
+  private propSystem: PropSystem;
+  private propButtons: Map<PropType, PropButton> = new Map();
+  private propsContainer!: Container;
+  private selectedProp: PropType | null = null;
+  private propTargetMode = false;
 
-  constructor() {
+  constructor(propSystem: PropSystem) {
     super();
+    this.eventMode = 'static';
+    this.propSystem = propSystem;
     this.onScoreUpdatedBound = this.handleScoreUpdated.bind(this);
     this.createScoreDisplay();
     this.createChainDisplay();
     this.createLevelDisplay();
+    this.createPropsBar();
     this.createPauseButton();
     this.createTimerDisplay();
     this.createObjectiveBar();
@@ -69,6 +80,81 @@ export class GameHUD extends Container {
     this.addChild(this.levelText);
   }
 
+  private createPropsBar(): void {
+    this.propsContainer = new Container();
+    this.propsContainer.eventMode = 'static';
+    this.propsContainer.x = 600;
+    this.propsContainer.y = 15;
+
+    const propsData = [
+      { type: PropType.BOMB, icon: 'bomb', x: 0 },
+      { type: PropType.RAINBOW, icon: 'rainbow', x: 70 },
+      { type: PropType.FREEZE, icon: 'freeze', x: 140 },
+    ];
+
+    propsData.forEach(propData => {
+      const count = this.propSystem.getPropCount(propData.type);
+      const button = new PropButton({
+        propType: propData.type,
+        icon: propData.icon,
+        count: count,
+        onClick: (type) => this.onPropClick(type),
+        x: propData.x,
+        y: 0,
+      });
+      this.propsContainer.addChild(button);
+      this.propButtons.set(propData.type, button);
+    });
+
+    this.addChild(this.propsContainer);
+  }
+
+  private onPropClick(type: PropType): void {
+    const count = this.propSystem.getPropCount(type);
+    if (count <= 0) return;
+
+    if (type === PropType.BOMB) {
+      this.enterBombTargetMode();
+    } else {
+      const success = this.propSystem.useProp(type);
+      if (success) {
+        this.updatePropButtons();
+        eventBus.emit('props:used', { type });
+      }
+    }
+  }
+
+  private enterBombTargetMode(): void {
+    this.selectedProp = PropType.BOMB;
+    this.propTargetMode = true;
+    eventBus.emit('ui:propTargetMode', { type: PropType.BOMB, enabled: true });
+  }
+
+  usePropAtPosition(x: number, y: number): void {
+    if (!this.propTargetMode || !this.selectedProp) return;
+    
+    const success = this.propSystem.useProp(this.selectedProp, { x, y });
+    if (success) {
+      this.updatePropButtons();
+      eventBus.emit('props:used', { type: this.selectedProp, x, y });
+    }
+    
+    this.exitPropTargetMode();
+  }
+
+  exitPropTargetMode(): void {
+    this.selectedProp = null;
+    this.propTargetMode = false;
+    eventBus.emit('ui:propTargetMode', { enabled: false });
+  }
+
+  updatePropButtons(): void {
+    this.propButtons.forEach((button, type) => {
+      const count = this.propSystem.getPropCount(type);
+      button.updateCount(count);
+    });
+  }
+
   private createPauseButton(): void {
     this.pauseButton = new Container();
 
@@ -89,7 +175,7 @@ export class GameHUD extends Container {
     this.pauseButton.addChild(icon);
 
     this.pauseButton.x = 750;
-    this.pauseButton.y = 45;
+    this.pauseButton.y = 100;
     this.pauseButton.eventMode = 'static';
     this.pauseButton.cursor = 'pointer';
 
@@ -192,6 +278,8 @@ export class GameHUD extends Container {
     this.timerText.visible = false;
     this.timerText.text = '';
     this.objectiveBar.setProgress(0);
+    this.updatePropButtons();
+    this.exitPropTargetMode();
   }
 
   skipAnimation(): void {
@@ -201,6 +289,7 @@ export class GameHUD extends Container {
 
   destroy(): void {
     eventBus.off('score:updated', this.onScoreUpdatedBound);
+    this.propButtons.clear();
     super.destroy();
   }
 }

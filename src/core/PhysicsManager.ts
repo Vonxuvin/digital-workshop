@@ -29,6 +29,14 @@ export class PhysicsManager {
     Matter.Runner.stop(this.runner);
   }
 
+  pause(): void {
+    this.stop();
+  }
+
+  resume(): void {
+    this.start();
+  }
+
   step(dt: number): void {
     Matter.Engine.update(this.engine, dt);
   }

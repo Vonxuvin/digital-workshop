@@ -145,7 +145,7 @@ export class MainMenuScreen extends Screen {
 
     const audioManager = AudioManager.getInstance();
     this.soundIcon = new Text({
-      text: audioManager.isEnabled() ? '🔊' : '🔇',
+      text: audioManager.isCurrentlyMuted() ? '🔇' : '🔊',
       style: {
         fontFamily: 'Arial',
         fontSize: 18,
@@ -170,8 +170,8 @@ export class MainMenuScreen extends Screen {
     this.soundToggleButton.cursor = 'pointer';
     this.soundToggleButton.on('pointerdown', () => {
       const am = AudioManager.getInstance();
-      am.setEnabled(!am.isEnabled());
-      this.soundIcon.text = am.isEnabled() ? '🔊' : '🔇';
+      const isMuted = am.toggleMute();
+      this.soundIcon.text = isMuted ? '🔇' : '🔊';
     });
 
     this.addChild(this.soundToggleButton);

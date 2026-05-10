@@ -1,12 +1,33 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { GameHUD } from '../src/ui/hud/GameHUD';
 import { eventBus } from '../src/utils/EventBus';
+import { PropSystem } from '../src/gameplay/props/PropSystem';
+import { PropType } from '../src/gameplay/props/Prop';
 
 describe('GameHUD', () => {
   let hud: GameHUD;
+  let mockPropSystem: PropSystem;
 
   beforeEach(() => {
-    hud = new GameHUD();
+    mockPropSystem = {
+      getPropCount: vi.fn().mockReturnValue(3),
+      getAllProps: vi.fn().mockReturnValue([
+        { type: PropType.BOMB, config: { id: 'bomb' } as any, remaining: 3 },
+        { type: PropType.RAINBOW, config: { id: 'rainbow' } as any, remaining: 2 },
+      ]),
+      useProp: vi.fn(),
+      getProp: vi.fn(),
+      reset: vi.fn(),
+      pause: vi.fn(),
+      resume: vi.fn(),
+      destroy: vi.fn(),
+    } as unknown as PropSystem;
+
+    hud = new GameHUD(mockPropSystem);
+  });
+
+  afterEach(() => {
+    hud.destroy();
   });
 
   it('should create without error', () => {
@@ -54,6 +75,7 @@ describe('GameHUD', () => {
   it('should emit ui:pause on pause button click', () => {
     const handler = vi.fn();
     eventBus.on('ui:pause', handler);
+    eventBus.off('ui:pause', handler);
   });
 
   it('should not contain any floating ball (nextBlockPreview) after initialization', () => {

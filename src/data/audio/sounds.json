@@ -1,0 +1,114 @@
+{
+  "sfx": [
+    {
+      "key": "click",
+      "url": "/assets/audio/sfx/click.mp3",
+      "volume": 0.6,
+      "loop": false
+    },
+    {
+      "key": "spawn",
+      "url": "/assets/audio/sfx/spawn.mp3",
+      "volume": 0.5,
+      "loop": false
+    },
+    {
+      "key": "merge1",
+      "url": "/assets/audio/sfx/merge1.mp3",
+      "volume": 0.7,
+      "loop": false
+    },
+    {
+      "key": "merge2",
+      "url": "/assets/audio/sfx/merge2.mp3",
+      "volume": 0.7,
+      "loop": false
+    },
+    {
+      "key": "merge3",
+      "url": "/assets/audio/sfx/merge3.mp3",
+      "volume": 0.7,
+      "loop": false
+    },
+    {
+      "key": "merge4",
+      "url": "/assets/audio/sfx/merge4.mp3",
+      "volume": 0.7,
+      "loop": false
+    },
+    {
+      "key": "merge5",
+      "url": "/assets/audio/sfx/merge5.mp3",
+      "volume": 0.7,
+      "loop": false
+    },
+    {
+      "key": "combo",
+      "url": "/assets/audio/sfx/combo.mp3",
+      "volume": 0.8,
+      "loop": false
+    },
+    {
+      "key": "comboGreat",
+      "url": "/assets/audio/sfx/combo_great.mp3",
+      "volume": 0.8,
+      "loop": false
+    },
+    {
+      "key": "comboSuper",
+      "url": "/assets/audio/sfx/combo_super.mp3",
+      "volume": 0.9,
+      "loop": false
+    },
+    {
+      "key": "gameOver",
+      "url": "/assets/audio/sfx/game_over.mp3",
+      "volume": 0.8,
+      "loop": false
+    },
+    {
+      "key": "levelComplete",
+      "url": "/assets/audio/sfx/level_complete.mp3",
+      "volume": 0.8,
+      "loop": false
+    },
+    {
+      "key": "bomb",
+      "url": "/assets/audio/sfx/bomb.mp3",
+      "volume": 0.9,
+      "loop": false
+    },
+    {
+      "key": "rainbow",
+      "url": "/assets/audio/sfx/rainbow.mp3",
+      "volume": 0.7,
+      "loop": false
+    },
+    {
+      "key": "freeze",
+      "url": "/assets/audio/sfx/freeze.mp3",
+      "volume": 0.7,
+      "loop": false
+    },
+    {
+      "key": "propDefault",
+      "url": "/assets/audio/sfx/prop_default.mp3",
+      "volume": 0.6,
+      "loop": false
+    }
+  ],
+  "music": [
+    {
+      "key": "bgm_menu",
+      "url": "/assets/audio/music/menu.mp3",
+      "volume": 0.4,
+      "loop": true
+    },
+    {
+      "key": "bgm_game",
+      "url": "/assets/audio/music/game.mp3",
+      "volume": 0.5,
+      "loop": true
+    }
+  ]
+}

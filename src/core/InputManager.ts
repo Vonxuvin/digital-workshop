@@ -80,7 +80,8 @@ export class InputManager {
   }
 
   private updatePosition(x: number, y: number): void {
-    this.state.position.set(x, y);
+    const rect = this.canvas.getBoundingClientRect();
+    this.state.position.set(x - rect.left, y - rect.top);
   }
 
   onMove(callback: InputCallback): void {
