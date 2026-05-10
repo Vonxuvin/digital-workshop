@@ -41,12 +41,12 @@ TypeScript 5.x / Vite 5.x / PixiJS 8.x / npm
 #### Step 1.1：初始化项目工程
 
 **文件操作**：
-- 创建 `f:/Code/数字工坊/digital-workshop/` 根目录
+- 创建项目根目录 `.`
 - 初始化 npm 项目并安装依赖
 
 **命令**：
 ```bash
-cd f:/Code/数字工坊
+cd ..
 mkdir digital-workshop
 cd digital-workshop
 npm init -y
