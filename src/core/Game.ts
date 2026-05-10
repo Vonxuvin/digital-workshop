@@ -30,6 +30,7 @@ import { RainbowProp } from '../gameplay/props/RainbowProp';
 import { ExplosionEffect } from '../ui/effects/ExplosionEffect';
 import { FreezeEffect } from '../ui/effects/FreezeEffect';
 import { ModifierManager } from '../gameplay/modifiers/ModifierManager';
+import { SaveManager } from './SaveManager';
 
 interface BlockMergedData {
   newValue: number;
@@ -94,12 +95,16 @@ export class Game {
   private freezeEffect: FreezeEffect | null = null;
   private rainbowRemaining = 0;
   private modifierManager: ModifierManager;
+  private saveManager: SaveManager;
+  private gameStartTime: number = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     Game.instance = this;
     this.app = new Application();
     this.physics = new PhysicsManager();
     this.modifierManager = ModifierManager.getInstance(this.physics);
+    this.saveManager = SaveManager.getInstance();
+    this.saveManager.startAutoSave();
     this.preview = new BlockPreview();
     this.input = new InputManager(canvas);
     this.mergeSystem = new MergeSystem(this.physics);
@@ -331,29 +336,6 @@ export class Game {
     this.effects.push(effect);
   }
 
-  private handleGameOver(): void {
-    this.failGame();
-  }
-
-  private handleTimeout(): void {
-    this.failGame();
-  }
-
-  private failGame(): void {
-    this.levelSystem?.forceComplete();
-    if (!this.stateMachine.transition('gameover')) return;
-    this.physics.stop();
-    this.clearEverything();
-    this.audioManager.play('gameover');
-    this.resultScreen.setResult({
-      isWin: false,
-      score: this.scoreSystem.getCurrentScore(),
-      stars: 0,
-      levelId: this.levelSystem?.getConfig().id || 1,
-    });
-    this.uiManager.showScreen('result');
-  }
-
   private handleLevelCompleted(data: { score: number; levelId: number }): void {
     this.stateMachine.transition('levelComplete');
     this.physics.stop();
@@ -361,6 +343,9 @@ export class Game {
     this.clearEverything();
     this.audioManager.play('levelComplete');
     const stars = this.calculateStars(data.score, data.levelId);
+    const playTime = Math.floor((Date.now() - this.gameStartTime) / 1000);
+    this.saveManager.updateLevelProgress(data.levelId, data.score, playTime, stars, true);
+    this.saveManager.updateStatistics(0, 0, playTime);
     this.levelSelectScreen.updateLevelProgress(data.levelId, stars);
     this.resultScreen.setResult({
       isWin: true,
@@ -391,6 +376,32 @@ export class Game {
     if (score >= 500) return 2;
     if (score >= 100) return 1;
     return 1;
+  }
+
+  private handleGameOver(): void {
+    this.failGame();
+  }
+
+  private handleTimeout(): void {
+    this.failGame();
+  }
+
+  private failGame(): void {
+    this.levelSystem?.forceComplete();
+    if (!this.stateMachine.transition('gameover')) return;
+    this.physics.stop();
+    this.clearEverything();
+    this.audioManager.play('gameover');
+    const levelId = this.levelSystem?.getConfig().id || 1;
+    const playTime = Math.floor((Date.now() - this.gameStartTime) / 1000);
+    this.saveManager.updateLevelProgress(levelId, this.scoreSystem.getCurrentScore(), playTime, 0, false);
+    this.resultScreen.setResult({
+      isWin: false,
+      score: this.scoreSystem.getCurrentScore(),
+      stars: 0,
+      levelId,
+    });
+    this.uiManager.showScreen('result');
   }
 
   private handleStartGame(): void {
@@ -441,6 +452,7 @@ export class Game {
     this.gameHUD.updateLevel(config.id, config.name);
     this.uiManager.hideCurrentScreen();
     this.resetGame();
+    this.gameStartTime = Date.now();
     
     // 初始化容器变形器
     this.modifierManager.setContainerSize(this.app.screen.width, this.app.screen.height);

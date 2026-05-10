@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数字工坊 - 关卡编辑器</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+      color: #fff;
+      padding: 20px;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 { text-align: center; margin-bottom: 20px; color: #4ecdc4; }
+    .editor-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .panel {
+      background: #16213e;
+      border-radius: 8px;
+      padding: 20px;
+    }
+    .panel h2 {
+      color: #4ecdc4;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #a0a0a0;
+      font-size: 14px;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #2d2d44;
+      border-radius: 4px;
+      background: #0f0f23;
+      color: #fff;
+      font-size: 14px;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #4ecdc4;
+    }
+    textarea {
+      min-height: 200px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+    }
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    .btn-primary {
+      background: #4ecdc4;
+      color: #1a1a2e;
+    }
+    .btn-secondary {
+      background: #2d2d44;
+      color: #fff;
+    }
+    .btn:hover {
+      opacity: 0.9;
+    }
+    .preview {
+      background: #0f0f23;
+      border-radius: 4px;
+      padding: 15px;
+      min-height: 300px;
+      overflow: auto;
+    }
+    .modifier-section {
+      border: 1px solid #2d2d44;
+      border-radius: 4px;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+    .modifier-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>数字工坊 - 关卡编辑器</h1>
+    <div class="editor-grid">
+      <div class="panel">
+        <h2>基础配置</h2>
+        <div class="form-group">
+          <label>关卡ID</label>
+          <input type="number" id="levelId" value="16" min="1">
+        </div>
+        <div class="form-group">
+          <label>关卡名称</label>
+          <input type="text" id="levelName" value="新关卡">
+        </div>
+        <div class="form-group">
+          <label>目标类型</label>
+          <select id="objectiveType">
+            <option value="score">分数挑战</option>
+            <option value="target_merge">指定合成</option>
+            <option value="clear_obstacle">消除障碍</option>
+            <option value="survival">限时生存</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>目标值</label>
+          <input type="number" id="objectiveTarget" value="1000" min="1">
+        </div>
+        <div class="form-group">
+          <label>时间限制（秒，0为不限时）</label>
+          <input type="number" id="timeLimit" value="0" min="0">
+        </div>
+        <div class="form-group">
+          <label>容器宽度</label>
+          <input type="number" id="containerWidth" value="400" min="100">
+        </div>
+        <div class="form-group">
+          <label>容器高度</label>
+          <input type="number" id="containerHeight" value="600" min="100">
+        </div>
+        <div class="form-group">
+          <label>可用数字（逗号分隔）</label>
+          <input type="text" id="availableNumbers" value="1,2,4">
+        </div>
+        <div class="form-group">
+          <label>生成间隔（秒，0为手动）</label>
+          <input type="number" id="spawnInterval" value="0" min="0">
+        </div>
+
+        <h2>星级奖励</h2>
+        <div class="form-group">
+          <label>1星分数线</label>
+          <input type="number" id="star1" value="500">
+        </div>
+        <div class="form-group">
+          <label>2星分数线</label>
+          <input type="number" id="star2" value="1000">
+        </div>
+        <div class="form-group">
+          <label>3星分数线</label>
+          <input type="number" id="star3" value="2000">
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>变形器配置</h2>
+        <div id="modifiers"></div>
+        <button class="btn btn-secondary" onclick="addModifier()">添加变形器</button>
+
+        <h2 style="margin-top: 20px;">JSON 预览</h2>
+        <textarea id="jsonPreview" readonly></textarea>
+        <div style="margin-top: 10px;">
+          <button class="btn btn-primary" onclick="generateJSON()">生成JSON</button>
+          <button class="btn btn-secondary" onclick="downloadJSON()">下载文件</button>
+          <button class="btn btn-secondary" onclick="validateJSON()">验证配置</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let modifierCount = 0;
+
+    function addModifier() {
+      modifierCount++;
+      const container = document.getElementById('modifiers');
+      const div = document.createElement('div');
+      div.className = 'modifier-section';
+      div.id = `modifier-${modifierCount}`;
+      div.innerHTML = `
+        <div class="modifier-header">
+          <select class="modifier-type" onchange="updateModifierFields(${modifierCount})">
+            <option value="paddle">移动挡板</option>
+            <option value="rotate">旋转容器</option>
+            <option value="shrink">收缩边界</option>
+            <option value="fork">分叉通道</option>
+          </select>
+          <button class="btn btn-secondary" onclick="removeModifier(${modifierCount})">删除</button>
+        </div>
+        <div class="modifier-fields" id="modifier-fields-${modifierCount}"></div>
+      `;
+      container.appendChild(div);
+      updateModifierFields(modifierCount);
+    }
+
+    function removeModifier(id) {
+      const div = document.getElementById(`modifier-${id}`);
+      if (div) div.remove();
+    }
+
+    function updateModifierFields(id) {
+      const type = document.querySelector(`#modifier-${id} .modifier-type`).value;
+      const fields = document.getElementById(`modifier-fields-${id}`);
+      let html = '';
+
+      switch (type) {
+        case 'paddle':
+          html = `
+            <div class="form-group"><label>方向</label><select><option value="left">左侧</option><option value="right">右侧</option></select></div>
+            <div class="form-group"><label>伸出持续时间（秒）</label><input type="number" value="2" min="0.1"></div>
+            <div class="form-group"><label>缩回持续时间（秒）</label><input type="number" value="1" min="0.1"></div>
+            <div class="form-group"><label>伸出长度（像素）</label><input type="number" value="80" min="10"></div>
+            <div class="form-group"><label>触发间隔（秒）</label><input type="number" value="5" min="1"></div>
+            <div class="form-group"><label>Y位置</label><input type="number" value="360"></div>
+          `;
+          break;
+        case 'rotate':
+          html = `
+            <div class="form-group"><label>旋转速度（度/秒）</label><input type="number" value="15" min="1"></div>
+            <div class="form-group"><label>最大角度</label><input type="number" value="10" min="1"></div>
+            <div class="form-group"><label>摆动模式</label><select><option value="true">是</option><option value="false">否</option></select></div>
+            <div class="form-group"><label>持续时间（秒）</label><input type="number" value="60" min="1"></div>
+          `;
+          break;
+        case 'shrink':
+          html = `
+            <div class="form-group"><label>目标宽度</label><input type="number" value="200" min="50"></div>
+            <div class="form-group"><label>收缩速度（像素/秒）</label><input type="number" value="10" min="1"></div>
+            <div class="form-group"><label>最小宽度</label><input type="number" value="150" min="50"></div>
+            <div class="form-group"><label>触发间隔（秒）</label><input type="number" value="30" min="1"></div>
+          `;
+          break;
+        case 'fork':
+          html = `
+            <div class="form-group"><label>分叉点Y坐标</label><input type="number" value="300" min="50"></div>
+            <div class="form-group"><label>左通道角度</label><input type="number" value="15" min="0"></div>
+            <div class="form-group"><label>右通道角度</label><input type="number" value="15" min="0"></div>
+            <div class="form-group"><label>通道宽度</label><input type="number" value="150" min="50"></div>
+          `;
+          break;
+      }
+      fields.innerHTML = html;
+    }
+
+    function generateJSON() {
+      const config = {
+        id: parseInt(document.getElementById('levelId').value),
+        name: document.getElementById('levelName').value,
+        objective: {
+          type: document.getElementById('objectiveType').value,
+          target: parseInt(document.getElementById('objectiveTarget').value),
+          timeLimit: parseInt(document.getElementById('timeLimit').value) || undefined,
+        },
+        container: {
+          width: parseInt(document.getElementById('containerWidth').value),
+          height: parseInt(document.getElementById('containerHeight').value),
+          shape: 'rectangle',
+        },
+        spawn: {
+          availableNumbers: document.getElementById('availableNumbers').value.split(',').map(Number),
+          spawnInterval: parseInt(document.getElementById('spawnInterval').value) || undefined,
+        },
+        modifiers: [],
+        rewards: {
+          stars: [
+            parseInt(document.getElementById('star1').value),
+            parseInt(document.getElementById('star2').value),
+            parseInt(document.getElementById('star3').value),
+          ],
+        },
+      };
+
+      document.querySelectorAll('.modifier-section').forEach(section => {
+        const type = section.querySelector('.modifier-type').value;
+        const inputs = section.querySelectorAll('.modifier-fields input, .modifier-fields select');
+        const modifier = { type, enabled: true };
+
+        inputs.forEach(input => {
+          const key = input.previousElementSibling?.textContent || '';
+          let value = input.value;
+          if (input.type === 'number') value = parseFloat(value);
+          if (input.value === 'true') value = true;
+          if (input.value === 'false') value = false;
+
+          const keyMap = {
+            '方向': 'side',
+            '伸出持续时间（秒）': 'extendDuration',
+            '缩回持续时间（秒）': 'retractDuration',
+            '伸出长度（像素）': 'extendLength',
+            '触发间隔（秒）': 'triggerInterval',
+            'Y位置': 'yPosition',
+            '旋转速度（度/秒）': 'rotationSpeed',
+            '最大角度': 'maxAngle',
+            '摆动模式': 'oscillate',
+            '持续时间（秒）': 'duration',
+            '目标宽度': 'targetWidth',
+            '收缩速度（像素/秒）': 'shrinkSpeed',
+            '最小宽度': 'minWidth',
+            '分叉点Y坐标': 'forkY',
+            '左通道角度': 'leftAngle',
+            '右通道角度': 'rightAngle',
+            '通道宽度': 'channelWidth',
+          };
+
+          const mappedKey = keyMap[key];
+          if (mappedKey) {
+            modifier[mappedKey] = value;
+          }
+        });
+
+        config.modifiers.push(modifier);
+      });
+
+      document.getElementById('jsonPreview').value = JSON.stringify(config, null, 2);
+    }
+
+    function downloadJSON() {
+      const json = document.getElementById('jsonPreview').value;
+      if (!json) {
+        alert('请先生成JSON');
+        return;
+      }
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `level_${String(document.getElementById('levelId').value).padStart(2, '0')}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function validateJSON() {
+      const json = document.getElementById('jsonPreview').value;
+      if (!json) {
+        alert('请先生成JSON');
+        return;
+      }
+      try {
+        const config = JSON.parse(json);
+        const required = ['id', 'name', 'objective', 'container', 'spawn'];
+        const missing = required.filter(key => !(key in config));
+        if (missing.length > 0) {
+          alert(`缺少必填字段: ${missing.join(', ')}`);
+          return;
+        }
+        alert('验证通过！');
+      } catch (e) {
+        alert(`JSON格式错误: ${e.message}`);
+      }
+    }
+
+    // 初始化
+    addModifier();
+    generateJSON();
+  </script>
+</body>
+</html>
