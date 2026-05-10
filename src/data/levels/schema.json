@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LevelConfig",
+  "type": "object",
+  "required": ["id", "name", "objective", "container", "spawn"],
+  "properties": {
+    "id": { "type": "number", "minimum": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "objective": {
+      "type": "object",
+      "required": ["type", "target"],
+      "properties": {
+        "type": { "type": "string", "enum": ["score", "target_merge", "clear_obstacle", "survival"] },
+        "target": { "type": "number", "minimum": 0 },
+        "timeLimit": { "type": "number", "minimum": 0 }
+      }
+    },
+    "container": {
+      "type": "object",
+      "required": ["width", "height"],
+      "properties": {
+        "width": { "type": "number", "minimum": 100 },
+        "height": { "type": "number", "minimum": 100 },
+        "shape": { "type": "string", "enum": ["rectangle", "circle", "custom"] },
+        "modifiers": { "type": "array" }
+      }
+    },
+    "spawn": {
+      "type": "object",
+      "required": ["availableNumbers"],
+      "properties": {
+        "availableNumbers": { "type": "array", "items": { "type": "number" }, "minItems": 1 },
+        "initialBlocks": { "type": "array" },
+        "spawnInterval": { "type": "number", "minimum": 0 }
+      }
+    },
+    "obstacles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["x", "y", "value"],
+        "properties": {
+          "x": { "type": "number" },
+          "y": { "type": "number" },
+          "value": { "type": "number", "minimum": 1 }
+        }
+      }
+    },
+    "rewards": {
+      "type": "object",
+      "properties": {
+        "stars": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+        "firstClear": { "type": "object" },
+        "blueprintFragments": { "type": "number", "minimum": 0 }
+      }
+    }
+  }
+}
