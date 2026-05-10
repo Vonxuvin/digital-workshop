@@ -1,4 +1,5 @@
-import { Application, Graphics } from 'pixi.js';
+
+import { Application, Graphics, Text } from 'pixi.js';
 import Matter from 'matter-js';
 import { PhysicsManager } from './PhysicsManager';
 import { InputManager } from './InputManager';
@@ -20,6 +21,7 @@ import { PauseScreen } from '../ui/screens/PauseScreen';
 import { GameHUD } from '../ui/hud/GameHUD';
 import { createPlatformAdapter } from '../platform/PlatformFactory';
 import { eventBus } from '../utils/EventBus';
+import { PerformanceMonitor } from '../utils/PerformanceMonitor';
 
 interface BlockMergedData {
   newValue: number;
@@ -30,6 +32,7 @@ interface BlockMergedData {
 }
 
 export class Game {
+  private static instance: Game | null = null;
   private app: Application;
   private physics: PhysicsManager;
   private input: InputManager;
@@ -55,6 +58,11 @@ export class Game {
   private pauseScreen: PauseScreen;
   private audioManager: AudioManager;
   private effects: MergeEffect[] = [];
+  private resizeTimer: ReturnType<typeof setTimeout> | null = null;
+  private performanceMonitor: PerformanceMonitor;
+  private physicsAccumulator = 0;
+  private fpsDisplayEnabled = false;
+  private fpsDisplay: Text | null = null;
   private onBlockMergedBound: (data: BlockMergedData) => void;
   private onGameOverBound: () => void;
   private onTimeoutBound: () => void;
@@ -69,19 +77,21 @@ export class Game {
   private onLevelSelectBound: () => void;
 
   constructor(canvas: HTMLCanvasElement) {
+    Game.instance = this;
     this.app = new Application();
     this.physics = new PhysicsManager();
     this.preview = new BlockPreview();
     this.input = new InputManager(canvas);
     this.mergeSystem = new MergeSystem(this.physics);
     this.scoreSystem = new ScoreSystem();
-    this.stateMachine = new GameStateMachine();
+    this.stateMachine = new GameStateMachine('boot');
     this.uiManager = new UIManager(this.app);
     this.gameHUD = new GameHUD();
     this.resultScreen = new ResultScreen();
     this.levelSelectScreen = new LevelSelectScreen();
     this.pauseScreen = new PauseScreen();
     this.audioManager = AudioManager.getInstance();
+    this.performanceMonitor = new PerformanceMonitor();
     this.groundY = window.innerHeight - 50;
 
     this.onBlockMergedBound = this.handleBlockMerged.bind(this);
@@ -98,19 +108,37 @@ export class Game {
     this.onLevelSelectBound = this.handleLevelSelect.bind(this);
   }
 
+  static getInstance(): Game {
+    if (!Game.instance) {
+      throw new Error('[Game] 实例尚未创建，请先调用 Game.create()');
+    }
+    return Game.instance;
+  }
+
+  static create(canvas: HTMLCanvasElement): Game {
+    if (Game.instance) {
+      return Game.instance;
+    }
+    return new Game(canvas);
+  }
+
   async init(): Promise<void> {
     const platform = createPlatformAdapter();
     await platform.init();
     const systemInfo = await platform.getSystemInfo();
+
+    const dpr = systemInfo.pixelRatio || window.devicePixelRatio || 1;
 
     await this.app.init({
       canvas: document.getElementById('game-canvas') as HTMLCanvasElement,
       resizeTo: window,
       backgroundColor: 0x1a1a2e,
       antialias: true,
-      resolution: systemInfo.pixelRatio || 1,
+      resolution: dpr,
       autoDensity: true,
     });
+
+    this.stateMachine.transition('loading');
 
     await this.audioManager.init();
 
@@ -122,6 +150,8 @@ export class Game {
     this.gameHUD.visible = false;
     this.app.stage.addChild(this.gameHUD);
 
+    this.setupFPSDisplay();
+
     this.stateMachine.onAnyChange((from, to) => {
       console.log(`[Game] 状态变化: ${from} -> ${to}`);
       const isPlaying = to === 'playing';
@@ -132,8 +162,12 @@ export class Game {
     });
 
     this.app.ticker.add(this.update.bind(this));
-    this.physics.start();
 
+    this.performanceMonitor.start();
+
+    window.addEventListener('resize', this.handleResize.bind(this));
+
+    this.stateMachine.transition('menu');
     this.uiManager.showScreen('mainMenu');
 
     console.log('[Game] 初始化完成');
@@ -152,6 +186,39 @@ export class Game {
     this.warningLine.y = h * 0.2;
     this.warningLine.visible = false;
     this.app.stage.addChild(this.warningLine);
+  }
+
+  private handleResize(): void {
+    if (this.resizeTimer) clearTimeout(this.resizeTimer);
+    this.resizeTimer = window.setTimeout(() => {
+      this.app.renderer.resize(window.innerWidth, window.innerHeight);
+      this.groundY = window.innerHeight - 50;
+      if (this.warningLine) {
+        this.warningLine.y = this.app.screen.height * 0.2;
+      }
+    }, 300);
+  }
+
+  private setupFPSDisplay(): void {
+    this.fpsDisplay = new Text({
+      text: 'FPS: 60',
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 14,
+        fill: 0x00ff00,
+      },
+    });
+    this.fpsDisplay.x = 10;
+    this.fpsDisplay.y = 10;
+    this.fpsDisplay.visible = this.fpsDisplayEnabled;
+    this.app.stage.addChild(this.fpsDisplay);
+  }
+
+  toggleFPSDisplay(): void {
+    this.fpsDisplayEnabled = !this.fpsDisplayEnabled;
+    if (this.fpsDisplay) {
+      this.fpsDisplay.visible = this.fpsDisplayEnabled;
+    }
   }
 
   private setupUI(): void {
@@ -293,8 +360,16 @@ export class Game {
     this.currentLevelConfig = config;
     this.gameHUD.updateLevel(config.id, config.name);
     this.uiManager.hideCurrentScreen();
+    this.resetGame();
+    this.physics.start();
+    this.levelSystem?.start();
+    this.drawContainerWalls();
+    this.spawnObstacles();
+    this.startAutoSpawn();
+    if (this.levelSystem) {
+      this.gameHUD.setObjectiveProgress(this.levelSystem.getProgress());
+    }
     this.stateMachine.transition('playing');
-    this.startGame();
   }
 
   private handlePause(): void {
@@ -321,9 +396,15 @@ export class Game {
   private handleRestart(): void {
     this.uiManager.hideCurrentScreen();
     this.resetGame();
-    this.stateMachine.transition('playing');
-    this.startGame();
     this.physics.start();
+    this.levelSystem?.start();
+    this.drawContainerWalls();
+    this.spawnObstacles();
+    this.startAutoSpawn();
+    if (this.levelSystem) {
+      this.gameHUD.setObjectiveProgress(this.levelSystem.getProgress());
+    }
+    this.stateMachine.transition('playing');
   }
 
   private handleBackToMenu(): void {
@@ -359,15 +440,6 @@ export class Game {
     this.stateMachine.transition('menu');
   }
 
-  private startGame(): void {
-    this.resetGame();
-    this.physics.start();
-    this.levelSystem?.start();
-    this.drawContainerWalls();
-    this.spawnObstacles();
-    this.startAutoSpawn();
-  }
-
   private spawnObstacles(): void {
     const obstacles = this.currentLevelConfig?.obstacles;
     if (!obstacles) return;
@@ -377,7 +449,6 @@ export class Game {
     const groundY = h - 50;
     const xCenter = w / 2;
 
-    // 把障碍物放在地面上，从左到右排列
     const positions = [
       { x: xCenter - 120, y: groundY },
       { x: xCenter - 60, y: groundY },
@@ -389,7 +460,7 @@ export class Game {
     obstacles.forEach((obs, i) => {
       const config = BLOCK_CONFIGS[obs.value] || BLOCK_CONFIGS[1];
       const pos = positions[i % positions.length];
-      const adjustedY = pos.y - config.radius; // 让障碍物刚好"坐"在地面上
+      const adjustedY = pos.y - config.radius;
 
       const body = this.physics.createCircle(pos.x, adjustedY, config.radius, {
         isStatic: true,
@@ -415,7 +486,6 @@ export class Game {
       const value = this.getRandomValue();
       this.dropBlock(x, 80, value);
     }, interval * 1000);
-    console.log(`[Game] 自动生成间隔: ${interval}秒`);
   }
 
   private stopAutoSpawn(): void {
@@ -535,7 +605,16 @@ export class Game {
   }
 
   private update(): void {
+    this.performanceMonitor.tick();
+
+    if (this.fpsDisplayEnabled && this.fpsDisplay) {
+      this.fpsDisplay.text = `FPS: ${this.performanceMonitor.getFPS()}`;
+    }
+
     if (this.stateMachine.getCurrentState() !== 'playing') return;
+
+    this.physicsAccumulator += this.app.ticker.deltaMS;
+    this.physicsAccumulator = this.physics.fixedUpdate(this.physicsAccumulator);
 
     this.blocks = this.blocks.filter(block => {
       if (block.isDestroyed) return false;
@@ -556,6 +635,9 @@ export class Game {
     });
 
     this.gameHUD.update(this.app.ticker.deltaMS / 16.67);
+    if (this.levelSystem) {
+      this.gameHUD.setObjectiveProgress(this.levelSystem.getProgress());
+    }
 
     if (this.warningLine) {
       this.warningLine.update(

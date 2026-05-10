@@ -1,10 +1,12 @@
-export type GameState = 'menu' | 'playing' | 'paused' | 'gameover' | 'levelComplete';
+export type GameState = 'boot' | 'loading' | 'menu' | 'playing' | 'paused' | 'gameover' | 'levelComplete';
 
 type StateCallback = (from: GameState, to: GameState) => void;
 
 const MAX_HISTORY_SIZE = 100;
 
 const VALID_TRANSITIONS: Record<GameState, GameState[]> = {
+  'boot': ['loading'],
+  'loading': ['menu'],
   'menu': ['playing'],
   'playing': ['paused', 'gameover', 'levelComplete'],
   'paused': ['playing', 'menu'],
@@ -13,10 +15,14 @@ const VALID_TRANSITIONS: Record<GameState, GameState[]> = {
 };
 
 export class GameStateMachine {
-  private currentState: GameState = 'menu';
+  private currentState: GameState;
   private stateHistory: GameState[] = [];
   private listeners: Map<GameState, StateCallback[]> = new Map();
   private globalListeners: StateCallback[] = [];
+
+  constructor(initialState: GameState = 'menu') {
+    this.currentState = initialState;
+  }
 
   onEnter(state: GameState, callback: StateCallback): void {
     if (!this.listeners.has(state)) {

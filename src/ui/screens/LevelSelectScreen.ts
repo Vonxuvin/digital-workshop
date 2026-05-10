@@ -1,38 +1,13 @@
 import { Container, Text, Graphics } from 'pixi.js';
 import { Screen } from '../UIManager';
 import { eventBus } from '../../utils/EventBus';
-
-const STORAGE_KEY = 'level_progress';
+import { SaveManager } from '../../gameplay/SaveManager';
 
 interface LevelInfo {
   id: number;
   name: string;
   stars: number;
   unlocked: boolean;
-}
-
-function loadProgress(): Map<number, { stars: number; unlocked: boolean }> {
-  const progress = new Map<number, { stars: number; unlocked: boolean }>();
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const data = JSON.parse(saved);
-      if (typeof data === 'object' && data !== null) {
-        for (const [key, value] of Object.entries(data)) {
-          progress.set(Number(key), value as { stars: number; unlocked: boolean });
-        }
-      }
-    }
-  } catch {}
-  return progress;
-}
-
-function saveProgress(progress: Map<number, { stars: number; unlocked: boolean }>): void {
-  try {
-    const obj: Record<number, { stars: number; unlocked: boolean }> = {};
-    progress.forEach((value, key) => { obj[key] = value; });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
-  } catch {}
 }
 
 export class LevelSelectScreen extends Screen {
@@ -44,29 +19,33 @@ export class LevelSelectScreen extends Screen {
     { id: 5, name: '综合考验', stars: 0, unlocked: false },
   ];
   private levelButtons: Container[] = [];
+  private saveManager: SaveManager;
+  private title!: Text;
+  private backButton!: Container;
+  private currentScreenWidth = 800;
+  private currentScreenHeight = 600;
+  private initialized = false;
 
   constructor() {
     super();
+    this.saveManager = SaveManager.getInstance();
+  }
+
+  private initialize(): void {
+    if (this.initialized) return;
     this.loadSavedProgress();
     this.createTitle();
     this.createLevelButtons();
     this.createBackButton();
+    this.initialized = true;
   }
 
   private loadSavedProgress(): void {
-    const progress = loadProgress();
+    this.saveManager.load();
     for (const level of this.levels) {
-      const saved = progress.get(level.id);
-      if (saved) {
-        level.stars = saved.stars;
-        level.unlocked = saved.unlocked;
-      }
-    }
-    this.levels[0].unlocked = true;
-    for (let i = 1; i < this.levels.length; i++) {
-      if (this.levels[i - 1].stars > 0) {
-        this.levels[i].unlocked = true;
-      }
+      const progress = this.saveManager.getLevelProgress(level.id);
+      level.stars = progress.stars;
+      level.unlocked = this.saveManager.isLevelUnlocked(level.id);
     }
   }
 
@@ -79,11 +58,14 @@ export class LevelSelectScreen extends Screen {
     if (nextLevel) {
       nextLevel.unlocked = true;
     }
-    const progress = loadProgress();
+    const score = 0;
+    this.saveManager.updateLevelProgress(levelId, stars, score);
     for (const l of this.levels) {
-      progress.set(l.id, { stars: l.stars, unlocked: l.unlocked });
+      const progress = this.saveManager.getLevelProgress(l.id);
+      if (l.stars > progress.stars) {
+        this.saveManager.updateLevelProgress(l.id, l.stars, progress.highScore);
+      }
     }
-    saveProgress(progress);
     this.refreshLevelButtons();
   }
 
@@ -97,7 +79,7 @@ export class LevelSelectScreen extends Screen {
   }
 
   private createTitle(): void {
-    const title = new Text({
+    this.title = new Text({
       text: '选择关卡',
       style: {
         fontFamily: 'Arial',
@@ -106,10 +88,10 @@ export class LevelSelectScreen extends Screen {
         fontWeight: 'bold',
       },
     });
-    title.anchor.set(0.5);
-    title.x = 400;
-    title.y = 80;
-    this.addChild(title);
+    this.title.anchor.set(0.5);
+    this.title.x = this.currentScreenWidth / 2;
+    this.title.y = 80;
+    this.addChild(this.title);
   }
 
   private createLevelButtons(): void {
@@ -125,7 +107,7 @@ export class LevelSelectScreen extends Screen {
 
     const col = index % 3;
     const row = Math.floor(index / 3);
-    button.x = 200 + col * 200;
+    button.x = this.currentScreenWidth / 2 - 200 + col * 200;
     button.y = 200 + row * 150;
 
     const bg = new Graphics();
@@ -187,12 +169,12 @@ export class LevelSelectScreen extends Screen {
   }
 
   private createBackButton(): void {
-    const button = new Container();
+    this.backButton = new Container();
 
     const bg = new Graphics();
     bg.roundRect(-50, -20, 100, 40, 8);
     bg.fill(0x666666);
-    button.addChild(bg);
+    this.backButton.addChild(bg);
 
     const label = new Text({
       text: '返回',
@@ -203,20 +185,23 @@ export class LevelSelectScreen extends Screen {
       },
     });
     label.anchor.set(0.5);
-    button.addChild(label);
+    this.backButton.addChild(label);
 
-    button.x = 400;
-    button.y = 520;
-    button.eventMode = 'static';
-    button.cursor = 'pointer';
-    button.on('pointerdown', () => {
+    this.backButton.x = this.currentScreenWidth / 2;
+    this.backButton.y = 520;
+    this.backButton.eventMode = 'static';
+    this.backButton.cursor = 'pointer';
+    this.backButton.on('pointerdown', () => {
       eventBus.emit('ui:backToMenu');
     });
 
-    this.addChild(button);
+    this.addChild(this.backButton);
   }
 
-  show(): void {
+  show(screenWidth?: number, screenHeight?: number): void {
+    this.currentScreenWidth = screenWidth || 800;
+    this.currentScreenHeight = screenHeight || 600;
+    this.initialize();
     this.loadSavedProgress();
     this.refreshLevelButtons();
     this.visible = true;
