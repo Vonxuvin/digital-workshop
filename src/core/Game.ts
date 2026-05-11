@@ -456,7 +456,9 @@ export class Game {
     
     // 初始化容器变形器
     this.modifierManager.setContainerSize(this.app.screen.width, this.app.screen.height);
+    this.modifierManager.setStageContainer(this.app.stage);
     if (config.modifiers && config.modifiers.length > 0) {
+      console.log(`[Game] 加载 ${config.modifiers.length} 个变形器`);
       this.modifierManager.loadFromLevelConfig(config.modifiers);
     }
     
@@ -509,6 +511,7 @@ export class Game {
     // 重新加载和启动变形器
     if (this.currentLevelConfig?.modifiers) {
       this.modifierManager.setContainerSize(this.app.screen.width, this.app.screen.height);
+      this.modifierManager.setStageContainer(this.app.stage);
       this.modifierManager.loadFromLevelConfig(this.currentLevelConfig.modifiers);
       this.modifierManager.startAll();
     }

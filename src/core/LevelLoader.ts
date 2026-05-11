@@ -317,4 +317,28 @@ export class LevelLoader {
   unwatchLevel(levelId: number): void {
     this.watchedLevels.delete(levelId);
   }
+
+  getTotalLevels(): number {
+    return this.levelConfigs.size;
+  }
+
+  async discoverAndLoadAllLevels(): Promise<void> {
+    let id = 1;
+    while (true) {
+      const config = await this.loadLevel(id);
+      if (!config) break;
+      id++;
+    }
+  }
+
+  async getAllLevelConfigs(): Promise<LevelConfig[]> {
+    await this.discoverAndLoadAllLevels();
+    const configs: LevelConfig[] = [];
+    const sortedIds = Array.from(this.levelConfigs.keys()).sort((a, b) => a - b);
+    for (const id of sortedIds) {
+      const config = this.levelConfigs.get(id);
+      if (config) configs.push(config);
+    }
+    return configs;
+  }
 }

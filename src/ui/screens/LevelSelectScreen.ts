@@ -2,6 +2,7 @@ import { Container, Text, Graphics } from 'pixi.js';
 import { Screen } from '../UIManager';
 import { eventBus } from '../../utils/EventBus';
 import { SaveManager } from '../../gameplay/SaveManager';
+import { LevelLoader } from '../../core/LevelLoader';
 
 interface LevelInfo {
   id: number;
@@ -11,15 +12,10 @@ interface LevelInfo {
 }
 
 export class LevelSelectScreen extends Screen {
-  private levels: LevelInfo[] = [
-    { id: 1, name: '新手入门', stars: 0, unlocked: true },
-    { id: 2, name: '合成挑战', stars: 0, unlocked: false },
-    { id: 3, name: '障碍清除', stars: 0, unlocked: false },
-    { id: 4, name: '限时生存', stars: 0, unlocked: false },
-    { id: 5, name: '综合考验', stars: 0, unlocked: false },
-  ];
+  private levels: LevelInfo[] = [];
   private levelButtons: Container[] = [];
   private saveManager: SaveManager;
+  private levelLoader: LevelLoader;
   private title!: Text;
   private backButton!: Container;
   private currentScreenWidth = 800;
@@ -29,15 +25,27 @@ export class LevelSelectScreen extends Screen {
   constructor() {
     super();
     this.saveManager = SaveManager.getInstance();
+    this.levelLoader = LevelLoader.getInstance();
   }
 
-  private initialize(): void {
+  private async initialize(): Promise<void> {
     if (this.initialized) return;
+    await this.loadLevelsFromConfig();
     this.loadSavedProgress();
     this.createTitle();
     this.createLevelButtons();
     this.createBackButton();
     this.initialized = true;
+  }
+
+  private async loadLevelsFromConfig(): Promise<void> {
+    const configs = await this.levelLoader.getAllLevelConfigs();
+    this.levels = configs.map(config => ({
+      id: config.id,
+      name: config.name,
+      stars: 0,
+      unlocked: config.id === 1,
+    }));
   }
 
   private loadSavedProgress(): void {
@@ -195,10 +203,11 @@ export class LevelSelectScreen extends Screen {
   show(screenWidth?: number, screenHeight?: number): void {
     this.currentScreenWidth = screenWidth || 800;
     this.currentScreenHeight = screenHeight || 600;
-    this.initialize();
-    this.loadSavedProgress();
-    this.refreshLevelButtons();
-    this.visible = true;
+    this.initialize().then(() => {
+      this.loadSavedProgress();
+      this.refreshLevelButtons();
+      this.visible = true;
+    });
   }
 
   hide(): void {

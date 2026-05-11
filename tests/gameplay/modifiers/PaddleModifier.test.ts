@@ -26,7 +26,7 @@ describe('PaddleModifier', () => {
       triggerInterval: 5,
     };
 
-    modifier = new PaddleModifier(config, physics, 400, 600);
+    modifier = new PaddleModifier(config, physics, 400, 600, null);
     expect(modifier.getType()).toBe('paddle');
     expect(modifier.isActive()).toBe(false);
   });
@@ -42,7 +42,7 @@ describe('PaddleModifier', () => {
       triggerInterval: 5,
     };
 
-    modifier = new PaddleModifier(config, physics, 400, 600);
+    modifier = new PaddleModifier(config, physics, 400, 600, null);
     modifier.start();
     expect(modifier.isActive()).toBe(true);
   });
@@ -58,7 +58,7 @@ describe('PaddleModifier', () => {
       triggerInterval: 5,
     };
 
-    modifier = new PaddleModifier(config, physics, 400, 600);
+    modifier = new PaddleModifier(config, physics, 400, 600, null);
     const state = modifier.getState();
     expect(state.isActive).toBe(false);
     expect(state.progress).toBe(0);

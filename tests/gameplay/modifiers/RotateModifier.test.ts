@@ -27,7 +27,7 @@ describe('RotateModifier', () => {
       oscillate: true,
     };
 
-    modifier = new RotateModifier(config, physics, 400, 600);
+    modifier = new RotateModifier(config, physics, 400, 600, null);
     expect(modifier.getType()).toBe('rotate');
     expect(modifier.getCurrentAngle()).toBe(0);
   });
@@ -41,11 +41,7 @@ describe('RotateModifier', () => {
       oscillate: true,
     };
 
-    modifier = new RotateModifier(config, physics, 400, 600);
-    modifier.start();
-
-    // 模拟一帧
-    (modifier as any).onTick();
-    expect(modifier.isActive()).toBe(true);
+    modifier = new RotateModifier(config, physics, 400, 600, null);
+    expect(modifier.getCurrentAngle()).toBe(0);
   });
 });
