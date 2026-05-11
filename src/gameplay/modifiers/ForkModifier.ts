@@ -1,4 +1,5 @@
 import Matter from 'matter-js';
+import { Container, Graphics } from 'pixi.js';
 import { ContainerModifier, ModifierConfig } from './ContainerModifier';
 import { PhysicsManager } from '../../core/PhysicsManager';
 
@@ -17,6 +18,9 @@ export class ForkModifier extends ContainerModifier {
   private divider: Matter.Body | null = null;
   private leftWall: Matter.Body | null = null;
   private rightWall: Matter.Body | null = null;
+  private dividerGraphic: Graphics | null = null;
+  private leftWallGraphic: Graphics | null = null;
+  private rightWallGraphic: Graphics | null = null;
   private containerWidth: number;
   private containerHeight: number;
 
@@ -24,9 +28,10 @@ export class ForkModifier extends ContainerModifier {
     config: ForkConfig,
     physics: PhysicsManager,
     containerWidth: number,
-    containerHeight: number
+    containerHeight: number,
+    stageContainer?: Container | null
   ) {
-    super(config, physics);
+    super(config, physics, stageContainer);
     this.forkY = config.forkY;
     this.leftAngle = config.leftAngle;
     this.rightAngle = config.rightAngle;
@@ -41,13 +46,13 @@ export class ForkModifier extends ContainerModifier {
 
   protected onActivate(): void {
     this.createForkStructure();
+    console.log(`[ForkModifier] 激活分叉通道, forkY=${this.forkY}, leftAngle=${this.leftAngle}, rightAngle=${this.rightAngle}`);
   }
 
   private createForkStructure(): void {
     const dividerHeight = 20;
     const dividerLength = this.containerHeight - this.forkY;
 
-    // 中央分隔器
     this.divider = this.physics.createRectangle(
       this.containerWidth / 2,
       this.forkY + dividerLength / 2,
@@ -60,7 +65,6 @@ export class ForkModifier extends ContainerModifier {
       }
     );
 
-    // 左通道斜墙
     const leftWallLength = dividerLength / Math.cos((this.leftAngle * Math.PI) / 180);
     this.leftWall = this.physics.createRectangle(
       this.channelWidth / 2,
@@ -75,7 +79,6 @@ export class ForkModifier extends ContainerModifier {
       }
     );
 
-    // 右通道斜墙
     const rightWallLength = dividerLength / Math.cos((this.rightAngle * Math.PI) / 180);
     this.rightWall = this.physics.createRectangle(
       this.containerWidth - this.channelWidth / 2,
@@ -89,6 +92,40 @@ export class ForkModifier extends ContainerModifier {
         angle: (-this.rightAngle * Math.PI) / 180,
       }
     );
+
+    this.createForkGraphics();
+  }
+
+  private createForkGraphics(): void {
+    const dividerLength = this.containerHeight - this.forkY;
+
+    this.dividerGraphic = new Graphics();
+    this.dividerGraphic.rect(-5, 0, 10, dividerLength);
+    this.dividerGraphic.fill({ color: 0xE74C3C });
+    this.dividerGraphic.x = this.containerWidth / 2;
+    this.dividerGraphic.y = this.forkY;
+
+    const leftWallLength = dividerLength / Math.cos((this.leftAngle * Math.PI) / 180);
+    this.leftWallGraphic = new Graphics();
+    this.leftWallGraphic.rect(-5, 0, 10, leftWallLength);
+    this.leftWallGraphic.fill({ color: 0x3498DB });
+    this.leftWallGraphic.x = this.channelWidth / 2;
+    this.leftWallGraphic.y = this.forkY;
+    this.leftWallGraphic.rotation = (this.leftAngle * Math.PI) / 180;
+
+    const rightWallLength = dividerLength / Math.cos((this.rightAngle * Math.PI) / 180);
+    this.rightWallGraphic = new Graphics();
+    this.rightWallGraphic.rect(-5, 0, 10, rightWallLength);
+    this.rightWallGraphic.fill({ color: 0x3498DB });
+    this.rightWallGraphic.x = this.containerWidth - this.channelWidth / 2;
+    this.rightWallGraphic.y = this.forkY;
+    this.rightWallGraphic.rotation = (-this.rightAngle * Math.PI) / 180;
+
+    if (this.stageContainer) {
+      this.stageContainer.addChild(this.dividerGraphic);
+      this.stageContainer.addChild(this.leftWallGraphic);
+      this.stageContainer.addChild(this.rightWallGraphic);
+    }
   }
 
   protected onTick(): void {
@@ -112,10 +149,32 @@ export class ForkModifier extends ContainerModifier {
       this.physics.removeBody(this.rightWall);
       this.rightWall = null;
     }
+
+    if (this.dividerGraphic) {
+      if (this.stageContainer && this.dividerGraphic.parent) {
+        this.stageContainer.removeChild(this.dividerGraphic);
+      }
+      this.dividerGraphic.destroy();
+      this.dividerGraphic = null;
+    }
+    if (this.leftWallGraphic) {
+      if (this.stageContainer && this.leftWallGraphic.parent) {
+        this.stageContainer.removeChild(this.leftWallGraphic);
+      }
+      this.leftWallGraphic.destroy();
+      this.leftWallGraphic = null;
+    }
+    if (this.rightWallGraphic) {
+      if (this.stageContainer && this.rightWallGraphic.parent) {
+        this.stageContainer.removeChild(this.rightWallGraphic);
+      }
+      this.rightWallGraphic.destroy();
+      this.rightWallGraphic = null;
+    }
   }
 
   destroy(): void {
-    super.destroy();
     this.removeForkStructure();
+    super.destroy();
   }
 }
