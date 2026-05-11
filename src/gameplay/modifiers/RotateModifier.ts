@@ -1,4 +1,5 @@
 import Matter from 'matter-js';
+import { Container, Graphics } from 'pixi.js';
 import { ContainerModifier, ModifierConfig } from './ContainerModifier';
 import { PhysicsManager } from '../../core/PhysicsManager';
 
@@ -15,18 +16,19 @@ export class RotateModifier extends ContainerModifier {
   private currentAngle: number = 0;
   private targetAngle: number = 0;
   private direction: number = 1;
-  private containerBodies: Matter.Body[] = [];
   private originalPositions: Map<number, { x: number; y: number }> = new Map();
   private centerX: number;
   private centerY: number;
+  private rotationIndicator: Graphics | null = null;
 
   constructor(
     config: RotateConfig,
     physics: PhysicsManager,
     containerWidth: number,
-    containerHeight: number
+    containerHeight: number,
+    stageContainer?: Container | null
   ) {
-    super(config, physics);
+    super(config, physics, stageContainer);
     this.rotationSpeed = config.rotationSpeed;
     this.maxAngle = config.maxAngle;
     this.oscillate = config.oscillate;
@@ -42,20 +44,24 @@ export class RotateModifier extends ContainerModifier {
     this.collectContainerBodies();
     this.targetAngle = this.maxAngle;
     this.direction = 1;
+    this.createRotationIndicator();
+    console.log(`[RotateModifier] 激活旋转容器, maxAngle=${this.maxAngle}, oscillate=${this.oscillate}`);
   }
 
-  private collectContainerBodies(): void {
-    const engine = this.physics.getEngine();
-    const bodies = Matter.Composite.allBodies(engine.world);
-    this.containerBodies = bodies.filter(body =>
-      body.label?.includes('wall') ||
-      body.label?.includes('ground') ||
-      body.isStatic
-    );
+  private createRotationIndicator(): void {
+    this.rotationIndicator = new Graphics();
+    const radius = 30;
+    this.rotationIndicator.circle(0, 0, radius);
+    this.rotationIndicator.stroke({ width: 3, color: 0xFFD93D });
+    this.rotationIndicator.moveTo(0, -radius);
+    this.rotationIndicator.lineTo(0, radius);
+    this.rotationIndicator.moveTo(-radius, 0);
+    this.rotationIndicator.lineTo(radius, 0);
+    this.rotationIndicator.x = this.centerX;
+    this.rotationIndicator.y = this.centerY;
 
-    this.originalPositions.clear();
-    for (const body of this.containerBodies) {
-      this.originalPositions.set(body.id, { x: body.position.x, y: body.position.y });
+    if (this.stageContainer) {
+      this.stageContainer.addChild(this.rotationIndicator);
     }
   }
 
@@ -73,6 +79,13 @@ export class RotateModifier extends ContainerModifier {
 
     this.applyRotation();
     this.updateGravity();
+    this.updateIndicator();
+  }
+
+  private updateIndicator(): void {
+    if (this.rotationIndicator) {
+      this.rotationIndicator.rotation = (this.currentAngle * Math.PI) / 180;
+    }
   }
 
   private applyRotation(): void {
@@ -112,9 +125,22 @@ export class RotateModifier extends ContainerModifier {
         Matter.Body.setAngle(body, 0);
       }
     }
+
+    if (this.rotationIndicator) {
+      if (this.stageContainer && this.rotationIndicator.parent) {
+        this.stageContainer.removeChild(this.rotationIndicator);
+      }
+      this.rotationIndicator.destroy();
+      this.rotationIndicator = null;
+    }
   }
 
   getCurrentAngle(): number {
     return this.currentAngle;
+  }
+
+  destroy(): void {
+    this.onDeactivate();
+    super.destroy();
   }
 }

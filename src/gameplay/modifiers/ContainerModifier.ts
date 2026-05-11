@@ -1,4 +1,5 @@
 import Matter from 'matter-js';
+import { Container } from 'pixi.js';
 import { PhysicsManager } from '../../core/PhysicsManager';
 
 export type ModifierType = 'paddle' | 'rotate' | 'shrink' | 'fork';
@@ -24,10 +25,17 @@ export abstract class ContainerModifier {
   protected physics: PhysicsManager;
   protected timer: ReturnType<typeof setInterval> | null = null;
   protected startDelayTimer: ReturnType<typeof setTimeout> | null = null;
+  protected stageContainer: Container | null = null;
+  protected containerBodies: Matter.Body[] = [];
 
-  constructor(config: ModifierConfig, physics: PhysicsManager) {
+  protected collectContainerBodies(): void {
+    this.containerBodies = this.physics.getContainerBodies();
+  }
+
+  constructor(config: ModifierConfig, physics: PhysicsManager, stageContainer?: Container | null) {
     this.config = config;
     this.physics = physics;
+    this.stageContainer = stageContainer || null;
     this.state = {
       isActive: false,
       progress: 0,

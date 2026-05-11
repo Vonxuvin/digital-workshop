@@ -121,4 +121,8 @@ export class PhysicsManager {
   getAllBodies(): Matter.Body[] {
     return Array.from(this.bodies.values());
   }
+
+  getContainerBodies(): Matter.Body[] {
+    return Array.from(this.bodies.values()).filter(b => b.label?.startsWith('container_'));
+  }
 }
