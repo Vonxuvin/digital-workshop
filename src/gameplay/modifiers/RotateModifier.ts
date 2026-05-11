@@ -42,6 +42,10 @@ export class RotateModifier extends ContainerModifier {
 
   protected onActivate(): void {
     this.collectContainerBodies();
+    this.originalPositions.clear();
+    for (const body of this.containerBodies) {
+      this.originalPositions.set(body.id, { x: body.position.x, y: body.position.y });
+    }
     this.targetAngle = this.maxAngle;
     this.direction = 1;
     this.createRotationIndicator();
