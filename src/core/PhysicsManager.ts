@@ -2,7 +2,6 @@ import Matter from 'matter-js';
 
 export class PhysicsManager {
   private engine: Matter.Engine;
-  private runner: Matter.Runner;
   private bodies: Map<number, Matter.Body> = new Map();
   private idCounter = 0;
   private running = false;
@@ -10,43 +9,40 @@ export class PhysicsManager {
 
   constructor() {
     this.engine = Matter.Engine.create({
-      gravity: { x: 0, y: 1.0, scale: 0.001 },
-    });
-    this.runner = Matter.Runner.create({
-      delta: 1000 / 60,
+      gravity: { x: 0, y: 2.0, scale: 0.001 },
+      enableSleeping: true,
     });
   }
 
   start(): void {
-    if (this.running) return;
     this.running = true;
-    Matter.Runner.run(this.runner, this.engine);
   }
 
   stop(): void {
-    if (!this.running) return;
     this.running = false;
-    Matter.Runner.stop(this.runner);
   }
 
   pause(): void {
-    this.stop();
+    this.running = false;
   }
 
   resume(): void {
-    this.start();
+    this.running = true;
   }
 
   step(dt: number): void {
+    if (!this.running) return;
     Matter.Engine.update(this.engine, dt);
   }
 
   fixedUpdate(accumulator: number): number {
-    while (accumulator >= this.fixedStep) {
+    if (!this.running) return accumulator;
+    let acc = accumulator;
+    while (acc >= this.fixedStep) {
       Matter.Engine.update(this.engine, this.fixedStep);
-      accumulator -= this.fixedStep;
+      acc -= this.fixedStep;
     }
-    return accumulator;
+    return acc;
   }
 
   clearAll(): void {
@@ -66,12 +62,12 @@ export class PhysicsManager {
 
   createCircle(x: number, y: number, radius: number, options?: Matter.IBodyDefinition): Matter.Body {
     const body = Matter.Bodies.circle(x, y, radius, {
-      restitution: 0.2,
-      friction: 0.8,
-      frictionAir: 0.02,
-      frictionStatic: 0.5,
-      density: 0.002,
-      sleepThreshold: Infinity,
+      restitution: 0.15,
+      friction: 0.5,
+      frictionAir: 0.005,
+      frictionStatic: 0.6,
+      density: 0.005,
+      sleepThreshold: 60,
       ...options,
     });
     body.label = `block_${++this.idCounter}`;
@@ -109,7 +105,7 @@ export class PhysicsManager {
   }
 
   onCollisionStart(callback: (pair: Matter.Pair) => void): void {
-    Matter.Events.on(this.engine, 'collisionStart', (event) => {
+    Matter.Events.on(this.engine, 'collisionStart', (event: any) => {
       event.pairs.forEach(callback);
     });
   }
@@ -123,6 +119,11 @@ export class PhysicsManager {
   }
 
   getContainerBodies(): Matter.Body[] {
-    return Array.from(this.bodies.values()).filter(b => b.label?.startsWith('container_'));
+    const allWorldBodies = Matter.Composite.allBodies(this.engine.world);
+    return allWorldBodies.filter(b =>
+      b.label?.startsWith('container_') ||
+      b.label?.startsWith('wall_') ||
+      b.label === 'ground'
+    );
   }
 }
