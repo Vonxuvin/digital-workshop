@@ -1,7 +1,8 @@
 import Matter from 'matter-js';
-import { Block, BLOCK_CONFIGS } from './Block';
+import { Block, getBlockConfig } from './Block';
 import { PhysicsManager } from '../core/PhysicsManager';
 import { eventBus } from '../utils/EventBus';
+import { Ticker } from 'pixi.js';
 
 export class MergeSystem {
   private physics: PhysicsManager;
@@ -9,7 +10,8 @@ export class MergeSystem {
   private obstacles: Map<string, Block> = new Map();
   private mergingBodies: Set<string> = new Set();
   private maxChainDepth = 10;
-  private currentChainDepth = 0;
+  private chainDepthMap: Map<string, number> = new Map();
+  private pendingChainChecks: string[] = [];
 
   constructor(physics: PhysicsManager) {
     this.physics = physics;
@@ -35,8 +37,6 @@ export class MergeSystem {
   }
 
   private handleCollision(bodyA: Matter.Body, bodyB: Matter.Body): void {
-    this.currentChainDepth = 0;
-
     const isObstacleA = bodyA.label.startsWith('obstacle_');
     const isObstacleB = bodyB.label.startsWith('obstacle_');
 
@@ -53,6 +53,19 @@ export class MergeSystem {
     const blockB = this.blocks.get(bodyB.label);
 
     if (!blockA || !blockB) return;
+
+    if (blockA.isRainbow || blockB.isRainbow) {
+      if (this.mergingBodies.has(bodyA.label) || this.mergingBodies.has(bodyB.label)) return;
+      this.mergingBodies.add(bodyA.label);
+      this.mergingBodies.add(bodyB.label);
+
+      const rainbowBlock = blockA.isRainbow ? blockA : blockB;
+      const otherBlock = blockA.isRainbow ? blockB : blockA;
+      const mergeValue = otherBlock.value * 2;
+      this.mergeBlocks(rainbowBlock, otherBlock, mergeValue);
+      return;
+    }
+
     if (blockA.value !== blockB.value) return;
     if (this.mergingBodies.has(bodyA.label) || this.mergingBodies.has(bodyB.label)) return;
 
@@ -84,8 +97,8 @@ export class MergeSystem {
     console.log(`[MergeSystem] 障碍物已清除`);
   }
 
-  private mergeBlocks(blockA: Block, blockB: Block): void {
-    const newValue = blockA.value * 2;
+  private mergeBlocks(blockA: Block, blockB: Block, newValue?: number): void {
+    const mergedValue = newValue ?? blockA.value * 2;
     const posX = (blockA.body.position.x + blockB.body.position.x) / 2;
     const posY = (blockA.body.position.y + blockB.body.position.y) / 2;
 
@@ -95,6 +108,10 @@ export class MergeSystem {
     const labelA = blockA.body.label;
     const labelB = blockB.body.label;
 
+    const prevDepthA = this.chainDepthMap.get(labelA) || 0;
+    const prevDepthB = this.chainDepthMap.get(labelB) || 0;
+    const chainDepth = Math.max(prevDepthA, prevDepthB) + 1;
+
     this.unregisterBlock(blockA);
     this.unregisterBlock(blockB);
 
@@ -103,44 +120,58 @@ export class MergeSystem {
 
     this.mergingBodies.delete(labelA);
     this.mergingBodies.delete(labelB);
+    this.chainDepthMap.delete(labelA);
+    this.chainDepthMap.delete(labelB);
 
     blockA.destroy();
     blockB.destroy();
 
-    const config = BLOCK_CONFIGS[newValue] || {
-      value: newValue,
-      color: this.generateColor(newValue),
-      radius: 40 + Math.log2(newValue) * 4,
-      mass: newValue,
-    };
+    const config = getBlockConfig(mergedValue);
 
     const newBody = this.physics.createCircle(posX, posY, config.radius, {
       density: config.mass * 0.001,
     });
     Matter.Body.setVelocity(newBody, { x: velocityX, y: velocityY });
 
-    const newBlock = new Block(newBody, newValue);
+    const newBlock = new Block(newBody, mergedValue);
     this.registerBlock(newBlock);
 
+    if (chainDepth < this.maxChainDepth) {
+      this.chainDepthMap.set(newBody.label, chainDepth);
+    }
+
     eventBus.emit('block:merged', {
-      newValue,
+      newValue: mergedValue,
       position: { x: posX, y: posY },
-      chainCount: 1,
+      chainCount: chainDepth,
       newBlock,
       destroyedBlocks: [blockA, blockB],
     });
 
-    console.log(`[MergeSystem] 合成: ${blockA.value} + ${blockB.value} = ${newValue}`);
+    console.log(`[MergeSystem] 合成: ${blockA.value} + ${blockB.value} = ${mergedValue}`);
 
-    setTimeout(() => {
-      this.checkChainReaction(newBlock);
-    }, 50);
+    this.scheduleChainCheck(newBody.label);
   }
 
-  private checkChainReaction(block: Block): void {
-    if (block.isDestroyed) return;
-    if (this.currentChainDepth >= this.maxChainDepth) return;
+  private scheduleChainCheck(label: string): void {
+    this.pendingChainChecks.push(label);
+    if (this.pendingChainChecks.length === 1) {
+      Ticker.shared.addOnce(this.processChainChecks, this);
+    }
+  }
 
+  private processChainChecks = (): void => {
+    const checks = this.pendingChainChecks.splice(0);
+    for (const label of checks) {
+      const block = this.blocks.get(label);
+      if (!block || block.isDestroyed) continue;
+      const depth = this.chainDepthMap.get(label) || 0;
+      if (depth >= this.maxChainDepth) continue;
+      this.checkChainReaction(block, depth);
+    }
+  };
+
+  private checkChainReaction(block: Block, currentDepth: number): void {
     const nearbyBodies = this.physics.getAllBodies().filter(b => {
       if (b === block.body || b.isStatic) return false;
       const dist = Matter.Vector.magnitude(Matter.Vector.sub(block.body.position, b.position));
@@ -150,27 +181,10 @@ export class MergeSystem {
     for (const other of nearbyBodies) {
       const otherBlock = this.blocks.get(other.label);
       if (otherBlock && !otherBlock.isDestroyed && otherBlock.value === block.value) {
-        this.currentChainDepth++;
+        this.chainDepthMap.set(block.body.label, currentDepth + 1);
         this.mergeBlocks(block, otherBlock);
         break;
       }
     }
-  }
-
-  private generateColor(value: number): number {
-    const hue = (Math.log2(value) * 30) % 360;
-    return this.hslToHex(hue, 70, 60);
-  }
-
-  private hslToHex(h: number, s: number, l: number): number {
-    s /= 100;
-    l /= 100;
-    const a = s * Math.min(l, 1 - l);
-    const f = (n: number) => {
-      const k = (n + h / 30) % 12;
-      const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-      return Math.round(255 * color);
-    };
-    return (f(0) << 16) | (f(8) << 8) | f(4);
   }
 }
