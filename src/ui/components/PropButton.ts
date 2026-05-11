@@ -57,7 +57,7 @@ export class PropButton extends PIXI.Container {
     this.addChild(this.countLabel);
 
     this.cooldownOverlay = new PIXI.Graphics();
-    this.cooldownOverlay.fill(0x000000, 0.5);
+    this.cooldownOverlay.fill({ color: 0x000000, alpha: 0.5 });
     this.cooldownOverlay.rect(0, 0, 60, 60);
     this.cooldownOverlay.visible = false;
     this.addChild(this.cooldownOverlay);

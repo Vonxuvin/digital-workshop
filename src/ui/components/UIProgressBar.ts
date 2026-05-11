@@ -1,4 +1,4 @@
-import { Container, Graphics } from 'pixi.js';
+import { Container, Graphics, Ticker } from 'pixi.js';
 
 export class UIProgressBar extends Container {
   private track: Graphics;
@@ -10,6 +10,7 @@ export class UIProgressBar extends Container {
   private trackColor: number;
   private fillColor: number;
   private animating = false;
+  private tickerCallback: ((ticker: any) => void) | null = null;
 
   constructor(width: number = 200, height: number = 20, trackColor: number = 0x333333, fillColor: number = 0x4ECDC4) {
     super();
@@ -54,26 +55,26 @@ export class UIProgressBar extends Container {
     if (this.animating) return;
     this.animating = true;
 
+    this.detachTicker();
     const startProgress = this.displayProgress;
     const targetProgress = this._progress;
     const startTime = performance.now();
     const duration = 200;
 
-    const tick = (now: number) => {
+    this.tickerCallback = () => {
+      const now = performance.now();
       const elapsed = now - startTime;
       const t = Math.min(elapsed / duration, 1);
       this.displayProgress = startProgress + (targetProgress - startProgress) * t;
       this.drawFill(this.displayProgress);
 
-      if (t < 1) {
-        requestAnimationFrame(tick);
-      } else {
+      if (t >= 1) {
         this.displayProgress = targetProgress;
         this.animating = false;
+        this.detachTicker();
       }
     };
-
-    requestAnimationFrame(tick);
+    Ticker.shared.add(this.tickerCallback);
   }
 
   setColors(trackColor: number, fillColor: number): void {
@@ -81,5 +82,17 @@ export class UIProgressBar extends Container {
     this.fillColor = fillColor;
     this.drawTrack();
     this.drawFill(this.displayProgress);
+  }
+
+  private detachTicker(): void {
+    if (this.tickerCallback) {
+      Ticker.shared.remove(this.tickerCallback);
+      this.tickerCallback = null;
+    }
+  }
+
+  destroy(): void {
+    this.detachTicker();
+    super.destroy();
   }
 }

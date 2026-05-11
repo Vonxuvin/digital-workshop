@@ -1,4 +1,4 @@
-import { Container, Graphics, Text } from 'pixi.js';
+import { Container, Graphics, Text, Ticker } from 'pixi.js';
 import { UIButton } from './UIButton';
 
 export class UIPanel extends Container {
@@ -11,7 +11,7 @@ export class UIPanel extends Container {
   private panelHeight: number;
   private isShowing = false;
   private isHiding = false;
-  private animationId: number | null = null;
+  private tickerCallback: ((ticker: any) => void) | null = null;
 
   constructor(width: number = 400, height: number = 500) {
     super();
@@ -79,9 +79,7 @@ export class UIPanel extends Container {
   }
 
   show(): void {
-    if (this.animationId !== null) {
-      cancelAnimationFrame(this.animationId);
-    }
+    this.detachTicker();
 
     this.visible = true;
     this.isShowing = true;
@@ -94,29 +92,28 @@ export class UIPanel extends Container {
     const startTime = performance.now();
     const duration = 300;
 
-    const animate = (now: number) => {
-      if (this.isHiding) return;
+    this.tickerCallback = () => {
+      if (this.isHiding) {
+        this.detachTicker();
+        return;
+      }
 
+      const now = performance.now();
       const elapsed = now - startTime;
       const t = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - t, 3);
       this.y = startY + (targetY - startY) * eased;
 
-      if (t < 1) {
-        this.animationId = requestAnimationFrame(animate);
-      } else {
+      if (t >= 1) {
         this.isShowing = false;
-        this.animationId = null;
+        this.detachTicker();
       }
     };
-
-    this.animationId = requestAnimationFrame(animate);
+    Ticker.shared.add(this.tickerCallback);
   }
 
   hide(): void {
-    if (this.animationId !== null) {
-      cancelAnimationFrame(this.animationId);
-    }
+    this.detachTicker();
 
     this.isHiding = true;
     this.isShowing = false;
@@ -126,23 +123,36 @@ export class UIPanel extends Container {
     const startTime = performance.now();
     const duration = 250;
 
-    const animate = (now: number) => {
-      if (this.isShowing) return;
+    this.tickerCallback = () => {
+      if (this.isShowing) {
+        this.detachTicker();
+        return;
+      }
 
+      const now = performance.now();
       const elapsed = now - startTime;
       const t = Math.min(elapsed / duration, 1);
       const eased = t * t;
       this.y = startY + (targetY - startY) * eased;
 
-      if (t < 1) {
-        this.animationId = requestAnimationFrame(animate);
-      } else {
+      if (t >= 1) {
         this.visible = false;
         this.isHiding = false;
-        this.animationId = null;
+        this.detachTicker();
       }
     };
+    Ticker.shared.add(this.tickerCallback);
+  }
 
-    this.animationId = requestAnimationFrame(animate);
+  private detachTicker(): void {
+    if (this.tickerCallback) {
+      Ticker.shared.remove(this.tickerCallback);
+      this.tickerCallback = null;
+    }
+  }
+
+  destroy(): void {
+    this.detachTicker();
+    super.destroy();
   }
 }

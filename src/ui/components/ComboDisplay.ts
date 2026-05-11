@@ -1,10 +1,11 @@
-import { Container, Text } from 'pixi.js';
+import { Container, Text, Ticker } from 'pixi.js';
 
 export class ComboDisplay extends Container {
   private comboText: Text;
   private currentCombo = 0;
   private displayTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly DISPLAY_DURATION = 2000;
+  private tickerCallback: ((ticker: any) => void) | null = null;
 
   constructor() {
     super();
@@ -43,19 +44,23 @@ export class ComboDisplay extends Container {
   }
 
   private animateScale(): void {
+    this.detachTicker();
     const startScale = 1.5;
     const endScale = 1.0;
     const duration = 200;
     const startTime = performance.now();
 
-    const animate = () => {
-      const elapsed = performance.now() - startTime;
+    this.tickerCallback = () => {
+      const now = performance.now();
+      const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
       this.scale.set(startScale + (endScale - startScale) * eased);
-      if (progress < 1) requestAnimationFrame(animate);
+      if (progress >= 1) {
+        this.detachTicker();
+      }
     };
-    requestAnimationFrame(animate);
+    Ticker.shared.add(this.tickerCallback);
   }
 
   hide(): void {
@@ -71,7 +76,15 @@ export class ComboDisplay extends Container {
     return this.currentCombo;
   }
 
+  private detachTicker(): void {
+    if (this.tickerCallback) {
+      Ticker.shared.remove(this.tickerCallback);
+      this.tickerCallback = null;
+    }
+  }
+
   destroy(): void {
+    this.detachTicker();
     if (this.displayTimer) clearTimeout(this.displayTimer);
     this.currentCombo = 0;
     super.destroy();

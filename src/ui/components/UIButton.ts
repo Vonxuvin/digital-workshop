@@ -1,4 +1,4 @@
-import { Container, Graphics, Text } from 'pixi.js';
+import { Container, Graphics, Text, Ticker } from 'pixi.js';
 
 export interface UIButtonOptions {
   width?: number;
@@ -19,6 +19,7 @@ export class UIButton extends Container {
   private _pressed = false;
   private clickCooldown = false;
   private readonly COOLDOWN_MS = 300;
+  private tickerCallback: ((ticker: any) => void) | null = null;
 
   constructor(options: UIButtonOptions) {
     super();
@@ -96,17 +97,20 @@ export class UIButton extends Container {
   }
 
   private animateRelease(): void {
+    this.detachTicker();
     const start = performance.now();
     const duration = 100;
-    const tick = (now: number) => {
+
+    this.tickerCallback = () => {
+      const now = performance.now();
       const elapsed = now - start;
       const t = Math.min(elapsed / duration, 1);
       this.scale.set(0.95 + 0.05 * t);
-      if (t < 1) {
-        requestAnimationFrame(tick);
+      if (t >= 1) {
+        this.detachTicker();
       }
     };
-    requestAnimationFrame(tick);
+    Ticker.shared.add(this.tickerCallback);
   }
 
   setDisabled(disabled: boolean): void {
@@ -117,5 +121,17 @@ export class UIButton extends Container {
 
   get disabled(): boolean {
     return this._disabled;
+  }
+
+  private detachTicker(): void {
+    if (this.tickerCallback) {
+      Ticker.shared.remove(this.tickerCallback);
+      this.tickerCallback = null;
+    }
+  }
+
+  destroy(): void {
+    this.detachTicker();
+    super.destroy();
   }
 }

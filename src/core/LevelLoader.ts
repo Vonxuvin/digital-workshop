@@ -1,4 +1,5 @@
 import { LevelConfig } from '../gameplay/LevelSystem';
+import { createPlatformAdapter } from '../platform/PlatformFactory';
 
 export interface ValidationResult {
   valid: boolean;
@@ -19,39 +20,68 @@ export class LevelLoader {
     return LevelLoader.instance;
   }
 
+  private async loadJSON(url: string): Promise<any> {
+    try {
+      if (typeof fetch !== 'undefined') {
+        const response = await fetch(url);
+        if (response.ok) {
+          const contentType = response.headers?.get?.('content-type');
+          if (contentType != null && !contentType.includes('application/json') && !contentType.includes('text/plain')) {
+            return null;
+          }
+          return await response.json();
+        }
+      }
+    } catch {}
+
+    try {
+      const platform = createPlatformAdapter();
+      await platform.init();
+      const data = await platform.getStorage<any>(url);
+      if (data) return data;
+    } catch {}
+
+    return null;
+  }
+
   async loadLevel(levelId: number): Promise<LevelConfig | null> {
     if (this.levelConfigs.has(levelId)) {
       return this.levelConfigs.get(levelId)!;
     }
 
-    try {
-      const response = await fetch(`/src/data/levels/level_${String(levelId).padStart(2, '0')}.json`);
-      if (!response.ok) {
-        return null;
-      }
-
-      const contentType = response.headers?.get?.('content-type');
-      if (contentType != null && !contentType.includes('application/json') && !contentType.includes('text/plain')) {
-        return null;
-      }
-
-      const data = await response.json();
-      const validation = this.validateConfig(data);
-      if (!validation.valid) {
-        console.error(`[LevelLoader] 关卡 ${levelId} 数据校验失败:`, validation.errors);
-        return null;
-      }
-      const config = this.parseLevelConfig(data);
-      if (!config) {
-        console.error(`[LevelLoader] 关卡 ${levelId} 数据格式无效`);
-        return null;
-      }
-      this.levelConfigs.set(levelId, config);
-      return config;
-    } catch (error) {
-      console.error(`[LevelLoader] 加载关卡 ${levelId} 出错:`, error);
+    const url = `/src/data/levels/level_${String(levelId).padStart(2, '0')}.json`;
+    const data = await this.loadJSON(url);
+    if (!data) {
       return null;
     }
+
+    const validation = this.validateConfig(data);
+    if (!validation.valid) {
+      console.error(`[LevelLoader] 关卡 ${levelId} 数据校验失败:`, validation.errors);
+      return null;
+    }
+    const config = this.parseLevelConfig(data);
+    if (!config) {
+      console.error(`[LevelLoader] 关卡 ${levelId} 数据格式无效`);
+      return null;
+    }
+    this.levelConfigs.set(levelId, config);
+    return config;
+  }
+
+  loadFromData(levelId: number, data: any): LevelConfig | null {
+    const validation = this.validateConfig(data);
+    if (!validation.valid) {
+      console.error(`[LevelLoader] 关卡 ${levelId} 数据校验失败:`, validation.errors);
+      return null;
+    }
+    const config = this.parseLevelConfig(data);
+    if (!config) {
+      console.error(`[LevelLoader] 关卡 ${levelId} 数据格式无效`);
+      return null;
+    }
+    this.levelConfigs.set(levelId, config);
+    return config;
   }
 
   validateConfig(data: any): ValidationResult {
@@ -243,7 +273,6 @@ export class LevelLoader {
       rewards: data.rewards || { stars: [0, 0, 0] },
     };
 
-    // 为了向后兼容，添加访问器属性
     Object.defineProperties(config, {
       containerWidth: {
         get() { return this.container.width; },
