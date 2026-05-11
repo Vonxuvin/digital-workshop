@@ -1,3 +1,4 @@
+import { Container } from 'pixi.js';
 import { EventBus, eventBus } from '../../utils/EventBus';
 import { ContainerModifier, ModifierConfig, ModifierType } from './ContainerModifier';
 import { PaddleModifier, PaddleConfig } from './PaddleModifier';
@@ -8,12 +9,13 @@ import { PhysicsManager } from '../../core/PhysicsManager';
 
 export class ModifierManager {
   private static instance: ModifierManager;
-  private modifiers: Map<ModifierType, ContainerModifier> = new Map();
+  private modifiers: ContainerModifier[] = [];
   private physics: PhysicsManager;
   private eventBus: EventBus;
   private containerWidth: number = 0;
   private containerHeight: number = 0;
   private isPaused: boolean = false;
+  private stageContainer: Container | null = null;
 
   private constructor(physics: PhysicsManager) {
     this.physics = physics;
@@ -39,6 +41,10 @@ export class ModifierManager {
     this.containerHeight = height;
   }
 
+  setStageContainer(container: Container): void {
+    this.stageContainer = container;
+  }
+
   createModifier(config: ModifierConfig): ContainerModifier | null {
     if (!this.containerWidth || !this.containerHeight) {
       console.error('[ModifierManager] 容器尺寸未设置');
@@ -53,7 +59,8 @@ export class ModifierManager {
           config as PaddleConfig,
           this.physics,
           this.containerWidth,
-          this.containerHeight
+          this.containerHeight,
+          this.stageContainer
         );
         break;
       case 'rotate':
@@ -61,7 +68,8 @@ export class ModifierManager {
           config as RotateConfig,
           this.physics,
           this.containerWidth,
-          this.containerHeight
+          this.containerHeight,
+          this.stageContainer
         );
         break;
       case 'shrink':
@@ -70,7 +78,8 @@ export class ModifierManager {
           this.physics,
           this.containerWidth,
           this.containerHeight,
-          this.containerHeight - 50
+          this.containerHeight - 50,
+          this.stageContainer
         );
         break;
       case 'fork':
@@ -78,7 +87,8 @@ export class ModifierManager {
           config as ForkConfig,
           this.physics,
           this.containerWidth,
-          this.containerHeight
+          this.containerHeight,
+          this.stageContainer
         );
         break;
       default:
@@ -86,7 +96,7 @@ export class ModifierManager {
         return null;
     }
 
-    this.modifiers.set(config.type, modifier);
+    this.modifiers.push(modifier);
     return modifier;
   }
 
@@ -126,16 +136,16 @@ export class ModifierManager {
   }
 
   getModifier(type: ModifierType): ContainerModifier | undefined {
-    return this.modifiers.get(type);
+    return this.modifiers.find(m => m.getType() === type);
   }
 
   getAllModifiers(): ContainerModifier[] {
-    return Array.from(this.modifiers.values());
+    return [...this.modifiers];
   }
 
   clearAll(): void {
     this.modifiers.forEach(modifier => modifier.destroy());
-    this.modifiers.clear();
+    this.modifiers = [];
   }
 
   destroy(): void {
