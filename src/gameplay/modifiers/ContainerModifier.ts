@@ -67,6 +67,10 @@ export abstract class ContainerModifier {
       this.timer = setInterval(() => {
         this.tick();
       }, 16);
+    } else if (this.config.duration && this.config.duration > 0) {
+      this.timer = setInterval(() => {
+        this.tick();
+      }, 16);
     }
   }
 
