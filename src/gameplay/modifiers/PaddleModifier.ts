@@ -1,28 +1,40 @@
 import Matter from 'matter-js';
+import { Graphics, Container } from 'pixi.js';
 import { ContainerModifier, ModifierConfig } from './ContainerModifier';
 import { PhysicsManager } from '../../core/PhysicsManager';
 
 export interface PaddleConfig extends ModifierConfig {
   type: 'paddle';
-  side: 'left' | 'right';
-  extendDuration: number;    // 伸出持续时间（秒）
-  retractDuration: number;   // 缩回持续时间（秒）
-  extendLength: number;      // 伸出长度（像素）
-  triggerInterval: number;   // 触发间隔（秒）
-  yPosition?: number;        // 挡板Y位置（默认容器中间）
+  side: 'left' | 'right' | 'both';
+  mode?: 'extend' | 'slide';
+  extendDuration: number;
+  retractDuration: number;
+  extendLength: number;
+  triggerInterval: number;
+  xPosition?: number;
+  xRange?: number;
+  slideSpeed?: number;
+  yPosition?: number;
+  initialDirection?: 1 | -1;
 }
 
 export class PaddleModifier extends ContainerModifier {
   private paddleBody: Matter.Body | null = null;
-  private paddleGraphics: any = null;
-  private side: 'left' | 'right';
+  private paddleGraphics: Graphics | null = null;
+  private side: 'left' | 'right' | 'both';
+  private mode: 'extend' | 'slide';
   private extendDuration: number;
   private retractDuration: number;
   private extendLength: number;
+  private xPosition: number;
+  private xRange: number;
+  private slideSpeed: number;
   private yPosition: number;
   private containerWidth: number;
   private containerHeight: number;
   private phase: 'idle' | 'extending' | 'extended' | 'retracting' = 'idle';
+  private slideDirection: 1 | -1 = 1;
+  private initialDirection: 1 | -1;
   private phaseElapsed: number = 0;
   private cycleTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -30,14 +42,21 @@ export class PaddleModifier extends ContainerModifier {
     config: PaddleConfig,
     physics: PhysicsManager,
     containerWidth: number,
-    containerHeight: number
+    containerHeight: number,
+    stageContainer?: Container | null
   ) {
-    super(config, physics);
-    this.side = config.side;
+    super(config, physics, stageContainer);
+    this.side = config.side || 'left';
+    this.mode = config.mode || 'extend';
     this.extendDuration = config.extendDuration * 1000;
     this.retractDuration = config.retractDuration * 1000;
     this.extendLength = config.extendLength;
-    this.yPosition = config.yPosition ?? containerHeight * 0.6;
+    this.xPosition = config.xPosition ?? containerWidth * 0.5;
+    this.xRange = config.xRange ?? 80;
+    this.slideSpeed = config.slideSpeed ?? 15;
+    this.yPosition = config.yPosition ?? containerHeight * 0.7;
+    this.initialDirection = config.initialDirection ?? 1;
+    this.slideDirection = this.initialDirection;
     this.containerWidth = containerWidth;
     this.containerHeight = containerHeight;
   }
@@ -54,6 +73,7 @@ export class PaddleModifier extends ContainerModifier {
     this.phase = 'extending';
     this.phaseElapsed = 0;
     this.createPaddle();
+    console.log(`[PaddleModifier] 激活挡板 mode=${this.mode} side=${this.side} xPosition=${this.xPosition} yPosition=${this.yPosition}`);
 
     this.cycleTimer = setInterval(() => {
       this.updateCycle();
@@ -61,16 +81,11 @@ export class PaddleModifier extends ContainerModifier {
   }
 
   private createPaddle(): void {
-    const wallThickness = 10;
     const paddleWidth = this.extendLength;
     const paddleHeight = 20;
 
-    const startX = this.side === 'left'
-      ? wallThickness + paddleWidth / 2
-      : this.containerWidth - wallThickness - paddleWidth / 2;
-
     this.paddleBody = this.physics.createRectangle(
-      startX,
+      this.xPosition,
       this.yPosition,
       paddleWidth,
       paddleHeight,
@@ -78,13 +93,30 @@ export class PaddleModifier extends ContainerModifier {
         isStatic: true,
         friction: 0.5,
         restitution: 0.2,
-        label: `paddle_${this.side}`,
+        label: `paddle_${this.side}_${this.mode}`,
       }
     );
+
+    this.paddleGraphics = new Graphics();
+    this.paddleGraphics.roundRect(-paddleWidth / 2, -paddleHeight / 2, paddleWidth, paddleHeight, 5);
+    const color = this.side === 'left' ? 0xFF6B6B : (this.side === 'right' ? 0x4ECDC4 : 0xFFD93D);
+    this.paddleGraphics.fill({ color });
+    this.paddleGraphics.stroke({ width: 2, color: 0xFFFFFF });
+    this.paddleGraphics.x = this.xPosition;
+    this.paddleGraphics.y = this.yPosition;
+
+    if (this.stageContainer) {
+      this.stageContainer.addChild(this.paddleGraphics);
+    }
   }
 
   private updateCycle(): void {
     this.phaseElapsed += 16;
+
+    if (this.mode === 'slide') {
+      this.updateSlideMode();
+      return;
+    }
 
     switch (this.phase) {
       case 'extending':
@@ -104,7 +136,6 @@ export class PaddleModifier extends ContainerModifier {
           this.removePaddle();
           this.phase = 'idle';
           this.phaseElapsed = 0;
-          // 等待下一个触发间隔
           setTimeout(() => {
             if (this.state.isActive) {
               this.phase = 'extending';
@@ -119,50 +150,77 @@ export class PaddleModifier extends ContainerModifier {
     this.updatePaddlePosition();
   }
 
-  private updatePaddlePosition(): void {
-    if (!this.paddleBody) return;
+  private updateSlideMode(): void {
+    const dt = 0.016;
+    this.xPosition += this.slideSpeed * this.slideDirection * dt * 60;
 
-    const wallThickness = 10;
-    let targetX: number;
+    const minX = this.xRange;
+    const maxX = this.containerWidth - this.xRange;
 
-    switch (this.phase) {
-      case 'extending': {
-        const t = Math.min(1, this.phaseElapsed / this.extendDuration);
-        const eased = this.easeOutQuad(t);
-        const retractedX = this.side === 'left'
-          ? wallThickness - this.extendLength / 2
-          : this.containerWidth - wallThickness + this.extendLength / 2;
-        const extendedX = this.side === 'left'
-          ? wallThickness + this.extendLength / 2
-          : this.containerWidth - wallThickness - this.extendLength / 2;
-        targetX = retractedX + (extendedX - retractedX) * eased;
-        break;
-      }
-      case 'extended':
-        targetX = this.side === 'left'
-          ? wallThickness + this.extendLength / 2
-          : this.containerWidth - wallThickness - this.extendLength / 2;
-        break;
-      case 'retracting': {
-        const t = Math.min(1, this.phaseElapsed / this.retractDuration);
-        const eased = this.easeInQuad(t);
-        const extendedX = this.side === 'left'
-          ? wallThickness + this.extendLength / 2
-          : this.containerWidth - wallThickness - this.extendLength / 2;
-        const retractedX = this.side === 'left'
-          ? wallThickness - this.extendLength / 2
-          : this.containerWidth - wallThickness + this.extendLength / 2;
-        targetX = extendedX + (retractedX - extendedX) * eased;
-        break;
-      }
-      default:
-        return;
+    if (this.xPosition >= maxX) {
+      this.xPosition = maxX;
+      this.slideDirection = -1;
+    } else if (this.xPosition <= minX) {
+      this.xPosition = minX;
+      this.slideDirection = 1;
     }
 
-    Matter.Body.setPosition(this.paddleBody, {
-      x: targetX,
-      y: this.yPosition,
-    });
+    this.updatePaddlePosition();
+  }
+
+  private updatePaddlePosition(): void {
+    if (!this.paddleBody && !this.paddleGraphics) return;
+
+    let targetX = this.xPosition;
+    let targetY = this.yPosition;
+
+    if (this.mode === 'extend') {
+      const wallThickness = 10;
+      switch (this.phase) {
+        case 'extending': {
+          const t = Math.min(1, this.phaseElapsed / this.extendDuration);
+          const eased = this.easeOutQuad(t);
+          const retractedX = this.side === 'left'
+            ? wallThickness - this.extendLength / 2
+            : this.containerWidth - wallThickness + this.extendLength / 2;
+          const extendedX = this.side === 'left'
+            ? wallThickness + this.extendLength / 2
+            : this.containerWidth - wallThickness - this.extendLength / 2;
+          targetX = retractedX + (extendedX - retractedX) * eased;
+          break;
+        }
+        case 'extended':
+          targetX = this.side === 'left'
+            ? wallThickness + this.extendLength / 2
+            : this.containerWidth - wallThickness - this.extendLength / 2;
+          break;
+        case 'retracting': {
+          const t = Math.min(1, this.phaseElapsed / this.retractDuration);
+          const eased = this.easeInQuad(t);
+          const extendedX = this.side === 'left'
+            ? wallThickness + this.extendLength / 2
+            : this.containerWidth - wallThickness - this.extendLength / 2;
+          const retractedX = this.side === 'left'
+            ? wallThickness - this.extendLength / 2
+            : this.containerWidth - wallThickness + this.extendLength / 2;
+          targetX = extendedX + (retractedX - extendedX) * eased;
+          break;
+        }
+        default:
+          return;
+      }
+    }
+
+    if (this.paddleBody) {
+      Matter.Body.setPosition(this.paddleBody, {
+        x: targetX,
+        y: targetY,
+      });
+    }
+    if (this.paddleGraphics) {
+      this.paddleGraphics.x = targetX;
+      this.paddleGraphics.y = targetY;
+    }
   }
 
   private easeOutQuad(t: number): number {
@@ -178,10 +236,16 @@ export class PaddleModifier extends ContainerModifier {
       this.physics.removeBody(this.paddleBody);
       this.paddleBody = null;
     }
+    if (this.paddleGraphics) {
+      if (this.stageContainer && this.paddleGraphics.parent) {
+        this.stageContainer.removeChild(this.paddleGraphics);
+      }
+      this.paddleGraphics.destroy();
+      this.paddleGraphics = null;
+    }
   }
 
   protected onTick(): void {
-    // 循环逻辑在 cycleTimer 中处理
   }
 
   protected onDeactivate(): void {
