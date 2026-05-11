@@ -46,8 +46,8 @@ export class Game {
   private input: InputManager;
   private preview: BlockPreview;
   private mergeSystem: MergeSystem;
-  private blockSpawner: BlockSpawner;
-  private effectManager: GameEffectManager;
+  private blockSpawner!: BlockSpawner;
+  private effectManager!: GameEffectManager;
   private groundY: number;
   private scoreSystem: ScoreSystem;
   private stateMachine: GameStateMachine;
@@ -56,7 +56,7 @@ export class Game {
   private warningLine: WarningLine | null = null;
   private containerWalls: Graphics | null = null;
   private physicsWalls: Matter.Body[] = [];
-  private uiManager: UIManager;
+  private uiManager!: UIManager;
   private gameHUD: GameHUD;
   private resultScreen: ResultScreen;
   private levelSelectScreen: LevelSelectScreen;
@@ -101,18 +101,14 @@ export class Game {
     this.preview = new BlockPreview();
     this.input = new InputManager(canvas);
     this.mergeSystem = new MergeSystem(this.physics);
-    this.blockSpawner = new BlockSpawner(this.physics, this.mergeSystem, PropSystem.getInstance(), this.app.stage);
-    this.effectManager = new GameEffectManager(this.app.stage);
     this.scoreSystem = new ScoreSystem();
     this.stateMachine = new GameStateMachine('boot');
-    this.uiManager = new UIManager(this.app);
     this.resultScreen = new ResultScreen();
     this.levelSelectScreen = new LevelSelectScreen();
     this.pauseScreen = new PauseScreen();
     this.audioManager = AudioManager.getInstance();
     this.propSystem = PropSystem.getInstance();
     this.gameHUD = new GameHUD(this.propSystem);
-    this.gameHUD.layout(this.app.screen.width, this.app.screen.height);
     this.performanceMonitor = new PerformanceMonitor();
     this.groundY = window.innerHeight - 50;
 
@@ -167,6 +163,11 @@ export class Game {
       resolution: dpr,
       autoDensity: true,
     });
+
+    this.blockSpawner = new BlockSpawner(this.physics, this.mergeSystem, PropSystem.getInstance(), this.app.stage);
+    this.effectManager = new GameEffectManager(this.app.stage);
+    this.uiManager = new UIManager(this.app);
+    this.gameHUD.layout(this.app.screen.width, this.app.screen.height);
 
     this.stateMachine.transition('loading');
 
