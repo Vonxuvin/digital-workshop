@@ -9,7 +9,7 @@ import { PhysicsManager } from '../../core/PhysicsManager';
 
 export class ModifierManager {
   private static instance: ModifierManager;
-  private modifiers: ContainerModifier[] = [];
+  private modifiers: Map<ModifierType, ContainerModifier> = new Map();
   private physics: PhysicsManager;
   private eventBus: EventBus;
   private containerWidth: number = 0;
@@ -49,6 +49,12 @@ export class ModifierManager {
     if (!this.containerWidth || !this.containerHeight) {
       console.error('[ModifierManager] 容器尺寸未设置');
       return null;
+    }
+
+    if (this.modifiers.has(config.type)) {
+      console.warn(`[ModifierManager] 类型 ${config.type} 的修饰器已存在，将替换`);
+      const existing = this.modifiers.get(config.type)!;
+      existing.destroy();
     }
 
     let modifier: ContainerModifier;
@@ -96,7 +102,7 @@ export class ModifierManager {
         return null;
     }
 
-    this.modifiers.push(modifier);
+    this.modifiers.set(config.type, modifier);
     return modifier;
   }
 
@@ -136,16 +142,16 @@ export class ModifierManager {
   }
 
   getModifier(type: ModifierType): ContainerModifier | undefined {
-    return this.modifiers.find(m => m.getType() === type);
+    return this.modifiers.get(type);
   }
 
   getAllModifiers(): ContainerModifier[] {
-    return [...this.modifiers];
+    return Array.from(this.modifiers.values());
   }
 
   clearAll(): void {
     this.modifiers.forEach(modifier => modifier.destroy());
-    this.modifiers = [];
+    this.modifiers.clear();
   }
 
   destroy(): void {

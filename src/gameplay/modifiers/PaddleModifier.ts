@@ -37,6 +37,7 @@ export class PaddleModifier extends ContainerModifier {
   private initialDirection: 1 | -1;
   private phaseElapsed: number = 0;
   private cycleTimer: ReturnType<typeof setInterval> | null = null;
+  private retractTimeout: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     config: PaddleConfig,
@@ -136,13 +137,15 @@ export class PaddleModifier extends ContainerModifier {
           this.removePaddle();
           this.phase = 'idle';
           this.phaseElapsed = 0;
-          setTimeout(() => {
+          const delay = (this.config.triggerInterval || 5) * 1000 - this.extendDuration - this.retractDuration - 1000;
+          this.retractTimeout = setTimeout(() => {
+            this.retractTimeout = null;
             if (this.state.isActive) {
               this.phase = 'extending';
               this.phaseElapsed = 0;
               this.createPaddle();
             }
-          }, (this.config.triggerInterval || 5) * 1000 - this.extendDuration - this.retractDuration - 1000);
+          }, Math.max(0, delay));
         }
         break;
     }
@@ -254,6 +257,10 @@ export class PaddleModifier extends ContainerModifier {
       clearInterval(this.cycleTimer);
       this.cycleTimer = null;
     }
+    if (this.retractTimeout) {
+      clearTimeout(this.retractTimeout);
+      this.retractTimeout = null;
+    }
     this.phase = 'idle';
   }
 
@@ -263,6 +270,10 @@ export class PaddleModifier extends ContainerModifier {
     if (this.cycleTimer) {
       clearInterval(this.cycleTimer);
       this.cycleTimer = null;
+    }
+    if (this.retractTimeout) {
+      clearTimeout(this.retractTimeout);
+      this.retractTimeout = null;
     }
   }
 }

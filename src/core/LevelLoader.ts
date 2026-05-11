@@ -27,7 +27,11 @@ export class LevelLoader {
     try {
       const response = await fetch(`/src/data/levels/level_${String(levelId).padStart(2, '0')}.json`);
       if (!response.ok) {
-        console.error(`[LevelLoader] 关卡 ${levelId} 加载失败`);
+        return null;
+      }
+
+      const contentType = response.headers?.get?.('content-type');
+      if (contentType != null && !contentType.includes('application/json') && !contentType.includes('text/plain')) {
         return null;
       }
 
@@ -92,6 +96,10 @@ export class LevelLoader {
         errors.push('objective.target 必须是数字');
       } else if (data.objective.target < 0) {
         errors.push('objective.target 必须 >= 0');
+      }
+
+      if (data.objective.type === 'clear_obstacle' && (!data.obstacles || !Array.isArray(data.obstacles) || data.obstacles.length === 0)) {
+        errors.push('clear_obstacle 目标必须提供非空的 obstacles 数组');
       }
 
       if (data.objective.timeLimit !== undefined) {

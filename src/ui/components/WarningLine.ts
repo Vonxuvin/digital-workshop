@@ -3,7 +3,7 @@ import { eventBus } from '../../utils/EventBus';
 
 export class WarningLine extends Container {
   private graphics: Graphics;
-  private warningHeight: number;
+  private containerHeight: number;
   private containerWidth: number;
   private isWarning = false;
   private flashTimer = 0;
@@ -12,7 +12,7 @@ export class WarningLine extends Container {
 
   constructor(containerHeight: number, containerWidth: number = 800) {
     super();
-    this.warningHeight = containerHeight * 0.2;
+    this.containerHeight = containerHeight;
     this.containerWidth = containerWidth;
 
     this.graphics = new Graphics();
@@ -34,9 +34,10 @@ export class WarningLine extends Container {
     this.graphics.stroke({ width: 2, color: 0xff4444, alpha: 0.5 });
   }
 
-  update(blocks: { y: number; radius: number }[], delta: number): void {
+  update(blocks: { y: number; radius: number; speed: number }[], deltaMS: number): void {
+    const warningY = this.y;
     const hasBlockAboveLine = blocks.some(block =>
-      block.y - block.radius < this.warningHeight
+      block.y - block.radius < warningY && block.speed < 2
     );
 
     if (hasBlockAboveLine) {
@@ -45,9 +46,9 @@ export class WarningLine extends Container {
         this.warningDuration = 0;
         eventBus.emit('warning:started');
       }
-      this.warningDuration += delta * 16.67;
+      this.warningDuration += deltaMS;
 
-      this.flashTimer += delta * 0.1;
+      this.flashTimer += deltaMS * 0.005;
       const alpha = 0.3 + Math.sin(this.flashTimer) * 0.3;
       this.graphics.alpha = alpha;
 
@@ -66,7 +67,7 @@ export class WarningLine extends Container {
   }
 
   getWarningHeight(): number {
-    return this.warningHeight;
+    return this.y;
   }
 
   getWarningDuration(): number {

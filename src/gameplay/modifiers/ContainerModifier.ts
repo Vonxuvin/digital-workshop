@@ -106,7 +106,7 @@ export abstract class ContainerModifier {
   }
 
   resume(): void {
-    if (this.state.isActive && this.config.triggerInterval) {
+    if (this.state.isActive) {
       this.timer = setInterval(() => {
         this.tick();
       }, 16);

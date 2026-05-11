@@ -16,7 +16,35 @@ export const BLOCK_CONFIGS: Record<number, BlockConfig> = {
   16: { value: 16, color: 0xFFEAA7, radius: 32, mass: 16 },
   32: { value: 32, color: 0xDDA0DD, radius: 36, mass: 32 },
   64: { value: 64, color: 0x98D8C8, radius: 40, mass: 64 },
+  128: { value: 128, color: 0xFF8C94, radius: 44, mass: 128 },
+  256: { value: 256, color: 0xFFD700, radius: 48, mass: 256 },
+  512: { value: 512, color: 0xE74C3C, radius: 52, mass: 512 },
+  1024: { value: 1024, color: 0x8E44AD, radius: 56, mass: 1024 },
+  2048: { value: 2048, color: 0xF39C12, radius: 60, mass: 2048 },
 };
+
+export function getBlockConfig(value: number): BlockConfig {
+  if (value <= 0 || !Number.isFinite(value)) return BLOCK_CONFIGS[1];
+  if (BLOCK_CONFIGS[value]) return BLOCK_CONFIGS[value];
+  const tier = Math.log2(value);
+  if (!Number.isFinite(tier)) return BLOCK_CONFIGS[1];
+  const hue = (tier * 30) % 360;
+  const color = hslToHex(hue, 70, 60);
+  const radius = Math.min(60, 40 + tier * 2);
+  return { value, color, radius, mass: value };
+}
+
+function hslToHex(h: number, s: number, l: number): number {
+  s /= 100;
+  l /= 100;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * color);
+  };
+  return (f(0) << 16) | (f(8) << 8) | f(4);
+}
 
 export class Block extends Container {
   public body: Matter.Body;
@@ -32,7 +60,7 @@ export class Block extends Container {
     this.body = body;
     this.value = value;
     this.isRainbow = isRainbow;
-    this.config = BLOCK_CONFIGS[value] || BLOCK_CONFIGS[1];
+    this.config = getBlockConfig(value);
 
     this.graphics = new Graphics();
     this.drawBlock();
@@ -59,7 +87,7 @@ export class Block extends Container {
       this.graphics.circle(0, 0, this.config.radius + 2);
       this.graphics.fill({ color: 0xffffff, alpha: 0.3 });
       this.graphics.circle(0, 0, this.config.radius);
-      this.graphics.fill(0xFF69B4);
+      this.graphics.fill({ color: 0xFF69B4 });
       this.graphics.circle(-this.config.radius * 0.25, -this.config.radius * 0.25, this.config.radius * 0.35);
       this.graphics.fill({ color: 0xFFD700, alpha: 0.6 });
     } else {

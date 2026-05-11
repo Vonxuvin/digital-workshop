@@ -140,7 +140,7 @@ export class MainMenuScreen extends Screen {
 
     const bg = new Graphics();
     bg.circle(0, 0, 20);
-    bg.fill(0x333333);
+    bg.fill({ color: 0x333333 });
     this.soundToggleButton.addChild(bg);
 
     const audioManager = AudioManager.getInstance();
