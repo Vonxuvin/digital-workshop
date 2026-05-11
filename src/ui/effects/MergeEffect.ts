@@ -11,13 +11,13 @@ export class MergeEffect extends PIXI.Container {
   private centerX: number;
   private centerY: number;
   private onComplete: (() => void) | undefined;
-  private animationId: number = 0;
   private startTime: number = 0;
   private rings: PIXI.Graphics[] = [];
   private stars: PIXI.Graphics[] = [];
   private particles: PIXI.Graphics[] = [];
   private flash!: PIXI.Graphics;
-  private allComplete: boolean = false;
+  public allComplete: boolean = false;
+  private tickerCallback: ((ticker: any) => void) | null = null;
 
   constructor(options: MergeEffectOptions, onComplete?: () => void) {
     super();
@@ -70,7 +70,7 @@ export class MergeEffect extends PIXI.Container {
     this.stars.push(star4);
 
     this.flash = new PIXI.Graphics();
-    this.flash.fill(0xffffff, 0.9);
+    this.flash.fill({ color: 0xffffff, alpha: 0.9 });
     this.flash.circle(0, 0, 25);
     this.flash.x = this.centerX;
     this.flash.y = this.centerY;
@@ -83,8 +83,8 @@ export class MergeEffect extends PIXI.Container {
       const particle = new PIXI.Graphics();
       const angle = (i / numParticles) * Math.PI * 2;
       const color = colors[i % 4];
-      
-      particle.fill(color, 1);
+
+      particle.fill({ color, alpha: 1 });
       particle.circle(0, 0, 4 + Math.random() * 4);
       particle.x = this.centerX;
       particle.y = this.centerY;
@@ -97,18 +97,18 @@ export class MergeEffect extends PIXI.Container {
 
   private createStar(color: number, size: number): PIXI.Graphics {
     const star = new PIXI.Graphics();
-    star.fill(color, 0.8);
-    
+    star.fill({ color, alpha: 0.8 });
+
     const points = 5;
     const outerRadius = size;
     const innerRadius = size * 0.4;
-    
+
     for (let i = 0; i < points * 2; i++) {
       const radius = i % 2 === 0 ? outerRadius : innerRadius;
       const angle = (i * Math.PI) / points - Math.PI / 2;
       const x = Math.cos(angle) * radius;
       const y = Math.sin(angle) * radius;
-      
+
       if (i === 0) {
         star.moveTo(x, y);
       } else {
@@ -116,18 +116,19 @@ export class MergeEffect extends PIXI.Container {
       }
     }
     star.closePath();
-    
+
     return star;
   }
 
   private playAnimation(): void {
     this.startTime = performance.now();
-    this.animate();
+    this.tickerCallback = () => this.animate();
+    PIXI.Ticker.shared.add(this.tickerCallback);
   }
 
   private animate(): void {
     if (this.allComplete) return;
-    
+
     const elapsed = (performance.now() - this.startTime) / 1000;
 
     if (elapsed < 0.3) {
@@ -175,30 +176,30 @@ export class MergeEffect extends PIXI.Container {
     });
 
     const allDone = ring1Progress >= 1 && ring2Progress >= 1 && particlesDone === this.particles.length;
-    
+
     if (allDone) {
       this.allComplete = true;
-      if (this.animationId) {
-        cancelAnimationFrame(this.animationId);
-      }
       this.animationComplete();
-      return;
     }
-
-    this.animationId = requestAnimationFrame(() => this.animate());
   }
 
   private animationComplete(): void {
+    this.detachTicker();
     if (this.onComplete) {
       this.onComplete();
     }
     this.destroy();
   }
 
-  destroy(): void {
-    if (this.animationId) {
-      cancelAnimationFrame(this.animationId);
+  private detachTicker(): void {
+    if (this.tickerCallback) {
+      PIXI.Ticker.shared.remove(this.tickerCallback);
+      this.tickerCallback = null;
     }
+  }
+
+  destroy(): void {
+    this.detachTicker();
     super.destroy({ children: true });
   }
 }

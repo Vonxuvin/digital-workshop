@@ -6,7 +6,6 @@ interface Snowflake {
   targetX: number;
   speed: number;
   delay: number;
-  startTime: number;
 }
 
 export class FreezeEffect extends PIXI.Container {
@@ -16,9 +15,12 @@ export class FreezeEffect extends PIXI.Container {
   private containerHeight: number;
   private onComplete: (() => void) | undefined;
   private snowflakes: Snowflake[] = [];
-  private animationId: number = 0;
   private startTime: number = 0;
   private isExiting: boolean = false;
+  public allComplete: boolean = false;
+  private tickerCallback: ((ticker: any) => void) | null = null;
+  private phase: 'entrance' | 'snowing' | 'exit' = 'entrance';
+  private exitStartTime: number = 0;
 
   constructor(containerWidth: number, containerHeight: number, onComplete?: () => void) {
     super();
@@ -32,7 +34,7 @@ export class FreezeEffect extends PIXI.Container {
   private createEffect(): void {
     this.overlay = new PIXI.Graphics();
     this.overlay.rect(0, 0, this.containerWidth, this.containerHeight);
-    this.overlay.fill(0x87ceeb, 0.1);
+    this.overlay.fill({ color: 0x87ceeb, alpha: 0.1 });
     this.overlay.alpha = 0;
     this.addChild(this.overlay);
 
@@ -56,65 +58,74 @@ export class FreezeEffect extends PIXI.Container {
         targetX: flake.x + (Math.random() - 0.5) * 50,
         speed: 2 + Math.random() * 2,
         delay: Math.random() * 2,
-        startTime: 0,
       });
     }
   }
 
   public playEntrance(): void {
     this.startTime = performance.now();
-    
-    const animateEntrance = () => {
-      const elapsed = (performance.now() - this.startTime) / 1000;
-      const duration = 0.3;
-      
-      if (elapsed < duration) {
-        const progress = elapsed / duration;
-        const easeProgress = progress * progress;
-        this.overlay.alpha = easeProgress;
-        this.animationId = requestAnimationFrame(animateEntrance);
-      } else {
-        this.overlay.alpha = 1;
-        this.startSnowflakes();
-      }
-    };
-
-    this.animationId = requestAnimationFrame(animateEntrance);
+    this.phase = 'entrance';
+    this.tickerCallback = () => this.animate();
+    PIXI.Ticker.shared.add(this.tickerCallback);
   }
 
-  private startSnowflakes(): void {
-    const animateSnowflakes = () => {
-      if (this.isExiting) return;
-      
-      const elapsed = (performance.now() - this.startTime) / 1000;
-      let allComplete = true;
+  private animate(): void {
+    if (this.allComplete) return;
 
-      this.snowflakes.forEach(sf => {
-        const snowElapsed = elapsed - sf.delay;
-        if (snowElapsed < 0) {
-          allComplete = false;
-          return;
-        }
+    const elapsed = (performance.now() - this.startTime) / 1000;
 
-        if (sf.text.alpha === 0) {
-          sf.text.alpha = 0.7 + Math.random() * 0.3;
-        }
+    switch (this.phase) {
+      case 'entrance':
+        this.animateEntrance(elapsed);
+        break;
+      case 'snowing':
+        this.animateSnowflakes(elapsed);
+        break;
+      case 'exit':
+        this.animateExit();
+        break;
+    }
+  }
 
-        const progress = Math.min(snowElapsed / sf.speed, 1);
-        sf.text.y = -20 + (sf.targetY + 20) * progress;
-        sf.text.x = sf.text.x + (sf.targetX - sf.text.x) * 0.02;
+  private animateEntrance(elapsed: number): void {
+    const duration = 0.3;
+    if (elapsed < duration) {
+      const progress = elapsed / duration;
+      const easeProgress = progress * progress;
+      this.overlay.alpha = easeProgress;
+    } else {
+      this.overlay.alpha = 1;
+      this.phase = 'snowing';
+      this.startTime = performance.now();
+    }
+  }
 
-        if (progress < 1) allComplete = false;
-      });
+  private animateSnowflakes(elapsed: number): void {
+    if (this.isExiting) return;
 
-      if (!allComplete) {
-        this.animationId = requestAnimationFrame(animateSnowflakes);
-      } else {
-        this.resetSnowflakes();
+    let allComplete = true;
+
+    this.snowflakes.forEach(sf => {
+      const snowElapsed = elapsed - sf.delay;
+      if (snowElapsed < 0) {
+        allComplete = false;
+        return;
       }
-    };
 
-    this.animationId = requestAnimationFrame(animateSnowflakes);
+      if (sf.text.alpha === 0) {
+        sf.text.alpha = 0.7 + Math.random() * 0.3;
+      }
+
+      const progress = Math.min(snowElapsed / sf.speed, 1);
+      sf.text.y = -20 + (sf.targetY + 20) * progress;
+      sf.text.x = sf.text.x + (sf.targetX - sf.text.x) * 0.02;
+
+      if (progress < 1) allComplete = false;
+    });
+
+    if (allComplete) {
+      this.resetSnowflakes();
+    }
   }
 
   private resetSnowflakes(): void {
@@ -127,52 +138,45 @@ export class FreezeEffect extends PIXI.Container {
       sf.delay = 0;
       sf.text.alpha = 0.7 + Math.random() * 0.3;
     });
-    this.startSnowflakes();
+    this.startTime = performance.now();
   }
 
   playExit(): Promise<void> {
     return new Promise(resolve => {
       this.isExiting = true;
-      if (this.animationId) {
-        cancelAnimationFrame(this.animationId);
-      }
-
-      const exitStartTime = performance.now();
-      const exitDuration = 500;
-
-      const animateExit = () => {
-        const elapsed = performance.now() - exitStartTime;
-        const progress = Math.min(elapsed / exitDuration, 1);
-        const easeProgress = 1 - Math.pow(1 - progress, 2);
-
-        this.overlay.alpha = 1 * (1 - easeProgress);
-
-        this.snowflakes.forEach(sf => {
-          sf.text.alpha = (sf.text.alpha || 0.7) * (1 - easeProgress);
-          sf.text.y = sf.text.y + (this.containerHeight + 20 - sf.text.y) * 0.1;
-        });
-
-        if (progress < 1) {
-          this.animationId = requestAnimationFrame(animateExit);
-        } else {
-          this.cleanup();
-          if (this.onComplete) {
-            this.onComplete();
-          }
-          this.destroy();
-          resolve();
-        }
-      };
-
-      this.animationId = requestAnimationFrame(animateExit);
+      this.exitStartTime = performance.now();
+      this.phase = 'exit';
+      this._exitResolve = resolve;
     });
   }
 
-  private cleanup(): void {
-    if (this.animationId) {
-      cancelAnimationFrame(this.animationId);
+  private _exitResolve: ((value: void) => void) | null = null;
+
+  private animateExit(): void {
+    const elapsed = performance.now() - this.exitStartTime;
+    const exitDuration = 500;
+    const progress = Math.min(elapsed / exitDuration, 1);
+    const easeProgress = 1 - Math.pow(1 - progress, 2);
+
+    this.overlay.alpha = 1 * (1 - easeProgress);
+
+    this.snowflakes.forEach(sf => {
+      sf.text.alpha = (sf.text.alpha || 0.7) * (1 - easeProgress);
+      sf.text.y = sf.text.y + (this.containerHeight + 20 - sf.text.y) * 0.1;
+    });
+
+    if (progress >= 1) {
+      this.allComplete = true;
+      this.detachTicker();
+      if (this.onComplete) {
+        this.onComplete();
+      }
+      this.destroy();
+      if (this._exitResolve) {
+        this._exitResolve();
+        this._exitResolve = null;
+      }
     }
-    this.removeChildren();
   }
 
   updateRemainingTime(remainingMs: number, totalMs: number): void {
@@ -180,8 +184,15 @@ export class FreezeEffect extends PIXI.Container {
     this.overlay.alpha = ratio * 0.3;
   }
 
+  private detachTicker(): void {
+    if (this.tickerCallback) {
+      PIXI.Ticker.shared.remove(this.tickerCallback);
+      this.tickerCallback = null;
+    }
+  }
+
   destroy(): void {
-    this.cleanup();
+    this.detachTicker();
     super.destroy({ children: true });
   }
 }
