@@ -1,4 +1,4 @@
-import { Container, Text, Graphics } from 'pixi.js';
+import { Container, Text, Graphics, Ticker } from 'pixi.js';
 import { Screen } from '../UIManager';
 import { eventBus } from '../../utils/EventBus';
 import { Layout } from '../layout/Layout';
@@ -17,6 +17,7 @@ export class MainMenuScreen extends Screen {
   private currentScreenWidth = 800;
   private currentScreenHeight = 600;
   private initialized = false;
+  private tickerCallback: ((ticker: any) => void) | null = null;
 
   constructor() {
     super();
@@ -140,7 +141,7 @@ export class MainMenuScreen extends Screen {
 
     const bg = new Graphics();
     bg.circle(0, 0, 20);
-    bg.fill(0x333333);
+    bg.fill({ color: 0x333333 });
     this.soundToggleButton.addChild(bg);
 
     const audioManager = AudioManager.getInstance();
@@ -219,37 +220,52 @@ export class MainMenuScreen extends Screen {
       this.buttonTargetY[i] = targetY;
     });
 
-    let fadeIn = 0;
-    const animate = () => {
-      fadeIn += 0.05;
-      this.alpha = Math.min(fadeIn, 1);
-      if (fadeIn < 1) {
-        requestAnimationFrame(animate);
+    this.detachTicker();
+    const startTime = performance.now();
+    const fadeDuration = 400;
+    const slideDuration = 250;
+
+    this.tickerCallback = () => {
+      const now = performance.now();
+      const elapsed = now - startTime;
+
+      const fadeProgress = Math.min(elapsed / fadeDuration, 1);
+      this.alpha = fadeProgress;
+
+      let allSlideComplete = true;
+      this.allButtons.forEach((btn, i) => {
+        const slideElapsed = elapsed - i * 100;
+        if (slideElapsed < 0) {
+          allSlideComplete = false;
+          return;
+        }
+        const progress = Math.min(slideElapsed / slideDuration, 1);
+        const targetY = this.buttonTargetY[i];
+        btn.y = targetY + 80 * (1 - progress);
+        btn.alpha = progress;
+        if (progress < 1) allSlideComplete = false;
+      });
+
+      if (fadeProgress >= 1 && allSlideComplete) {
+        this.detachTicker();
       }
     };
-    animate();
-
-    this.allButtons.forEach((btn, i) => {
-      setTimeout(() => {
-        const targetY = this.buttonTargetY[i];
-        let progress = 0;
-        const slideIn = () => {
-          progress += 0.08;
-          if (progress >= 1) {
-            btn.y = targetY;
-            btn.alpha = 1;
-            return;
-          }
-          btn.y = targetY + 80 * (1 - progress);
-          btn.alpha = progress;
-          requestAnimationFrame(slideIn);
-        };
-        slideIn();
-      }, i * 100);
-    });
+    Ticker.shared.add(this.tickerCallback);
   }
 
   hide(): void {
     this.visible = false;
+  }
+
+  private detachTicker(): void {
+    if (this.tickerCallback) {
+      Ticker.shared.remove(this.tickerCallback);
+      this.tickerCallback = null;
+    }
+  }
+
+  destroy(): void {
+    this.detachTicker();
+    super.destroy();
   }
 }

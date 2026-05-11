@@ -4,9 +4,9 @@ import { ContainerModifier, ModifierConfig } from './ContainerModifier';
 import { PhysicsManager } from '../../core/PhysicsManager';
 
 export interface RotateConfig extends ModifierConfig {
-  rotationSpeed: number;       // 旋转速度（度/秒）
-  maxAngle: number;            // 最大旋转角度（度）
-  oscillate: boolean;          // 是否摆动（true: 来回摆动，false: 持续旋转）
+  rotationSpeed: number;
+  maxAngle: number;
+  oscillate: boolean;
 }
 
 export class RotateModifier extends ContainerModifier {
@@ -20,6 +20,7 @@ export class RotateModifier extends ContainerModifier {
   private centerX: number;
   private centerY: number;
   private rotationIndicator: Graphics | null = null;
+  private wallGraphics: Graphics | null = null;
 
   constructor(
     config: RotateConfig,
@@ -46,10 +47,60 @@ export class RotateModifier extends ContainerModifier {
     for (const body of this.containerBodies) {
       this.originalPositions.set(body.id, { x: body.position.x, y: body.position.y });
     }
+    if (this.containerBodies.length > 0) {
+      let sumX = 0, sumY = 0;
+      for (const body of this.containerBodies) {
+        sumX += body.position.x;
+        sumY += body.position.y;
+      }
+      this.centerX = sumX / this.containerBodies.length;
+      this.centerY = sumY / this.containerBodies.length;
+    }
     this.targetAngle = this.maxAngle;
     this.direction = 1;
+    this.createVisualWalls();
     this.createRotationIndicator();
-    console.log(`[RotateModifier] 激活旋转容器, maxAngle=${this.maxAngle}, oscillate=${this.oscillate}`);
+    console.log(`[RotateModifier] 激活旋转容器, maxAngle=${this.maxAngle}, oscillate=${this.oscillate}, bodies=${this.containerBodies.length}, center=(${this.centerX.toFixed(0)}, ${this.centerY.toFixed(0)})`);
+  }
+
+  private createVisualWalls(): void {
+    this.wallGraphics = new Graphics();
+
+    const groundBody = this.containerBodies.find(b => b.label === 'ground');
+    const leftBody = this.containerBodies.find(b => b.label === 'wall_left');
+    const rightBody = this.containerBodies.find(b => b.label === 'wall_right');
+
+    if (groundBody) {
+      const w = groundBody.bounds.max.x - groundBody.bounds.min.x;
+      const h = groundBody.bounds.max.y - groundBody.bounds.min.y;
+      this.wallGraphics.rect(groundBody.position.x - w / 2, groundBody.position.y - h / 2, w, h);
+      this.wallGraphics.fill({ color: 0x2d2d44 });
+    }
+    if (leftBody) {
+      const w = leftBody.bounds.max.x - leftBody.bounds.min.x;
+      const h = leftBody.bounds.max.y - leftBody.bounds.min.y;
+      this.wallGraphics.rect(leftBody.position.x - w / 2, leftBody.position.y - h / 2, w, h);
+      this.wallGraphics.fill({ color: 0x4a4a6a });
+    }
+    if (rightBody) {
+      const w = rightBody.bounds.max.x - rightBody.bounds.min.x;
+      const h = rightBody.bounds.max.y - rightBody.bounds.min.y;
+      this.wallGraphics.rect(rightBody.position.x - w / 2, rightBody.position.y - h / 2, w, h);
+      this.wallGraphics.fill({ color: 0x4a4a6a });
+    }
+
+    this.wallGraphics.pivot.set(this.centerX, this.centerY);
+    this.wallGraphics.x = this.centerX;
+    this.wallGraphics.y = this.centerY;
+
+    if (this.stageContainer) {
+      this.stageContainer.addChild(this.wallGraphics);
+    }
+  }
+
+  private updateVisualWalls(): void {
+    if (!this.wallGraphics) return;
+    this.wallGraphics.rotation = (this.currentAngle * Math.PI) / 180;
   }
 
   private createRotationIndicator(): void {
@@ -84,6 +135,7 @@ export class RotateModifier extends ContainerModifier {
     this.applyRotation();
     this.updateGravity();
     this.updateIndicator();
+    this.updateVisualWalls();
   }
 
   private updateIndicator(): void {
@@ -112,13 +164,13 @@ export class RotateModifier extends ContainerModifier {
 
   private updateGravity(): void {
     const angleRad = (this.currentAngle * Math.PI) / 180;
-    const gravityX = Math.sin(angleRad);
-    const gravityY = Math.cos(angleRad);
+    const gravityX = Math.sin(angleRad) * 2.0;
+    const gravityY = Math.cos(angleRad) * 2.0;
     this.physics.setGravity(gravityX, gravityY);
   }
 
   protected onDeactivate(): void {
-    this.physics.setGravity(0, 1);
+    this.physics.setGravity(0, 2.0);
     this.currentAngle = 0;
     this.direction = 1;
 
@@ -128,6 +180,14 @@ export class RotateModifier extends ContainerModifier {
         Matter.Body.setPosition(body, originalPos);
         Matter.Body.setAngle(body, 0);
       }
+    }
+
+    if (this.wallGraphics) {
+      if (this.stageContainer && this.wallGraphics.parent) {
+        this.stageContainer.removeChild(this.wallGraphics);
+      }
+      this.wallGraphics.destroy();
+      this.wallGraphics = null;
     }
 
     if (this.rotationIndicator) {

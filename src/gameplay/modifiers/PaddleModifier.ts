@@ -1,4 +1,5 @@
 import Matter from 'matter-js';
+import * as PIXI from 'pixi.js';
 import { Graphics, Container } from 'pixi.js';
 import { ContainerModifier, ModifierConfig } from './ContainerModifier';
 import { PhysicsManager } from '../../core/PhysicsManager';
@@ -36,7 +37,8 @@ export class PaddleModifier extends ContainerModifier {
   private slideDirection: 1 | -1 = 1;
   private initialDirection: 1 | -1;
   private phaseElapsed: number = 0;
-  private cycleTimer: ReturnType<typeof setInterval> | null = null;
+  private cycleTickerCallback: ((ticker: any) => void) | null = null;
+  private retractTimeout: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     config: PaddleConfig,
@@ -75,9 +77,10 @@ export class PaddleModifier extends ContainerModifier {
     this.createPaddle();
     console.log(`[PaddleModifier] 激活挡板 mode=${this.mode} side=${this.side} xPosition=${this.xPosition} yPosition=${this.yPosition}`);
 
-    this.cycleTimer = setInterval(() => {
-      this.updateCycle();
-    }, 16);
+    this.cycleTickerCallback = (ticker: any) => {
+      this.updateCycle(ticker.deltaMS);
+    };
+    PIXI.Ticker.shared.add(this.cycleTickerCallback);
   }
 
   private createPaddle(): void {
@@ -110,11 +113,11 @@ export class PaddleModifier extends ContainerModifier {
     }
   }
 
-  private updateCycle(): void {
-    this.phaseElapsed += 16;
+  private updateCycle(deltaMS: number = 16): void {
+    this.phaseElapsed += deltaMS;
 
     if (this.mode === 'slide') {
-      this.updateSlideMode();
+      this.updateSlideMode(deltaMS);
       return;
     }
 
@@ -136,13 +139,15 @@ export class PaddleModifier extends ContainerModifier {
           this.removePaddle();
           this.phase = 'idle';
           this.phaseElapsed = 0;
-          setTimeout(() => {
+          const delay = (this.config.triggerInterval || 5) * 1000 - this.extendDuration - this.retractDuration - 1000;
+          this.retractTimeout = setTimeout(() => {
+            this.retractTimeout = null;
             if (this.state.isActive) {
               this.phase = 'extending';
               this.phaseElapsed = 0;
               this.createPaddle();
             }
-          }, (this.config.triggerInterval || 5) * 1000 - this.extendDuration - this.retractDuration - 1000);
+          }, Math.max(0, delay));
         }
         break;
     }
@@ -150,8 +155,8 @@ export class PaddleModifier extends ContainerModifier {
     this.updatePaddlePosition();
   }
 
-  private updateSlideMode(): void {
-    const dt = 0.016;
+  private updateSlideMode(deltaMS: number = 16): void {
+    const dt = deltaMS / 1000;
     this.xPosition += this.slideSpeed * this.slideDirection * dt * 60;
 
     const minX = this.xRange;
@@ -250,9 +255,13 @@ export class PaddleModifier extends ContainerModifier {
 
   protected onDeactivate(): void {
     this.removePaddle();
-    if (this.cycleTimer) {
-      clearInterval(this.cycleTimer);
-      this.cycleTimer = null;
+    if (this.cycleTickerCallback) {
+      PIXI.Ticker.shared.remove(this.cycleTickerCallback);
+      this.cycleTickerCallback = null;
+    }
+    if (this.retractTimeout) {
+      clearTimeout(this.retractTimeout);
+      this.retractTimeout = null;
     }
     this.phase = 'idle';
   }
@@ -260,9 +269,13 @@ export class PaddleModifier extends ContainerModifier {
   destroy(): void {
     super.destroy();
     this.removePaddle();
-    if (this.cycleTimer) {
-      clearInterval(this.cycleTimer);
-      this.cycleTimer = null;
+    if (this.cycleTickerCallback) {
+      PIXI.Ticker.shared.remove(this.cycleTickerCallback);
+      this.cycleTickerCallback = null;
+    }
+    if (this.retractTimeout) {
+      clearTimeout(this.retractTimeout);
+      this.retractTimeout = null;
     }
   }
 }

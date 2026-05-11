@@ -35,12 +35,24 @@ describe('MergeSystem', () => {
     physics.start();
 
     return new Promise<void>((resolve) => {
+      let acc = 0;
+      const step = () => {
+        acc += 16.67;
+        physics.fixedUpdate(acc);
+        acc = 0;
+      };
+
+      for (let i = 0; i < 60; i++) {
+        step();
+      }
+
       setTimeout(() => {
         physics.stop();
         resolve();
-      }, 500);
+      }, 100);
     }).then(() => {
       expect(handler).toHaveBeenCalled();
+      eventBus.off('block:merged', handler);
     });
   });
 
@@ -59,12 +71,17 @@ describe('MergeSystem', () => {
     physics.start();
 
     return new Promise<void>((resolve) => {
+      for (let i = 0; i < 30; i++) {
+        physics.step(16.67);
+      }
+
       setTimeout(() => {
         physics.stop();
         resolve();
-      }, 300);
+      }, 100);
     }).then(() => {
       expect(handler).not.toHaveBeenCalled();
+      eventBus.off('block:merged', handler);
     });
   });
 
@@ -81,12 +98,17 @@ describe('MergeSystem', () => {
     physics.start();
 
     return new Promise<void>((resolve) => {
+      for (let i = 0; i < 30; i++) {
+        physics.step(16.67);
+      }
+
       setTimeout(() => {
         physics.stop();
         resolve();
-      }, 300);
+      }, 100);
     }).then(() => {
       expect(handler).not.toHaveBeenCalled();
+      eventBus.off('block:merged', handler);
     });
   });
 
@@ -111,14 +133,19 @@ describe('MergeSystem', () => {
     physics.start();
 
     return new Promise<void>((resolve) => {
+      for (let i = 0; i < 60; i++) {
+        physics.step(16.67);
+      }
+
       setTimeout(() => {
         physics.stop();
         if (handler.mock.calls.length > 0) {
           const data = handler.mock.calls[0][0];
           expect(data.newValue).toBe(4);
         }
+        eventBus.off('block:merged', handler);
         resolve();
-      }, 500);
+      }, 100);
     });
   });
 
@@ -137,14 +164,19 @@ describe('MergeSystem', () => {
     physics.start();
 
     return new Promise<void>((resolve) => {
+      for (let i = 0; i < 60; i++) {
+        physics.step(16.67);
+      }
+
       setTimeout(() => {
         physics.stop();
         if (handler.mock.calls.length > 0) {
           const data = handler.mock.calls[0][0];
           expect(data.blocks).toHaveLength(2);
         }
+        eventBus.off('blocks:destroyed', handler);
         resolve();
-      }, 500);
+      }, 100);
     });
   });
 
@@ -163,10 +195,14 @@ describe('MergeSystem', () => {
     physics.start();
 
     return new Promise<void>((resolve) => {
+      for (let i = 0; i < 60; i++) {
+        physics.step(16.67);
+      }
+
       setTimeout(() => {
         physics.stop();
         resolve();
-      }, 500);
+      }, 100);
     });
   });
 });

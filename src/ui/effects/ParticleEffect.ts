@@ -26,7 +26,7 @@ export class ParticleEffect extends PIXI.Container {
   private particles: AnimatedParticle[] = [];
   private onComplete: (() => void) | undefined;
   private completedCount: number = 0;
-  private animationId: number = 0;
+  private tickerCallback: ((ticker: any) => void) | null = null;
   private startTime: number = 0;
 
   constructor(config: ParticleConfig) {
@@ -63,21 +63,21 @@ export class ParticleEffect extends PIXI.Container {
 
     switch (type) {
       case 'sparkle':
-        particle.fill(defaultColor, 0.9);
+        particle.fill({ color: defaultColor, alpha: 0.9 });
         particle.circle(0, 0, 3 + Math.random() * 3);
         break;
       case 'confetti':
         const colors = [0xff6b6b, 0xffd93d, 0x4ecdc4, 0x9b59b6, 0x3498db];
-        particle.fill(colors[Math.floor(Math.random() * colors.length)]);
+        particle.fill({ color: colors[Math.floor(Math.random() * colors.length)] });
         particle.rect(-3, -6, 6, 12);
         break;
       case 'smoke':
-        particle.fill(0x888888, 0.3);
+        particle.fill({ color: 0x888888, alpha: 0.3 });
         particle.circle(0, 0, 10 + Math.random() * 10);
         break;
       case 'bubble':
         particle.setStrokeStyle({ width: 1, color: defaultColor, alpha: 0.5 });
-        particle.fill(defaultColor, 0.1);
+        particle.fill({ color: defaultColor, alpha: 0.1 });
         particle.circle(0, 0, 5 + Math.random() * 8);
         break;
     }
@@ -89,7 +89,7 @@ export class ParticleEffect extends PIXI.Container {
     this.particles.forEach((p, i) => {
       const startX = p.startX;
       const startY = p.startY;
-      
+
       switch (type) {
         case 'sparkle':
           p.targetX = startX;
@@ -116,7 +116,8 @@ export class ParticleEffect extends PIXI.Container {
     });
 
     this.startTime = performance.now();
-    this.animate();
+    this.tickerCallback = () => this.animate();
+    PIXI.Ticker.shared.add(this.tickerCallback);
   }
 
   private animate(): void {
@@ -138,7 +139,7 @@ export class ParticleEffect extends PIXI.Container {
       p.graphics.alpha = 1 - easeProgress;
       const scale = 1 - 0.8 * easeProgress;
       p.graphics.scale.set(scale);
-      
+
       if (p.rotationSpeed !== 0) {
         p.graphics.rotation = p.rotationSpeed * easeProgress;
       }
@@ -148,18 +149,13 @@ export class ParticleEffect extends PIXI.Container {
 
     if (allComplete) {
       this.finishAnimation();
-      return;
     }
-
-    this.animationId = requestAnimationFrame(() => this.animate());
   }
 
   private finishAnimation(): void {
     this.completedCount++;
     if (this.completedCount >= this.particles.length) {
-      if (this.animationId) {
-        cancelAnimationFrame(this.animationId);
-      }
+      this.detachTicker();
       if (this.onComplete) {
         this.onComplete();
       }
@@ -167,10 +163,15 @@ export class ParticleEffect extends PIXI.Container {
     }
   }
 
-  destroy(): void {
-    if (this.animationId) {
-      cancelAnimationFrame(this.animationId);
+  private detachTicker(): void {
+    if (this.tickerCallback) {
+      PIXI.Ticker.shared.remove(this.tickerCallback);
+      this.tickerCallback = null;
     }
+  }
+
+  destroy(): void {
+    this.detachTicker();
     this.particles.forEach(p => p.graphics.destroy());
     this.particles = [];
     this.removeChildren();

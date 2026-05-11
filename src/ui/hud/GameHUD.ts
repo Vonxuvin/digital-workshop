@@ -83,8 +83,6 @@ export class GameHUD extends Container {
   private createPropsBar(): void {
     this.propsContainer = new Container();
     this.propsContainer.eventMode = 'static';
-    this.propsContainer.x = 600;
-    this.propsContainer.y = 15;
 
     const propsData = [
       { type: PropType.BOMB, icon: 'bomb', x: 0 },
@@ -160,7 +158,7 @@ export class GameHUD extends Container {
 
     const bg = new Graphics();
     bg.circle(0, 0, 25);
-    bg.fill(0x333333);
+    bg.fill({ color: 0x333333 });
     this.pauseButton.addChild(bg);
 
     const icon = new Text({
@@ -268,6 +266,16 @@ export class GameHUD extends Container {
 
   updateLevel(levelId: number, levelName: string): void {
     this.levelText.text = `Level ${levelId}: ${levelName}`;
+  }
+
+  layout(screenWidth: number, screenHeight: number): void {
+    this.propsContainer.x = screenWidth - 230;
+    this.propsContainer.y = 15;
+    this.pauseButton.x = screenWidth - 50;
+    this.pauseButton.y = 30;
+    this.timerText.x = screenWidth / 2;
+    this.objectiveBar.x = screenWidth - 250;
+    this.objectiveBar.y = 85;
   }
 
   reset(): void {

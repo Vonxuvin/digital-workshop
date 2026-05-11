@@ -340,7 +340,7 @@ describe('MergeSystem Deep Tests', () => {
     });
   });
 
-  describe('generateColor produces valid hex values', () => {
+  describe('getBlockConfig produces valid values', () => {
     it('MergeSystem can be created without errors', () => {
       expect(mergeSystem).toBeDefined();
     });
@@ -402,13 +402,14 @@ describe('Block Deep Tests', () => {
     });
   });
 
-  describe('Fallback to BLOCK_CONFIGS[1] for unknown values', () => {
-    it('should use config for value 1 when value is not in BLOCK_CONFIGS', () => {
+  describe('Dynamic config generation for unknown values', () => {
+    it('should generate dynamic config for value not in BLOCK_CONFIGS', () => {
       const body = physics.createCircle(100, 200, 20);
-      const block = new Block(body, 999);
+      const block = new Block(body, 4096);
       const config = block.getConfig();
-      expect(config.value).toBe(1);
-      expect(config).toEqual(BLOCK_CONFIGS[1]);
+      expect(config.value).toBe(4096);
+      expect(config.radius).toBeGreaterThan(0);
+      expect(config.color).toBeDefined();
     });
 
     it('should use config for value 1 when value is 0', () => {
@@ -442,6 +443,7 @@ describe('WarningLine Deep Tests', () => {
 
   beforeEach(() => {
     wl = new WarningLine(600);
+    wl.y = 600 * 0.2;
   });
 
   afterEach(() => {
@@ -460,51 +462,64 @@ describe('WarningLine Deep Tests', () => {
       const wh = wl.getWarningHeight();
       const handler = vi.fn();
       eventBus.on('warning:started', handler);
-      wl.update([{ y: wh - 1, radius: 0 }], 1);
+      wl.update([{ y: wh - 1, radius: 0, speed: 0 }], 16.67);
       expect(handler).toHaveBeenCalled();
+      eventBus.off('warning:started', handler);
     });
 
     it('should not trigger warning when block top equals warning height', () => {
       const wh = wl.getWarningHeight();
       const handler = vi.fn();
       eventBus.on('warning:started', handler);
-      wl.update([{ y: wh, radius: 0 }], 1);
+      wl.update([{ y: wh, radius: 0, speed: 0 }], 16.67);
       expect(handler).not.toHaveBeenCalled();
+      eventBus.off('warning:started', handler);
     });
 
     it('should not trigger warning when block top is below warning height', () => {
       const wh = wl.getWarningHeight();
       const handler = vi.fn();
       eventBus.on('warning:started', handler);
-      wl.update([{ y: wh + 1, radius: 0 }], 1);
+      wl.update([{ y: wh + 1, radius: 0, speed: 0 }], 16.67);
       expect(handler).not.toHaveBeenCalled();
+      eventBus.off('warning:started', handler);
     });
 
     it('should consider block radius in warning detection', () => {
       const wh = wl.getWarningHeight();
       const handler = vi.fn();
       eventBus.on('warning:started', handler);
-      wl.update([{ y: wh + 10, radius: 20 }], 1);
+      wl.update([{ y: wh + 10, radius: 20, speed: 0 }], 16.67);
       expect(handler).toHaveBeenCalled();
+      eventBus.off('warning:started', handler);
+    });
+
+    it('should not trigger warning for fast-moving blocks above line', () => {
+      const wh = wl.getWarningHeight();
+      const handler = vi.fn();
+      eventBus.on('warning:started', handler);
+      wl.update([{ y: wh - 10, radius: 5, speed: 5 }], 16.67);
+      expect(handler).not.toHaveBeenCalled();
+      eventBus.off('warning:started', handler);
     });
   });
 
-  describe('Delta normalization (delta * 16.67)', () => {
+  describe('Delta normalization (deltaMS)', () => {
     it('should accumulate warning duration based on delta', () => {
       const wh = wl.getWarningHeight();
-      wl.update([{ y: wh - 10, radius: 5 }], 1);
+      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
       const d1 = wl.getWarningDuration();
-      wl.update([{ y: wh - 10, radius: 5 }], 1);
+      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
       const d2 = wl.getWarningDuration();
       expect(d2).toBeGreaterThan(d1);
     });
 
     it('should accumulate faster with larger delta', () => {
       const wh = wl.getWarningHeight();
-      wl.update([{ y: wh - 10, radius: 5 }], 2);
+      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 33.34);
       const durationWithDelta2 = wl.getWarningDuration();
       wl.reset();
-      wl.update([{ y: wh - 10, radius: 5 }], 1);
+      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
       const durationWithDelta1 = wl.getWarningDuration();
       expect(durationWithDelta2).toBeGreaterThan(durationWithDelta1);
     });
@@ -517,10 +532,11 @@ describe('WarningLine Deep Tests', () => {
       eventBus.on('game:over', handler);
 
       for (let i = 0; i < 200; i++) {
-        wl.update([{ y: wh - 10, radius: 5 }], 1);
+        wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
       }
 
       expect(handler).toHaveBeenCalled();
+      eventBus.off('game:over', handler);
     });
 
     it('should not emit game:over again after threshold reached and blocks remain above', () => {
@@ -529,21 +545,22 @@ describe('WarningLine Deep Tests', () => {
       eventBus.on('game:over', handler);
 
       for (let i = 0; i < 200; i++) {
-        wl.update([{ y: wh - 10, radius: 5 }], 1);
+        wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
       }
       const callCount = handler.mock.calls.length;
       expect(callCount).toBeGreaterThanOrEqual(1);
 
-      wl.update([{ y: wh - 10, radius: 5 }], 1);
-      wl.update([{ y: wh - 10, radius: 5 }], 1);
+      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
+      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
       expect(handler.mock.calls.length).toBe(callCount);
+      eventBus.off('game:over', handler);
     });
   });
 
   describe('Reset clears all state', () => {
     it('should clear warning duration and isWarning state', () => {
       const wh = wl.getWarningHeight();
-      wl.update([{ y: wh - 10, radius: 5 }], 1);
+      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
       expect(wl.getWarningDuration()).toBeGreaterThan(0);
 
       wl.reset();
@@ -555,12 +572,13 @@ describe('WarningLine Deep Tests', () => {
       const handler = vi.fn();
       eventBus.on('warning:started', handler);
 
-      wl.update([{ y: wh - 10, radius: 5 }], 1);
+      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
       expect(handler).toHaveBeenCalledTimes(1);
 
       wl.reset();
-      wl.update([{ y: wh - 10, radius: 5 }], 1);
+      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
       expect(handler).toHaveBeenCalledTimes(2);
+      eventBus.off('warning:started', handler);
     });
   });
 });

@@ -1,4 +1,5 @@
 import Matter from 'matter-js';
+import * as PIXI from 'pixi.js';
 import { Container } from 'pixi.js';
 import { PhysicsManager } from '../../core/PhysicsManager';
 
@@ -23,7 +24,7 @@ export abstract class ContainerModifier {
   protected config: ModifierConfig;
   protected state: ModifierState;
   protected physics: PhysicsManager;
-  protected timer: ReturnType<typeof setInterval> | null = null;
+  protected tickerCallback: ((ticker: any) => void) | null = null;
   protected startDelayTimer: ReturnType<typeof setTimeout> | null = null;
   protected stageContainer: Container | null = null;
   protected containerBodies: Matter.Body[] = [];
@@ -64,21 +65,23 @@ export abstract class ContainerModifier {
     this.onActivate();
 
     if (this.config.triggerInterval && this.config.triggerInterval > 0) {
-      this.timer = setInterval(() => {
-        this.tick();
-      }, 16);
+      this.tickerCallback = (ticker: any) => {
+        this.tick(ticker.deltaMS);
+      };
+      PIXI.Ticker.shared.add(this.tickerCallback);
     } else if (this.config.duration && this.config.duration > 0) {
-      this.timer = setInterval(() => {
-        this.tick();
-      }, 16);
+      this.tickerCallback = (ticker: any) => {
+        this.tick(ticker.deltaMS);
+      };
+      PIXI.Ticker.shared.add(this.tickerCallback);
     }
   }
 
   protected abstract onActivate(): void;
 
-  protected tick(): void {
+  protected tick(deltaMS: number = 16): void {
     if (!this.state.isActive) return;
-    this.state.elapsedTime += 16;
+    this.state.elapsedTime += deltaMS;
     if (this.config.duration && this.config.duration > 0) {
       this.state.remainingTime = Math.max(0, this.config.duration * 1000 - this.state.elapsedTime);
       this.state.progress = Math.min(1, this.state.elapsedTime / (this.config.duration * 1000));
@@ -106,10 +109,11 @@ export abstract class ContainerModifier {
   }
 
   resume(): void {
-    if (this.state.isActive && this.config.triggerInterval) {
-      this.timer = setInterval(() => {
-        this.tick();
-      }, 16);
+    if (this.state.isActive) {
+      this.tickerCallback = (ticker: any) => {
+        this.tick(ticker.deltaMS);
+      };
+      PIXI.Ticker.shared.add(this.tickerCallback);
     }
   }
 
@@ -122,9 +126,9 @@ export abstract class ContainerModifier {
   }
 
   private clearTimers(): void {
-    if (this.timer) {
-      clearInterval(this.timer);
-      this.timer = null;
+    if (this.tickerCallback) {
+      PIXI.Ticker.shared.remove(this.tickerCallback);
+      this.tickerCallback = null;
     }
     if (this.startDelayTimer) {
       clearTimeout(this.startDelayTimer);

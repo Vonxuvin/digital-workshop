@@ -645,6 +645,7 @@ describe('Deep Integration Tests', () => {
 
       beforeEach(() => {
         wl = new WarningLine(600);
+        wl.y = 600 * 0.2;
       });
 
       afterEach(() => {
@@ -654,57 +655,63 @@ describe('Deep Integration Tests', () => {
       it('should handle empty blocks array', () => {
         const handler = vi.fn();
         eventBus.on('warning:started', handler);
-        wl.update([], 1);
+        wl.update([], 16.67);
         expect(wl.getWarningDuration()).toBe(0);
         expect(handler).not.toHaveBeenCalled();
+        eventBus.off('warning:started', handler);
       });
 
       it('should not detect blocks exactly at warning height (strict less-than)', () => {
         const warningHeight = wl.getWarningHeight();
         const handler = vi.fn();
         eventBus.on('warning:started', handler);
-        wl.update([{ y: warningHeight, radius: 0 }], 1);
+        wl.update([{ y: warningHeight, radius: 0, speed: 0 }], 16.67);
         expect(handler).not.toHaveBeenCalled();
+        eventBus.off('warning:started', handler);
       });
 
       it('should detect blocks just above warning height', () => {
         const warningHeight = wl.getWarningHeight();
         const handler = vi.fn();
         eventBus.on('warning:started', handler);
-        wl.update([{ y: warningHeight - 1, radius: 0 }], 1);
+        wl.update([{ y: warningHeight - 1, radius: 0, speed: 0 }], 16.67);
         expect(handler).toHaveBeenCalled();
+        eventBus.off('warning:started', handler);
       });
 
       it('should not warn for blocks just below warning height', () => {
         const warningHeight = wl.getWarningHeight();
         const handler = vi.fn();
         eventBus.on('warning:started', handler);
-        wl.update([{ y: warningHeight + 1, radius: 0 }], 1);
+        wl.update([{ y: warningHeight + 1, radius: 0, speed: 0 }], 16.67);
         expect(handler).not.toHaveBeenCalled();
+        eventBus.off('warning:started', handler);
       });
 
       it('should handle blocks having radius 0', () => {
         const warningHeight = wl.getWarningHeight();
         const handler = vi.fn();
         eventBus.on('warning:started', handler);
-        wl.update([{ y: warningHeight - 1, radius: 0 }], 1);
+        wl.update([{ y: warningHeight - 1, radius: 0, speed: 0 }], 16.67);
         expect(handler).toHaveBeenCalled();
         expect(wl.getWarningDuration()).toBeGreaterThan(0);
+        eventBus.off('warning:started', handler);
       });
 
       it('should handle very large delta values', () => {
         const warningHeight = wl.getWarningHeight();
         const gameOverHandler = vi.fn();
         eventBus.on('game:over', gameOverHandler);
-        wl.update([{ y: warningHeight - 10, radius: 5 }], 1000);
+        wl.update([{ y: warningHeight - 10, radius: 5, speed: 0 }], 3100);
         expect(gameOverHandler).toHaveBeenCalled();
+        eventBus.off('game:over', gameOverHandler);
       });
 
       it('should accumulate warning duration with precision', () => {
         const warningHeight = wl.getWarningHeight();
-        wl.update([{ y: warningHeight - 10, radius: 5 }], 1);
+        wl.update([{ y: warningHeight - 10, radius: 5, speed: 0 }], 16.67);
         const duration1 = wl.getWarningDuration();
-        wl.update([{ y: warningHeight - 10, radius: 5 }], 1);
+        wl.update([{ y: warningHeight - 10, radius: 5, speed: 0 }], 16.67);
         const duration2 = wl.getWarningDuration();
         expect(duration2).toBeGreaterThan(duration1);
         expect(duration2 - duration1).toBeCloseTo(16.67, 0);
@@ -715,16 +722,17 @@ describe('Deep Integration Tests', () => {
         const handler = vi.fn();
         eventBus.on('game:over', handler);
         for (let i = 0; i < 200; i++) {
-          wl.update([{ y: warningHeight - 10, radius: 5 }], 1);
+          wl.update([{ y: warningHeight - 10, radius: 5, speed: 0 }], 16.67);
         }
         expect(handler).toHaveBeenCalled();
+        eventBus.off('game:over', handler);
       });
 
       it('should reset warning duration when blocks move below line', () => {
         const warningHeight = wl.getWarningHeight();
-        wl.update([{ y: warningHeight - 10, radius: 5 }], 1);
+        wl.update([{ y: warningHeight - 10, radius: 5, speed: 0 }], 16.67);
         expect(wl.getWarningDuration()).toBeGreaterThan(0);
-        wl.update([{ y: warningHeight + 100, radius: 5 }], 1);
+        wl.update([{ y: warningHeight + 100, radius: 5, speed: 0 }], 16.67);
         expect(wl.getWarningDuration()).toBe(0);
       });
     });

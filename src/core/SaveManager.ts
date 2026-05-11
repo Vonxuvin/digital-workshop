@@ -1,4 +1,6 @@
 import { eventBus } from '../utils/EventBus';
+import { PlatformAdapter } from '../platform/PlatformAdapter';
+import { createPlatformAdapter } from '../platform/PlatformFactory';
 
 export interface LevelProgress {
   levelId: number;
@@ -40,10 +42,12 @@ export class SaveManager {
   private readonly STORAGE_KEY = 'digital_workshop_save';
   private autoSaveInterval: ReturnType<typeof setInterval> | null = null;
   private isDirty: boolean = false;
+  private platform: PlatformAdapter;
+  private initialized: boolean = false;
 
   private constructor() {
     this.data = this.getDefaultData();
-    this.load();
+    this.platform = createPlatformAdapter();
   }
 
   static getInstance(): SaveManager {
@@ -51,6 +55,13 @@ export class SaveManager {
       SaveManager.instance = new SaveManager();
     }
     return SaveManager.instance;
+  }
+
+  async init(): Promise<void> {
+    if (this.initialized) return;
+    await this.platform.init();
+    await this.load();
+    this.initialized = true;
   }
 
   private getDefaultData(): PlayerData {
@@ -89,11 +100,11 @@ export class SaveManager {
     };
   }
 
-  load(): boolean {
+  async load(): Promise<boolean> {
     try {
-      const saved = localStorage.getItem(this.STORAGE_KEY);
+      const saved = await this.platform.getStorage<string>(this.STORAGE_KEY);
       if (saved) {
-        const parsed = JSON.parse(saved);
+        const parsed = typeof saved === 'string' ? JSON.parse(saved) : saved;
         this.data = { ...this.getDefaultData(), ...parsed };
         console.log('[SaveManager] 存档加载成功');
         eventBus.emit('save:loaded', this.data);
@@ -105,10 +116,10 @@ export class SaveManager {
     return false;
   }
 
-  save(): boolean {
+  async save(): Promise<boolean> {
     try {
       this.data.lastSaveTime = Date.now();
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data));
+      await this.platform.setStorage(this.STORAGE_KEY, JSON.stringify(this.data));
       this.isDirty = false;
       console.log('[SaveManager] 存档保存成功');
       eventBus.emit('save:saved', this.data);
@@ -172,7 +183,6 @@ export class SaveManager {
     }
     if (completed && !progress.completed) {
       progress.completed = true;
-      // 解锁下一关
       const nextLevelId = levelId + 1;
       this.unlockLevel(nextLevelId);
     }
@@ -256,10 +266,10 @@ export class SaveManager {
     }
   }
 
-  reset(): void {
+  async reset(): Promise<void> {
     this.data = this.getDefaultData();
     this.markDirty();
-    this.save();
+    await this.save();
     eventBus.emit('save:reset', this.data);
   }
 
@@ -267,15 +277,14 @@ export class SaveManager {
     return JSON.stringify(this.data);
   }
 
-  importSave(saveData: string): boolean {
+  async importSave(saveData: string): Promise<boolean> {
     try {
       const parsed = JSON.parse(saveData);
-      // 简单验证数据结构
       if (typeof parsed.totalScore !== 'number' || !parsed.levelProgress || typeof parsed.levelProgress !== 'object') {
         throw new Error('无效的存档数据');
       }
       this.data = { ...this.getDefaultData(), ...parsed };
-      this.save();
+      await this.save();
       console.log('[SaveManager] 存档导入成功');
       eventBus.emit('save:imported', this.data);
       return true;

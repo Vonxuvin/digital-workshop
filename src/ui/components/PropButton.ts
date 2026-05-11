@@ -26,7 +26,7 @@ export class PropButton extends PIXI.Container {
     this.onClick = options.onClick;
     
     this.background = new PIXI.Graphics();
-    this.background.fill(0x2d3436);
+    this.background.fill({ color: 0x2d3436 });
     this.background.setStrokeStyle({ width: 2, color: 0x636e72 });
     this.background.roundRect(0, 0, 60, 60, 8);
     this.addChild(this.background);
@@ -57,7 +57,7 @@ export class PropButton extends PIXI.Container {
     this.addChild(this.countLabel);
 
     this.cooldownOverlay = new PIXI.Graphics();
-    this.cooldownOverlay.fill(0x000000, 0.5);
+    this.cooldownOverlay.fill({ color: 0x000000, alpha: 0.5 });
     this.cooldownOverlay.rect(0, 0, 60, 60);
     this.cooldownOverlay.visible = false;
     this.addChild(this.cooldownOverlay);
@@ -98,14 +98,14 @@ export class PropButton extends PIXI.Container {
   private handlePointerOver(): void {
     if (!this.isEnabled) return;
     this.background.clear();
-    this.background.fill(0x3d4446);
+    this.background.fill({ color: 0x3d4446 });
     this.background.setStrokeStyle({ width: 2, color: 0x74b9ff });
     this.background.roundRect(0, 0, 60, 60, 8);
   }
 
   private handlePointerOut(): void {
     this.background.clear();
-    this.background.fill(0x2d3436);
+    this.background.fill({ color: 0x2d3436 });
     this.background.setStrokeStyle({ width: 2, color: 0x636e72 });
     this.background.roundRect(0, 0, 60, 60, 8);
     this.scale.set(1);

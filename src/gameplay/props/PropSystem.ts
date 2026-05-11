@@ -3,6 +3,8 @@ import { Prop, PropConfig, PropType } from './Prop';
 import { BombProp } from './BombProp';
 import { RainbowProp } from './RainbowProp';
 import { FreezeProp } from './FreezeProp';
+import { ShrinkProp } from './ShrinkProp';
+import { LuckyProp } from './LuckyProp';
 
 export class PropSystem {
   private static instance: PropSystem;
@@ -46,6 +48,10 @@ export class PropSystem {
         return new RainbowProp(config);
       case PropType.FREEZE:
         return new FreezeProp(config);
+      case PropType.SHRINK:
+        return new ShrinkProp(config);
+      case PropType.LUCKY:
+        return new LuckyProp(config);
       default:
         throw new Error(`Unknown prop type: ${type}`);
     }

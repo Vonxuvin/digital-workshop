@@ -1,7 +1,7 @@
 import { Container, Text, Graphics } from 'pixi.js';
 import { Screen } from '../UIManager';
 import { eventBus } from '../../utils/EventBus';
-import { SaveManager } from '../../gameplay/SaveManager';
+import { SaveManager } from '../../core/SaveManager';
 import { LevelLoader } from '../../core/LevelLoader';
 
 interface LevelInfo {
@@ -48,12 +48,12 @@ export class LevelSelectScreen extends Screen {
     }));
   }
 
-  private loadSavedProgress(): void {
-    this.saveManager.load();
+  private async loadSavedProgress(): Promise<void> {
+    await this.saveManager.load();
     for (const level of this.levels) {
       const progress = this.saveManager.getLevelProgress(level.id);
       level.stars = progress.stars;
-      level.unlocked = this.saveManager.isLevelUnlocked(level.id);
+      level.unlocked = progress.unlocked;
     }
   }
 
@@ -66,7 +66,7 @@ export class LevelSelectScreen extends Screen {
     if (nextLevel) {
       nextLevel.unlocked = true;
     }
-    this.saveManager.updateLevelProgress(levelId, stars, 0);
+    this.saveManager.updateLevelProgress(levelId, 0, 0, stars, stars > 0);
     this.saveManager.save();
     this.refreshLevelButtons();
   }
@@ -115,10 +115,10 @@ export class LevelSelectScreen extends Screen {
     const bg = new Graphics();
     if (level.unlocked) {
       bg.roundRect(-70, -50, 140, 100, 10);
-      bg.fill(0x333333);
+      bg.fill({ color: 0x333333 });
     } else {
       bg.roundRect(-70, -50, 140, 100, 10);
-      bg.fill(0x222222);
+      bg.fill({ color: 0x222222 });
     }
     button.addChild(bg);
 
@@ -175,7 +175,7 @@ export class LevelSelectScreen extends Screen {
 
     const bg = new Graphics();
     bg.roundRect(-50, -20, 100, 40, 8);
-    bg.fill(0x666666);
+    bg.fill({ color: 0x666666 });
     this.backButton.addChild(bg);
 
     const label = new Text({

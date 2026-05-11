@@ -108,7 +108,7 @@ describe('SaveManager', () => {
     expect(settings.vibrationEnabled).toBe(false);
   });
 
-  it('should export and import save data', () => {
+  it('should export and import save data', async () => {
     saveManager.addCoins(500);
     saveManager.updateLevelProgress(1, 2000, 60, 3, true);
     
@@ -116,10 +116,10 @@ describe('SaveManager', () => {
     expect(typeof exported).toBe('string');
     
     // 重置实例
-    saveManager.reset();
+    await saveManager.reset();
     
     // 导入数据
-    const importResult = saveManager.importSave(exported);
+    const importResult = await saveManager.importSave(exported);
     expect(importResult).toBe(true);
     expect(saveManager.getData().coins).toBe(500);
   });

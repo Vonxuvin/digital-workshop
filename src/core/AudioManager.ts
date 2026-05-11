@@ -83,19 +83,67 @@ export class AudioManager {
     if (this.isMuted) return;
 
     const audio = this.sounds.get(key);
-    if (!audio) {
-      return;
+    if (audio) {
+      if (options?.loop !== undefined) {
+        audio.loop = options.loop;
+      }
+
+      const volume = (options?.volume ?? this.volumes.get(key) ?? 1) * this.getEffectiveVolume(key);
+      audio.volume = Math.max(0, Math.min(1, volume));
+
+      audio.currentTime = 0;
+      audio.play().catch(() => {});
+    } else {
+      this.playProceduralSfx(key, options?.volume);
+    }
+  }
+
+  private playProceduralSfx(key: string, volumeOverride?: number): void {
+    if (!this.audioContext) return;
+    if (this.audioContext.state === 'suspended') {
+      this.audioContext.resume();
     }
 
-    if (options?.loop !== undefined) {
-      audio.loop = options.loop;
-    }
+    const freq = this.getProceduralFrequency(key);
+    if (freq <= 0) return;
 
-    const volume = (options?.volume ?? this.volumes.get(key) ?? 1) * this.getEffectiveVolume(key);
-    audio.volume = Math.max(0, Math.min(1, volume));
+    const volume = (volumeOverride ?? 0.3) * this.getEffectiveVolume(key);
+    const osc = this.audioContext.createOscillator();
+    const gain = this.audioContext.createGain();
 
-    audio.currentTime = 0;
-    audio.play().catch(() => {});
+    osc.type = key.includes('music') || key.includes('bgm') ? 'sine' : 'triangle';
+    osc.frequency.value = freq;
+    gain.gain.value = Math.max(0, Math.min(1, volume));
+    gain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.15);
+
+    osc.connect(gain);
+    gain.connect(this.audioContext.destination);
+    osc.start(this.audioContext.currentTime);
+    osc.stop(this.audioContext.currentTime + 0.15);
+  }
+
+  private getProceduralFrequency(key: string): number {
+    const freqMap: Record<string, number> = {
+      spawn: 440,
+      click: 600,
+      merge1: 523,
+      merge2: 587,
+      merge3: 659,
+      merge4: 698,
+      merge5: 784,
+      combo: 880,
+      comboGreat: 988,
+      comboSuper: 1047,
+      gameOver: 220,
+      levelComplete: 784,
+      bomb: 150,
+      rainbow: 698,
+      freeze: 440,
+      shrink: 330,
+      lucky: 880,
+      propDefault: 500,
+    };
+    return freqMap[key] || 0;
   }
 
   stop(key: string): void {

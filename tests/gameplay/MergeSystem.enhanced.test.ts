@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MergeSystem } from '../../src/gameplay/MergeSystem';
 import { PhysicsManager } from '../../src/core/PhysicsManager';
-import { Block } from '../../src/gameplay/Block';
+import { Block, getBlockConfig } from '../../src/gameplay/Block';
 import { eventBus } from '../../src/utils/EventBus';
 import Matter from 'matter-js';
 
@@ -206,16 +206,16 @@ describe('MergeSystem Enhanced', () => {
   });
 
   describe('color generation', () => {
-    it('应生成有效的颜色值', () => {
-      const color = mergeSystem['generateColor'](2);
-      expect(typeof color).toBe('number');
-      expect(color).toBeGreaterThan(0);
+    it('getBlockConfig应生成有效的颜色值', () => {
+      const config = getBlockConfig(2);
+      expect(typeof config.color).toBe('number');
+      expect(config.color).toBeGreaterThan(0);
     });
 
     it('不同值应生成不同颜色', () => {
-      const color1 = mergeSystem['generateColor'](2);
-      const color2 = mergeSystem['generateColor'](4);
-      expect(color1).not.toBe(color2);
+      const config1 = getBlockConfig(2);
+      const config2 = getBlockConfig(4);
+      expect(config1.color).not.toBe(config2.color);
     });
   });
 });
