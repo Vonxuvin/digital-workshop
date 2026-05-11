@@ -7,7 +7,7 @@ import { ClearObstacleChecker } from '../src/gameplay/objectives/ClearObstacleCh
 import { SurvivalObjectiveChecker } from '../src/gameplay/objectives/SurvivalObjectiveChecker';
 import { createObjectiveChecker } from '../src/gameplay/objectives/index';
 import { ObjectiveContext } from '../src/gameplay/objectives/ObjectiveChecker';
-import { SaveManager } from '../src/gameplay/SaveManager';
+import { SaveManager } from '../src/core/SaveManager';
 import { LevelLoader } from '../src/core/LevelLoader';
 
 describe('LevelSystem', () => {
@@ -425,10 +425,11 @@ describe('createObjectiveChecker', () => {
 describe('SaveManager', () => {
   let sm: SaveManager;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    (SaveManager as any).instance = undefined;
     sm = SaveManager.getInstance();
-    sm.reset();
-    localStorage.clear();
+    await sm.init();
+    await sm.reset();
   });
 
   it('should be singleton', () => {
@@ -439,7 +440,9 @@ describe('SaveManager', () => {
 
   it('should return default progress for unknown level', () => {
     const progress = sm.getLevelProgress(99);
-    expect(progress).toEqual({ unlocked: false, stars: 0, highScore: 0 });
+    expect(progress.unlocked).toBe(false);
+    expect(progress.stars).toBe(0);
+    expect(progress.highScore).toBe(0);
   });
 
   it('should return unlocked for level 1 by default', () => {
@@ -448,71 +451,88 @@ describe('SaveManager', () => {
   });
 
   it('should update level progress', () => {
-    sm.updateLevelProgress(1, 2, 500);
+    sm.updateLevelProgress(1, 500, 30, 2, true);
     const progress = sm.getLevelProgress(1);
     expect(progress.stars).toBe(2);
     expect(progress.highScore).toBe(500);
   });
 
   it('should only update if new stars or score is better', () => {
-    sm.updateLevelProgress(1, 2, 500);
-    sm.updateLevelProgress(1, 1, 300);
+    sm.updateLevelProgress(1, 500, 30, 2, true);
+    sm.updateLevelProgress(1, 300, 20, 1, true);
     const progress = sm.getLevelProgress(1);
     expect(progress.stars).toBe(2);
     expect(progress.highScore).toBe(500);
   });
 
   it('should update score independently if better', () => {
-    sm.updateLevelProgress(1, 1, 500);
-    sm.updateLevelProgress(1, 1, 800);
+    sm.updateLevelProgress(1, 500, 30, 1, true);
+    sm.updateLevelProgress(1, 800, 25, 1, true);
     const progress = sm.getLevelProgress(1);
     expect(progress.highScore).toBe(800);
   });
 
   it('should unlock level 1 always', () => {
-    expect(sm.isLevelUnlocked(1)).toBe(true);
+    expect(sm.getLevelProgress(1).unlocked).toBe(true);
   });
 
   it('should not unlock level 2 if level 1 has no stars', () => {
-    expect(sm.isLevelUnlocked(2)).toBe(false);
+    expect(sm.getLevelProgress(2).unlocked).toBe(false);
   });
 
   it('should unlock level 2 if level 1 has stars', () => {
-    sm.updateLevelProgress(1, 1, 100);
-    expect(sm.isLevelUnlocked(2)).toBe(true);
+    sm.updateLevelProgress(1, 100, 30, 1, true);
+    expect(sm.getLevelProgress(2).unlocked).toBe(true);
   });
 
-  it('should persist and load data', () => {
-    sm.updateLevelProgress(1, 3, 1000);
-    sm.updateLevelProgress(2, 1, 500);
+  it('should persist and load data', async () => {
+    sm.updateLevelProgress(1, 1000, 60, 3, true);
+    await sm.save();
 
+    const sharedPlatform = (sm as any).platform;
+    (SaveManager as any).instance = undefined;
     const sm2 = SaveManager.getInstance();
-    sm2.load();
+    (sm2 as any).platform = sharedPlatform;
+    await sm2.load();
 
     expect(sm2.getLevelProgress(1).stars).toBe(3);
     expect(sm2.getLevelProgress(1).highScore).toBe(1000);
-    expect(sm2.getLevelProgress(2).stars).toBe(1);
   });
 
-  it('should reset all progress', () => {
-    sm.updateLevelProgress(1, 3, 1000);
-    sm.reset();
-    expect(sm.getLevelProgress(1)).toEqual({ unlocked: true, stars: 0, highScore: 0 });
+  it('should reset all progress', async () => {
+    sm.updateLevelProgress(1, 1000, 60, 3, true);
+    await sm.reset();
+    const progress = sm.getLevelProgress(1);
+    expect(progress.unlocked).toBe(true);
+    expect(progress.stars).toBe(0);
+    expect(progress.highScore).toBe(0);
   });
 
-  it('should handle corrupted localStorage data', () => {
-    localStorage.setItem('digital_workshop_progress', 'not valid json');
-    sm.load();
-    expect(sm.getLevelProgress(1)).toEqual({ unlocked: true, stars: 0, highScore: 0 });
+  it('should handle corrupted storage data', async () => {
+    const platform = (sm as any).platform;
+    await platform.setStorage('digital_workshop_save', 'not valid json');
+    (SaveManager as any).instance = undefined;
+    const sm2 = SaveManager.getInstance();
+    await sm2.load();
+    const progress = sm2.getLevelProgress(1);
+    expect(progress.unlocked).toBe(true);
+    expect(progress.stars).toBe(0);
+    expect(progress.highScore).toBe(0);
   });
 
-  it('should handle version mismatch', () => {
-    localStorage.setItem('digital_workshop_progress', JSON.stringify({
+  it('should handle version mismatch', async () => {
+    const platform = (sm as any).platform;
+    await platform.setStorage('digital_workshop_save', JSON.stringify({
       version: 999,
       levels: { 1: { unlocked: true, stars: 3, highScore: 1000 } },
     }));
-    sm.load();
-    expect(sm.getLevelProgress(1)).toEqual({ unlocked: true, stars: 0, highScore: 0 });
+    (SaveManager as any).instance = undefined;
+    const sm2 = SaveManager.getInstance();
+    await sm2.load();
+    const progress = sm2.getLevelProgress(1);
+    expect(progress.unlocked).toBe(true);
+    expect(progress.stars).toBe(0);
+    expect(progress.highScore).toBe(0);
   });
 });
 

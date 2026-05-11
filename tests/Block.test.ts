@@ -31,9 +31,24 @@ describe('Block', () => {
     expect(config.radius).toBe(BLOCK_CONFIGS[4].radius);
   });
 
-  it('should fallback to config 1 for unknown value', () => {
+  it('should generate dynamic config for unknown power-of-2 value', () => {
     const body = physics.createCircle(100, 200, 20);
-    const block = new Block(body, 999);
+    const block = new Block(body, 4096);
+    const config = block.getConfig();
+    expect(config.value).toBe(4096);
+    expect(config.radius).toBeGreaterThan(0);
+  });
+
+  it('should fallback to config 1 for invalid value 0', () => {
+    const body = physics.createCircle(100, 200, 20);
+    const block = new Block(body, 0);
+    const config = block.getConfig();
+    expect(config.value).toBe(1);
+  });
+
+  it('should fallback to config 1 for negative value', () => {
+    const body = physics.createCircle(100, 200, 20);
+    const block = new Block(body, -5);
     const config = block.getConfig();
     expect(config.value).toBe(1);
   });
