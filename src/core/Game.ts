@@ -1,6 +1,5 @@
 
 import { Application, Graphics, Text } from 'pixi.js';
-import Matter from 'matter-js';
 import { PhysicsManager } from './PhysicsManager';
 import { InputManager } from './InputManager';
 import { ScoreSystem } from '../gameplay/ScoreSystem';
@@ -9,9 +8,9 @@ import { LevelSystem, LevelConfig } from '../gameplay/LevelSystem';
 import { LevelLoader } from './LevelLoader';
 import { AudioManager } from './AudioManager';
 import { WarningLine } from '../ui/components/WarningLine';
-import { MergeEffect } from '../ui/effects/MergeEffect';
-import { Block, BLOCK_CONFIGS } from '../gameplay/Block';
+import { Block } from '../gameplay/Block';
 import { BlockPreview } from '../gameplay/BlockPreview';
+import { BlockSpawner } from '../gameplay/BlockSpawner';
 import { MergeSystem } from '../gameplay/MergeSystem';
 import { UIManager } from '../ui/UIManager';
 import { MainMenuScreen } from '../ui/screens/MainMenuScreen';
@@ -19,6 +18,7 @@ import { ResultScreen } from '../ui/screens/ResultScreen';
 import { LevelSelectScreen } from '../ui/screens/LevelSelectScreen';
 import { PauseScreen } from '../ui/screens/PauseScreen';
 import { GameHUD } from '../ui/hud/GameHUD';
+import { GameEffectManager } from './GameEffectManager';
 import { createPlatformAdapter } from '../platform/PlatformFactory';
 import { eventBus } from '../utils/EventBus';
 import { PerformanceMonitor } from '../utils/PerformanceMonitor';
@@ -27,10 +27,9 @@ import { PropType } from '../gameplay/props/Prop';
 import { FreezeProp } from '../gameplay/props/FreezeProp';
 import { BombProp } from '../gameplay/props/BombProp';
 import { RainbowProp } from '../gameplay/props/RainbowProp';
-import { ExplosionEffect } from '../ui/effects/ExplosionEffect';
-import { FreezeEffect } from '../ui/effects/FreezeEffect';
 import { ModifierManager } from '../gameplay/modifiers/ModifierManager';
 import { SaveManager } from './SaveManager';
+import Matter from 'matter-js';
 
 interface BlockMergedData {
   newValue: number;
@@ -47,12 +46,8 @@ export class Game {
   private input: InputManager;
   private preview: BlockPreview;
   private mergeSystem: MergeSystem;
-  private blocks: Block[] = [];
-  private obstacleBlocks: Block[] = [];
-  private currentValue: number = 1;
-  private canDrop = true;
-  private dropCooldown = 500;
-  private autoSpawnTimer: ReturnType<typeof setInterval> | null = null;
+  private blockSpawner: BlockSpawner;
+  private effectManager: GameEffectManager;
   private groundY: number;
   private scoreSystem: ScoreSystem;
   private stateMachine: GameStateMachine;
@@ -60,6 +55,7 @@ export class Game {
   private currentLevelConfig: LevelConfig | null = null;
   private warningLine: WarningLine | null = null;
   private containerWalls: Graphics | null = null;
+  private physicsWalls: Matter.Body[] = [];
   private uiManager: UIManager;
   private gameHUD: GameHUD;
   private resultScreen: ResultScreen;
@@ -67,7 +63,6 @@ export class Game {
   private pauseScreen: PauseScreen;
   private audioManager: AudioManager;
   private propSystem: PropSystem;
-  private effects: any[] = [];
   private resizeTimer: ReturnType<typeof setTimeout> | null = null;
   private performanceMonitor: PerformanceMonitor;
   private physicsAccumulator = 0;
@@ -92,8 +87,6 @@ export class Game {
   private onNextRainbowBlockBound: (data: { isRainbow: boolean; remaining: number }) => void;
   private onRainbowConsumedBound: (data: { remainingBlocks: number }) => void;
   private bombTargetMode = false;
-  private freezeEffect: FreezeEffect | null = null;
-  private rainbowRemaining = 0;
   private modifierManager: ModifierManager;
   private saveManager: SaveManager;
   private gameStartTime: number = 0;
@@ -108,6 +101,8 @@ export class Game {
     this.preview = new BlockPreview();
     this.input = new InputManager(canvas);
     this.mergeSystem = new MergeSystem(this.physics);
+    this.blockSpawner = new BlockSpawner(this.physics, this.mergeSystem, PropSystem.getInstance(), this.app.stage);
+    this.effectManager = new GameEffectManager(this.app.stage);
     this.scoreSystem = new ScoreSystem();
     this.stateMachine = new GameStateMachine('boot');
     this.uiManager = new UIManager(this.app);
@@ -117,6 +112,7 @@ export class Game {
     this.audioManager = AudioManager.getInstance();
     this.propSystem = PropSystem.getInstance();
     this.gameHUD = new GameHUD(this.propSystem);
+    this.gameHUD.layout(this.app.screen.width, this.app.screen.height);
     this.performanceMonitor = new PerformanceMonitor();
     this.groundY = window.innerHeight - 50;
 
@@ -158,6 +154,8 @@ export class Game {
     const platform = createPlatformAdapter();
     await platform.init();
     const systemInfo = await platform.getSystemInfo();
+
+    await this.saveManager.init();
 
     const dpr = systemInfo.pixelRatio || window.devicePixelRatio || 1;
 
@@ -211,14 +209,31 @@ export class Game {
     const h = this.app.screen.height;
     this.groundY = h - 50;
 
-    this.physics.createRectangle(w / 2, this.groundY + 25, w, 50);
-    this.physics.createRectangle(-22, h / 2, 50, h);
-    this.physics.createRectangle(w + 22, h / 2, 50, h);
+    this.rebuildPhysicsWalls();
 
     this.warningLine = new WarningLine(h, w);
-    this.warningLine.y = h * 0.2;
+    this.warningLine.y = this.groundY * 0.2;
     this.warningLine.visible = false;
     this.app.stage.addChild(this.warningLine);
+  }
+
+  private rebuildPhysicsWalls(): void {
+    for (const wall of this.physicsWalls) {
+      this.physics.removeBody(wall);
+    }
+    this.physicsWalls = [];
+
+    const w = this.app.screen.width;
+    const h = this.app.screen.height;
+
+    const ground = this.physics.createRectangle(w / 2, this.groundY + 25, w, 50);
+    ground.label = 'ground';
+    const leftWall = this.physics.createRectangle(-22, h / 2, 50, h);
+    leftWall.label = 'wall_left';
+    const rightWall = this.physics.createRectangle(w + 22, h / 2, 50, h);
+    rightWall.label = 'wall_right';
+
+    this.physicsWalls = [ground, leftWall, rightWall];
   }
 
   private handleResize(): void {
@@ -227,7 +242,10 @@ export class Game {
       this.app.renderer.resize(window.innerWidth, window.innerHeight);
       this.groundY = window.innerHeight - 50;
       if (this.warningLine) {
-        this.warningLine.y = this.app.screen.height * 0.2;
+        this.warningLine.y = this.groundY * 0.2;
+      }
+      if (this.gameHUD) {
+        this.gameHUD.layout(this.app.screen.width, this.app.screen.height);
       }
     }, 300);
   }
@@ -266,9 +284,9 @@ export class Game {
     const dropY = 80;
 
     this.input.onDown((state) => {
-      if (!this.canDrop || this.stateMachine.getCurrentState() !== 'playing') return;
+      if (!this.blockSpawner.getCanDrop() || this.stateMachine.getCurrentState() !== 'playing') return;
       if (this.bombTargetMode) return;
-      this.preview.show(this.currentValue, state.position.x, dropY);
+      this.preview.show(this.blockSpawner.getCurrentValue(), state.position.x, dropY);
     });
 
     this.input.onMove((state) => {
@@ -283,10 +301,10 @@ export class Game {
         this.gameHUD.usePropAtPosition(pos.x, pos.y);
         return;
       }
-      if (this.preview.visible && this.canDrop && this.stateMachine.getCurrentState() === 'playing') {
-        this.dropBlock(this.preview.getTargetX(), dropY, this.currentValue);
+      if (this.preview.visible && this.blockSpawner.getCanDrop() && this.stateMachine.getCurrentState() === 'playing') {
+        this.blockSpawner.dropBlock(this.preview.getTargetX(), dropY, this.blockSpawner.getCurrentValue());
         this.preview.hide();
-        this.startCooldown();
+        this.blockSpawner.startCooldown();
       }
     });
   }
@@ -316,24 +334,13 @@ export class Game {
     this.audioManager.play('merge');
 
     for (const destroyed of data.destroyedBlocks) {
-      const idx = this.blocks.indexOf(destroyed);
-      if (idx !== -1) {
-        this.blocks.splice(idx, 1);
-      }
+      this.blockSpawner.removeBlock(destroyed);
     }
 
     this.app.stage.addChild(data.newBlock);
-    this.blocks.push(data.newBlock);
+    this.blockSpawner.addBlock(data.newBlock);
 
-    const config = BLOCK_CONFIGS[data.newValue] || BLOCK_CONFIGS[1];
-    const effect = new MergeEffect({
-      x: data.position.x,
-      y: data.position.y,
-      oldNumber: data.newValue / 2,
-      newNumber: data.newValue
-    });
-    this.app.stage.addChild(effect);
-    this.effects.push(effect);
+    this.effectManager.addMergeEffect(data.position.x, data.position.y, data.newValue / 2, data.newValue);
   }
 
   private handleLevelCompleted(data: { score: number; levelId: number }): void {
@@ -449,6 +456,7 @@ export class Game {
     }
     this.levelSystem = new LevelSystem(config);
     this.currentLevelConfig = config;
+    this.blockSpawner.setLevelConfig(config);
     this.gameHUD.updateLevel(config.id, config.name);
     this.uiManager.hideCurrentScreen();
     this.resetGame();
@@ -465,7 +473,7 @@ export class Game {
     this.physics.start();
     this.levelSystem?.start();
     this.drawContainerWalls();
-    this.spawnObstacles();
+    this.blockSpawner.spawnObstacles(config.obstacles, this.app.screen.width, this.groundY);
     this.startAutoSpawn();
     this.modifierManager.startAll();
     if (this.levelSystem) {
@@ -481,7 +489,7 @@ export class Game {
       this.physics.stop();
       this.levelSystem?.pause();
       this.modifierManager.pauseAll();
-      this.stopAutoSpawn();
+      this.blockSpawner.stopAutoSpawn();
       this.preview.hide();
       this.uiManager.showScreen('pause');
     }
@@ -506,7 +514,7 @@ export class Game {
     this.physics.start();
     this.levelSystem?.start();
     this.drawContainerWalls();
-    this.spawnObstacles();
+    this.blockSpawner.spawnObstacles(this.currentLevelConfig!.obstacles, this.app.screen.width, this.groundY);
     this.startAutoSpawn();
     // 重新加载和启动变形器
     if (this.currentLevelConfig?.modifiers) {
@@ -562,22 +570,15 @@ export class Game {
       return;
     }
 
-    const affectedBlocks = bombProp.getAffectedBlocks(this.blocks, data.x, data.y);
+    const affectedBlocks = bombProp.getAffectedBlocks(this.blockSpawner.getBlocks(), data.x, data.y);
     for (const block of affectedBlocks) {
-      const idx = this.blocks.indexOf(block);
-      if (idx !== -1) {
-        this.blocks.splice(idx, 1);
-      }
+      this.blockSpawner.removeBlock(block);
       this.mergeSystem.unregisterBlock(block);
       this.physics.removeBody(block.body);
       block.destroy();
     }
 
-    const effect = new ExplosionEffect(data.x, data.y, data.radius);
-    console.log('[Game] 创建爆炸效果', { x: data.x, y: data.y, radius: data.radius });
-    this.app.stage.addChild(effect);
-    console.log('[Game] 爆炸效果已添加到舞台，子元素数量:', this.app.stage.children.length);
-    this.effects.push(effect);
+    this.effectManager.addExplosionEffect(data.x, data.y, data.radius);
 
     this.audioManager.play('explosion');
 
@@ -587,19 +588,12 @@ export class Game {
   }
 
   private handleFreezeActivated(data: { duration: number; endTime: number }): void {
-    const w = this.app.screen.width;
-    const h = this.app.screen.height;
-    this.freezeEffect = new FreezeEffect(w, h);
-    this.app.stage.addChildAt(this.freezeEffect, 0);
-    this.freezeEffect.playEntrance();
+    this.effectManager.addFreezeEffect(this.app.screen.width, this.app.screen.height);
     this.audioManager.play('freeze');
   }
 
   private handleFreezeDeactivated(): void {
-    if (this.freezeEffect) {
-      this.freezeEffect.playExit();
-      this.freezeEffect = null;
-    }
+    this.effectManager.removeFreezeEffect();
   }
 
   private handlePropTargetMode(data: { type?: PropType; enabled: boolean }): void {
@@ -611,67 +605,30 @@ export class Game {
 
   private handleNextRainbowBlock(data: { isRainbow: boolean; remaining: number }): void {
     if (data.isRainbow) {
-      this.rainbowRemaining = data.remaining;
+      this.blockSpawner.setRainbowRemaining(data.remaining);
     }
   }
 
   private handleRainbowConsumed(data: { remainingBlocks: number }): void {
-    this.rainbowRemaining = data.remainingBlocks;
+    this.blockSpawner.setRainbowRemaining(data.remainingBlocks);
   }
 
   private spawnObstacles(): void {
-    const obstacles = this.currentLevelConfig?.obstacles;
-    if (!obstacles) return;
-
-    const w = this.app.screen.width;
-    const h = this.app.screen.height;
-    const groundY = h - 50;
-    const xCenter = w / 2;
-
-    const positions = [
-      { x: xCenter - 120, y: groundY },
-      { x: xCenter - 60, y: groundY },
-      { x: xCenter, y: groundY },
-      { x: xCenter + 60, y: groundY },
-      { x: xCenter + 120, y: groundY },
-    ];
-
-    obstacles.forEach((obs, i) => {
-      const config = BLOCK_CONFIGS[obs.value] || BLOCK_CONFIGS[1];
-      const pos = positions[i % positions.length];
-      const adjustedY = pos.y - config.radius;
-
-      const body = this.physics.createCircle(pos.x, adjustedY, config.radius, {
-        isStatic: true,
-      });
-      body.label = `obstacle_${pos.x}_${adjustedY}`;
-      const block = new Block(body, obs.value);
-      this.app.stage.addChild(block);
-      this.obstacleBlocks.push(block);
-      this.mergeSystem.registerObstacle(block);
-    });
-    console.log(`[Game] 生成 ${obstacles.length} 个障碍物`);
+    this.blockSpawner.spawnObstacles(
+      this.currentLevelConfig?.obstacles ?? undefined,
+      this.app.screen.width,
+      this.groundY
+    );
   }
 
   private startAutoSpawn(): void {
-    this.stopAutoSpawn();
     const interval = this.currentLevelConfig?.spawn.spawnInterval;
     if (!interval || interval <= 0) return;
-
-    this.autoSpawnTimer = window.setInterval(() => {
-      if (this.stateMachine.getCurrentState() !== 'playing') return;
-      const w = this.app.screen.width;
-      const x = 50 + Math.random() * (w - 100);
-      const value = this.getRandomValue();
-      this.dropBlock(x, 80, value);
-    }, interval * 1000);
+    this.blockSpawner.startAutoSpawn(interval * 1000, 80);
   }
 
   private stopAutoSpawn(): void {
-    if (this.autoSpawnTimer) {
-      clearInterval(this.autoSpawnTimer);
-      this.autoSpawnTimer = null;
-    }
+    this.blockSpawner.stopAutoSpawn();
   }
 
   private resetGame(): void {
@@ -681,43 +638,28 @@ export class Game {
     this.warningLine?.reset();
     this.levelSystem?.reset();
     this.bombTargetMode = false;
-    this.rainbowRemaining = 0;
-    if (this.freezeEffect) {
-      this.freezeEffect.destroy();
-      this.freezeEffect = null;
-    }
+    this.blockSpawner.reset();
+    this.effectManager.removeFreezeEffect();
     this.modifierManager.stopAll();
     this.modifierManager.clearAll();
+    this.rebuildPhysicsWalls();
+    this.drawContainerWalls();
   }
 
   private clearEverything(): void {
-    this.clearBlocks();
-    this.clearObstacles();
-    this.stopAutoSpawn();
+    this.blockSpawner.clearBlocks();
+    this.blockSpawner.clearObstacles();
+    this.blockSpawner.stopAutoSpawn();
     this.preview.hide();
-    this.effects.forEach(effect => effect.destroy());
-    this.effects = [];
+    this.effectManager.clearAll();
   }
 
   private clearBlocks(): void {
-    this.blocks.forEach(block => {
-      if (!block.isDestroyed) {
-        this.mergeSystem.unregisterBlock(block);
-        this.physics.removeBody(block.body);
-        block.destroy();
-      }
-    });
-    this.blocks = [];
+    this.blockSpawner.clearBlocks();
   }
 
   private clearObstacles(): void {
-    this.obstacleBlocks.forEach(block => {
-      if (!block.isDestroyed) {
-        this.physics.removeBody(block.body);
-        block.destroy();
-      }
-    });
-    this.obstacleBlocks = [];
+    this.blockSpawner.clearObstacles();
   }
 
   private drawContainerWalls(): void {
@@ -727,11 +669,11 @@ export class Game {
 
     this.containerWalls = new Graphics();
     this.containerWalls.rect(0, this.groundY, w, 50);
-    this.containerWalls.fill(0x2d2d44);
+    this.containerWalls.fill({ color: 0x2d2d44 });
     this.containerWalls.rect(0, 0, 6, this.groundY);
-    this.containerWalls.fill(0x4a4a6a);
+    this.containerWalls.fill({ color: 0x4a4a6a });
     this.containerWalls.rect(w - 6, 0, 6, this.groundY);
-    this.containerWalls.fill(0x4a4a6a);
+    this.containerWalls.fill({ color: 0x4a4a6a });
     this.containerWalls.moveTo(0, 0);
     this.containerWalls.lineTo(0, this.groundY);
     this.containerWalls.stroke({ width: 2, color: 0x6a6a8a });
@@ -759,41 +701,15 @@ export class Game {
   }
 
   private dropBlock(x: number, y: number, value: number): void {
-    const config = BLOCK_CONFIGS[value] || BLOCK_CONFIGS[1];
-    const body = this.physics.createCircle(x, y, config.radius, {
-      density: config.mass * 0.001,
-    });
-    const isRainbowBlock = this.rainbowRemaining > 0;
-    const block = new Block(body, value, isRainbowBlock);
-    if (isRainbowBlock) {
-      const rainbowProp = this.propSystem.getProp(PropType.RAINBOW) as RainbowProp;
-      rainbowProp.consumeRainbowBlock();
-    }
-    this.app.stage.addChild(block);
-    this.blocks.push(block);
-    this.mergeSystem.registerBlock(block);
-
-    this.currentValue = this.getRandomValue();
-    console.log(`[Game] 投放方块 ${value}${isRainbowBlock ? '(彩虹)' : ''}, 下一个: ${this.currentValue}`);
+    this.blockSpawner.dropBlock(x, y, value);
   }
 
   private getRandomValue(): number {
-    const availableNumbers = this.currentLevelConfig?.spawn.availableNumbers || [1, 2, 4];
-    const weights: number[] = [];
-    for (const num of availableNumbers) {
-      const w = Math.max(1, Math.floor(8 / num));
-      for (let i = 0; i < w; i++) {
-        weights.push(num);
-      }
-    }
-    return weights[Math.floor(Math.random() * weights.length)];
+    return this.blockSpawner.getRandomValue();
   }
 
   private startCooldown(): void {
-    this.canDrop = false;
-    setTimeout(() => {
-      this.canDrop = true;
-    }, this.dropCooldown);
+    this.blockSpawner.startCooldown();
   }
 
   private update(): void {
@@ -808,23 +724,9 @@ export class Game {
     this.physicsAccumulator += this.app.ticker.deltaMS;
     this.physicsAccumulator = this.physics.fixedUpdate(this.physicsAccumulator);
 
-    this.blocks = this.blocks.filter(block => {
-      if (block.isDestroyed) return false;
-      if (block.y > this.app.screen.height + 100) {
-        this.mergeSystem.unregisterBlock(block);
-        this.physics.removeBody(block.body);
-        block.destroy();
-        return false;
-      }
-      return true;
-    });
+    this.blockSpawner.cleanupOutOfBounds(this.app.screen.height);
 
-    this.blocks.forEach(block => {
-      block.syncFromBody();
-      if (block.body.isSleeping) {
-        Matter.Sleeping.set(block.body, false);
-      }
-    });
+    this.blockSpawner.syncAllBlocks();
 
     this.gameHUD.update(this.app.ticker.deltaMS / 16.67);
     if (this.levelSystem) {
@@ -833,14 +735,16 @@ export class Game {
 
     if (this.warningLine) {
       this.warningLine.update(
-        this.blocks.map(b => ({ y: b.y, radius: b.getConfig().radius })),
-        this.app.ticker.deltaMS / 16.67
+        this.blockSpawner.getBlocks().map(b => ({
+          y: b.y,
+          radius: b.getConfig().radius,
+          speed: Math.sqrt(b.body.velocity.x ** 2 + b.body.velocity.y ** 2),
+        })),
+        this.app.ticker.deltaMS
       );
     }
 
-    this.effects = this.effects.filter(effect => {
-      return true;
-    });
+    this.effectManager.cleanup();
   }
 
   getApp(): Application {
