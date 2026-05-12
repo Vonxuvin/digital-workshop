@@ -60,6 +60,7 @@ export class WarningLine extends Container {
       this.graphics.alpha = alpha;
 
       if (this.warningDuration >= this.WARNING_THRESHOLD) {
+        this.disabled = true;
         eventBus.emit('game:over');
         this.isWarning = false;
       }

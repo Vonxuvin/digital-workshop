@@ -5,6 +5,7 @@ export class BlockTextureCache {
   private static instance: BlockTextureCache | null = null;
   private textures: Map<string, Texture> = new Map();
   private app: Application | null = null;
+  private pendingKeys: Set<string> = new Set();
 
   constructor() {}
 
@@ -28,6 +29,9 @@ export class BlockTextureCache {
 
   setApp(app: Application): void {
     this.app = app;
+    if (this.pendingKeys.size > 0 && app.renderer) {
+      this.flushPending();
+    }
   }
 
   getTexture(value: number, isRainbow: boolean = false): Texture {
@@ -36,9 +40,78 @@ export class BlockTextureCache {
       return this.textures.get(key)!;
     }
 
+    const renderer = this.app?.renderer;
+    if (!renderer) {
+      this.pendingKeys.add(key);
+      const placeholder = this.createPlaceholder(value);
+      this.textures.set(key, placeholder);
+      return placeholder;
+    }
+
     const texture = this.createTexture(value, isRainbow);
     this.textures.set(key, texture);
     return texture;
+  }
+
+  private createPlaceholder(value: number): Texture {
+    const config = getBlockConfig(value);
+    const padding = 4;
+    const size = (config.radius + padding) * 2;
+
+    const graphics = new Graphics();
+    graphics.circle(size / 2, size / 2, config.radius);
+    graphics.fill({ color: config.color, alpha: 0.5 });
+    graphics.circle(size / 2, size / 2, config.radius);
+    graphics.stroke({ width: 2, color: 0xffffff, alpha: 0.3 });
+
+    const container = new Container();
+    container.addChild(graphics);
+
+    const valueText = new Text({
+      text: String(value),
+      style: {
+        fontFamily: 'Arial',
+        fontSize: config.radius * 0.8,
+        fill: 0xffffff,
+        fontWeight: 'bold',
+      },
+    });
+    valueText.anchor.set(0.5);
+    valueText.x = size / 2;
+    valueText.y = size / 2;
+    container.addChild(valueText);
+
+    const renderer = this.app?.renderer;
+    if (!renderer) {
+      container.destroy({ children: true });
+      return Texture.EMPTY;
+    }
+
+    const texture = renderer.generateTexture({
+      target: container,
+      resolution: renderer.resolution,
+    });
+    container.destroy({ children: true });
+    return texture;
+  }
+
+  private flushPending(): void {
+    const keys = Array.from(this.pendingKeys);
+    this.pendingKeys.clear();
+
+    for (const key of keys) {
+      const isRainbow = key.startsWith('rainbow_');
+      const value = parseInt(key.replace('rainbow_', '').replace('block_', ''), 10);
+      if (isNaN(value)) continue;
+
+      const oldTexture = this.textures.get(key);
+      if (oldTexture && oldTexture !== Texture.EMPTY) {
+        oldTexture.destroy(true);
+      }
+
+      const texture = this.createTexture(value, isRainbow);
+      this.textures.set(key, texture);
+    }
   }
 
   private createTexture(value: number, isRainbow: boolean): Texture {
@@ -113,9 +186,12 @@ export class BlockTextureCache {
 
   destroy(): void {
     for (const texture of this.textures.values()) {
-      texture.destroy(true);
+      if (texture !== Texture.EMPTY) {
+        texture.destroy(true);
+      }
     }
     this.textures.clear();
+    this.pendingKeys.clear();
     this.app = null;
   }
 }

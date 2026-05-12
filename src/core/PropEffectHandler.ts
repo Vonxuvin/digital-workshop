@@ -26,7 +26,7 @@ export class PropEffectHandler {
   private bombTargetMode = false;
   private shrinkActive = false;
   private shrinkFactor = 1;
-  private originalBodyVertices: Map<string, Matter.Vector[]> = new Map();
+  private originalBodyData: Map<string, { position: Matter.Vector; scale: number }> = new Map();
 
   constructor(
     blockSpawner: BlockSpawner,
@@ -95,7 +95,10 @@ export class PropEffectHandler {
     this.shrinkFactor = data.factor;
     const blocks = this.blockSpawner.getBlocks();
     for (const block of blocks) {
-      this.originalBodyVertices.set(block.body.label, block.body.vertices.map(v => ({ x: v.x, y: v.y })));
+      this.originalBodyData.set(block.body.label, {
+        position: { x: block.body.position.x, y: block.body.position.y },
+        scale: data.factor,
+      });
       block.scale.set(data.factor);
       Matter.Body.scale(block.body, data.factor, data.factor);
     }
@@ -106,19 +109,15 @@ export class PropEffectHandler {
     this.shrinkActive = false;
     const blocks = this.blockSpawner.getBlocks();
     for (const block of blocks) {
-      const original = this.originalBodyVertices.get(block.body.label);
+      const original = this.originalBodyData.get(block.body.label);
       if (original) {
-        const centre = {
-          x: (original[0].x + original[2].x) / 2,
-          y: (original[0].y + original[2].y) / 2,
-        };
-        Matter.Body.setVertices(block.body, original);
-        Matter.Body.setPosition(block.body, centre);
-        Matter.Body.setAngle(block.body, block.body.angle);
+        const inverseScale = 1 / original.scale;
+        Matter.Body.scale(block.body, inverseScale, inverseScale);
+        Matter.Body.setPosition(block.body, original.position);
       }
       block.scale.set(1);
     }
-    this.originalBodyVertices.clear();
+    this.originalBodyData.clear();
     this.shrinkFactor = 1;
   }
 
@@ -185,7 +184,7 @@ export class PropEffectHandler {
     this.bombTargetMode = false;
     this.shrinkActive = false;
     this.shrinkFactor = 1;
-    this.originalBodyVertices.clear();
+    this.originalBodyData.clear();
     this.effectManager.removeFreezeEffect();
   }
 

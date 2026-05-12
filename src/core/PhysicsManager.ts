@@ -130,19 +130,32 @@ export class PhysicsManager {
   }
 
   private collisionCallbacks: Array<(pair: Matter.Pair) => void> = [];
+  private collisionWrappers: Array<(event: any) => void> = [];
 
   onCollisionStart(callback: (pair: Matter.Pair) => void): void {
     this.collisionCallbacks.push(callback);
-    Matter.Events.on(this.engine, 'collisionStart', (event: any) => {
+    const wrapper = (event: any) => {
       event.pairs.forEach(callback);
-    });
+    };
+    this.collisionWrappers.push(wrapper);
+    Matter.Events.on(this.engine, 'collisionStart', wrapper);
+  }
+
+  offCollisionStart(callback: (pair: Matter.Pair) => void): void {
+    const index = this.collisionCallbacks.indexOf(callback);
+    if (index !== -1) {
+      this.collisionCallbacks.splice(index, 1);
+      const wrapper = this.collisionWrappers.splice(index, 1)[0];
+      Matter.Events.off(this.engine, 'collisionStart', wrapper);
+    }
   }
 
   destroy(): void {
-    for (const cb of this.collisionCallbacks) {
-      Matter.Events.off(this.engine, 'collisionStart', cb as any);
+    for (const wrapper of this.collisionWrappers) {
+      Matter.Events.off(this.engine, 'collisionStart', wrapper);
     }
     this.collisionCallbacks = [];
+    this.collisionWrappers = [];
     Matter.Engine.clear(this.engine);
     this.bodies.clear();
     this.running = false;

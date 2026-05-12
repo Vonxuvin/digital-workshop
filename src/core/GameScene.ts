@@ -344,7 +344,7 @@ export class GameScene {
     this.levelSystem?.update(deltaMS);
 
     this.blockSpawner.cleanupOutOfBounds(this.app.screen.height);
-    this.blockSpawner.syncAllBlocks();
+    this.blockSpawner.syncAllBlocks(true);
 
     this.gameHUD.update(deltaMS / 16.67);
     if (this.levelSystem) {

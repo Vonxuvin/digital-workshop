@@ -96,6 +96,8 @@ export class SceneManager {
     if (!this.stateMachine.transition('gameover')) return;
     this.gameScene.stopPhysics();
     this.gameScene.clearEverything();
+    this.gameScene.getModifierManager().pauseAll();
+    this.gameScene.getPropEffectHandler().pause();
     this.audioManager.play('gameover');
     const levelId = this.gameScene.getLevelSystem()?.getConfig().id || 1;
     const playTime = Math.floor((Date.now() - this.gameScene.getGameStartTime()) / 1000);

@@ -207,9 +207,9 @@ export class BlockSpawner {
     });
   }
 
-  syncAllBlocks(): void {
+  syncAllBlocks(force: boolean = false): void {
     this.blocks.forEach(block => {
-      block.syncFromBody();
+      block.syncFromBody(force);
     });
   }
 

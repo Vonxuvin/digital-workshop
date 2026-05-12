@@ -2,7 +2,7 @@ import Matter from 'matter-js';
 import { Block, getBlockConfig } from './Block';
 import { PhysicsManager } from '../core/PhysicsManager';
 import { eventBus } from '../utils/EventBus';
-import { Ticker } from 'pixi.js';
+import { AnimationManager } from '../utils/AnimationManager';
 
 export class MergeSystem {
   private physics: PhysicsManager;
@@ -12,6 +12,7 @@ export class MergeSystem {
   private maxChainDepth = 10;
   private chainDepthMap: Map<string, number> = new Map();
   private pendingChainChecks: string[] = [];
+  private collisionCallback: ((pair: Matter.Pair) => void) | null = null;
 
   constructor(physics: PhysicsManager) {
     this.physics = physics;
@@ -31,9 +32,10 @@ export class MergeSystem {
   }
 
   private setupCollisionListener(): void {
-    this.physics.onCollisionStart((pair) => {
+    this.collisionCallback = (pair) => {
       this.handleCollision(pair.bodyA, pair.bodyB);
-    });
+    };
+    this.physics.onCollisionStart(this.collisionCallback);
   }
 
   private handleCollision(bodyA: Matter.Body, bodyB: Matter.Body): void {
@@ -153,10 +155,15 @@ export class MergeSystem {
     this.scheduleChainCheck(newBody.label);
   }
 
+  private chainCheckAnimId: string | null = null;
+
   private scheduleChainCheck(label: string): void {
     this.pendingChainChecks.push(label);
-    if (this.pendingChainChecks.length === 1) {
-      Ticker.shared.addOnce(this.processChainChecks, this);
+    if (this.pendingChainChecks.length === 1 && !this.chainCheckAnimId) {
+      this.chainCheckAnimId = AnimationManager.getInstance().register((deltaMS) => {
+        this.chainCheckAnimId = null;
+        this.processChainChecks();
+      }, `merge_chain_${Date.now()}`);
     }
   }
 
@@ -197,6 +204,14 @@ export class MergeSystem {
   }
 
   destroy(): void {
+    if (this.collisionCallback) {
+      this.physics.offCollisionStart(this.collisionCallback);
+      this.collisionCallback = null;
+    }
+    if (this.chainCheckAnimId) {
+      AnimationManager.getInstance().unregister(this.chainCheckAnimId);
+      this.chainCheckAnimId = null;
+    }
     this.blocks.clear();
     this.obstacles.clear();
     this.mergingBodies.clear();
