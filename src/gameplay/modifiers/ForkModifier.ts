@@ -128,8 +128,7 @@ export class ForkModifier extends ContainerModifier {
     }
   }
 
-  protected onTick(): void {
-    // 分叉通道为静态结构，无需每帧更新
+  protected onTick(_deltaMS: number): void {
   }
 
   protected onDeactivate(): void {

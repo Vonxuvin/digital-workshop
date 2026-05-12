@@ -120,8 +120,8 @@ export class RotateModifier extends ContainerModifier {
     }
   }
 
-  protected onTick(): void {
-    const dt = 0.016;
+  protected onTick(deltaMS: number): void {
+    const dt = deltaMS / 1000;
     const angleChange = this.rotationSpeed * dt * this.direction;
     this.currentAngle += angleChange;
 

@@ -3,6 +3,7 @@ import * as PIXI from 'pixi.js';
 import { Graphics, Container } from 'pixi.js';
 import { ContainerModifier, ModifierConfig } from './ContainerModifier';
 import { PhysicsManager } from '../../core/PhysicsManager';
+import { AnimationManager } from '../../utils/AnimationManager';
 
 export interface PaddleConfig extends ModifierConfig {
   type: 'paddle';
@@ -37,7 +38,7 @@ export class PaddleModifier extends ContainerModifier {
   private slideDirection: 1 | -1 = 1;
   private initialDirection: 1 | -1;
   private phaseElapsed: number = 0;
-  private cycleTickerCallback: ((ticker: any) => void) | null = null;
+  private cycleAnimationId: string | null = null;
   private retractTimeout: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
@@ -77,10 +78,10 @@ export class PaddleModifier extends ContainerModifier {
     this.createPaddle();
     console.log(`[PaddleModifier] 激活挡板 mode=${this.mode} side=${this.side} xPosition=${this.xPosition} yPosition=${this.yPosition}`);
 
-    this.cycleTickerCallback = (ticker: any) => {
-      this.updateCycle(ticker.deltaMS);
-    };
-    PIXI.Ticker.shared.add(this.cycleTickerCallback);
+    this.cycleAnimationId = AnimationManager.getInstance().register(
+      (deltaMS) => this.updateCycle(deltaMS),
+      `paddle_cycle_${Date.now()}`
+    );
   }
 
   private createPaddle(): void {
@@ -113,7 +114,7 @@ export class PaddleModifier extends ContainerModifier {
     }
   }
 
-  private updateCycle(deltaMS: number = 16): void {
+  private updateCycle(deltaMS: number): void {
     this.phaseElapsed += deltaMS;
 
     if (this.mode === 'slide') {
@@ -155,7 +156,7 @@ export class PaddleModifier extends ContainerModifier {
     this.updatePaddlePosition();
   }
 
-  private updateSlideMode(deltaMS: number = 16): void {
+  private updateSlideMode(deltaMS: number): void {
     const dt = deltaMS / 1000;
     this.xPosition += this.slideSpeed * this.slideDirection * dt * 60;
 
@@ -250,14 +251,14 @@ export class PaddleModifier extends ContainerModifier {
     }
   }
 
-  protected onTick(): void {
+  protected onTick(_deltaMS: number): void {
   }
 
   protected onDeactivate(): void {
     this.removePaddle();
-    if (this.cycleTickerCallback) {
-      PIXI.Ticker.shared.remove(this.cycleTickerCallback);
-      this.cycleTickerCallback = null;
+    if (this.cycleAnimationId) {
+      AnimationManager.getInstance().unregister(this.cycleAnimationId);
+      this.cycleAnimationId = null;
     }
     if (this.retractTimeout) {
       clearTimeout(this.retractTimeout);
@@ -269,9 +270,9 @@ export class PaddleModifier extends ContainerModifier {
   destroy(): void {
     super.destroy();
     this.removePaddle();
-    if (this.cycleTickerCallback) {
-      PIXI.Ticker.shared.remove(this.cycleTickerCallback);
-      this.cycleTickerCallback = null;
+    if (this.cycleAnimationId) {
+      AnimationManager.getInstance().unregister(this.cycleAnimationId);
+      this.cycleAnimationId = null;
     }
     if (this.retractTimeout) {
       clearTimeout(this.retractTimeout);

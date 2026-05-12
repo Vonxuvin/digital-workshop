@@ -2,29 +2,30 @@ import Matter from 'matter-js';
 import * as PIXI from 'pixi.js';
 import { Container } from 'pixi.js';
 import { PhysicsManager } from '../../core/PhysicsManager';
+import { AnimationManager } from '../../utils/AnimationManager';
 
 export type ModifierType = 'paddle' | 'rotate' | 'shrink' | 'fork';
 
 export interface ModifierConfig {
   type: ModifierType;
   enabled: boolean;
-  triggerInterval?: number;    // 触发间隔（秒）
-  duration?: number;           // 持续时间（秒）
-  startDelay?: number;         // 首次触发延迟（秒）
+  triggerInterval?: number;
+  duration?: number;
+  startDelay?: number;
 }
 
 export interface ModifierState {
   isActive: boolean;
-  progress: number;            // 0-1
-  elapsedTime: number;         // 已运行时间（毫秒）
-  remainingTime: number;       // 剩余时间（毫秒）
+  progress: number;
+  elapsedTime: number;
+  remainingTime: number;
 }
 
 export abstract class ContainerModifier {
   protected config: ModifierConfig;
   protected state: ModifierState;
   protected physics: PhysicsManager;
-  protected tickerCallback: ((ticker: any) => void) | null = null;
+  protected animationId: string | null = null;
   protected startDelayTimer: ReturnType<typeof setTimeout> | null = null;
   protected stageContainer: Container | null = null;
   protected containerBodies: Matter.Body[] = [];
@@ -65,21 +66,21 @@ export abstract class ContainerModifier {
     this.onActivate();
 
     if (this.config.triggerInterval && this.config.triggerInterval > 0) {
-      this.tickerCallback = (ticker: any) => {
-        this.tick(ticker.deltaMS);
-      };
-      PIXI.Ticker.shared.add(this.tickerCallback);
+      this.animationId = AnimationManager.getInstance().register(
+        (deltaMS) => this.tick(deltaMS),
+        `modifier_${this.config.type}_${Date.now()}`
+      );
     } else if (this.config.duration && this.config.duration > 0) {
-      this.tickerCallback = (ticker: any) => {
-        this.tick(ticker.deltaMS);
-      };
-      PIXI.Ticker.shared.add(this.tickerCallback);
+      this.animationId = AnimationManager.getInstance().register(
+        (deltaMS) => this.tick(deltaMS),
+        `modifier_${this.config.type}_${Date.now()}`
+      );
     }
   }
 
   protected abstract onActivate(): void;
 
-  protected tick(deltaMS: number = 16): void {
+  protected tick(deltaMS: number): void {
     if (!this.state.isActive) return;
     this.state.elapsedTime += deltaMS;
     if (this.config.duration && this.config.duration > 0) {
@@ -89,10 +90,10 @@ export abstract class ContainerModifier {
         this.deactivate();
       }
     }
-    this.onTick();
+    this.onTick(deltaMS);
   }
 
-  protected abstract onTick(): void;
+  protected abstract onTick(deltaMS: number): void;
 
   deactivate(): void {
     if (!this.state.isActive) return;
@@ -105,15 +106,14 @@ export abstract class ContainerModifier {
   protected abstract onDeactivate(): void;
 
   pause(): void {
-    this.clearTimers();
+    if (this.animationId) {
+      AnimationManager.getInstance().pause(this.animationId);
+    }
   }
 
   resume(): void {
-    if (this.state.isActive) {
-      this.tickerCallback = (ticker: any) => {
-        this.tick(ticker.deltaMS);
-      };
-      PIXI.Ticker.shared.add(this.tickerCallback);
+    if (this.animationId) {
+      AnimationManager.getInstance().resume(this.animationId);
     }
   }
 
@@ -126,9 +126,9 @@ export abstract class ContainerModifier {
   }
 
   private clearTimers(): void {
-    if (this.tickerCallback) {
-      PIXI.Ticker.shared.remove(this.tickerCallback);
-      this.tickerCallback = null;
+    if (this.animationId) {
+      AnimationManager.getInstance().unregister(this.animationId);
+      this.animationId = null;
     }
     if (this.startDelayTimer) {
       clearTimeout(this.startDelayTimer);

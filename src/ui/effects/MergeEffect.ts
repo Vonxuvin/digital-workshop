@@ -1,5 +1,6 @@
 import * as PIXI from 'pixi.js';
 import gsap from 'gsap';
+import { GraphicsPool } from '../../utils/GraphicsPool';
 
 export interface MergeEffectOptions {
   x: number;
@@ -11,23 +12,37 @@ export interface MergeEffectOptions {
 export class MergeEffect extends PIXI.Container {
   public allComplete: boolean = false;
   private timeline: gsap.core.Timeline | null = null;
+  private pooledObjects: PIXI.Graphics[] = [];
+  private graphicsPool: GraphicsPool | null;
 
-  constructor(options: MergeEffectOptions, onComplete?: () => void) {
+  constructor(options: MergeEffectOptions, onComplete?: () => void, graphicsPool?: GraphicsPool) {
     super();
+    this.graphicsPool = graphicsPool || null;
     this.createEffect(options, onComplete);
+  }
+
+  private acquireGraphics(): PIXI.Graphics {
+    if (this.graphicsPool) {
+      const g = this.graphicsPool.acquire();
+      this.pooledObjects.push(g);
+      return g;
+    }
+    const g = new PIXI.Graphics();
+    this.pooledObjects.push(g);
+    return g;
   }
 
   private createEffect(options: MergeEffectOptions, onComplete?: () => void): void {
     const { x: cx, y: cy } = options;
 
-    const ring1 = new PIXI.Graphics();
+    const ring1 = this.acquireGraphics();
     ring1.setStrokeStyle({ width: 3, color: 0xffd93d, alpha: 0.8 });
     ring1.circle(0, 0, 40);
     ring1.x = cx;
     ring1.y = cy;
     this.addChild(ring1);
 
-    const ring2 = new PIXI.Graphics();
+    const ring2 = this.acquireGraphics();
     ring2.setStrokeStyle({ width: 2, color: 0xffffff, alpha: 0.6 });
     ring2.circle(0, 0, 60);
     ring2.x = cx;
@@ -50,7 +65,7 @@ export class MergeEffect extends PIXI.Container {
       stars.push(star);
     });
 
-    const flash = new PIXI.Graphics();
+    const flash = this.acquireGraphics();
     flash.fill({ color: 0xffffff, alpha: 0.9 });
     flash.circle(0, 0, 25);
     flash.x = cx;
@@ -62,7 +77,7 @@ export class MergeEffect extends PIXI.Container {
     const colors = [0xffd93d, 0xff6b6b, 0x4ecdc4, 0xffffff];
     const particles: PIXI.Graphics[] = [];
     for (let i = 0; i < numParticles; i++) {
-      const particle = new PIXI.Graphics();
+      const particle = this.acquireGraphics();
       const angle = (i / numParticles) * Math.PI * 2;
       const color = colors[i % 4];
       particle.fill({ color, alpha: 1 });
@@ -111,7 +126,7 @@ export class MergeEffect extends PIXI.Container {
   }
 
   private createStar(color: number, size: number): PIXI.Graphics {
-    const star = new PIXI.Graphics();
+    const star = this.acquireGraphics();
     star.fill({ color, alpha: 0.8 });
     const points = 5;
     const outerRadius = size;
@@ -136,6 +151,15 @@ export class MergeEffect extends PIXI.Container {
       this.timeline.kill();
       this.timeline = null;
     }
-    super.destroy({ children: true });
+    if (this.graphicsPool) {
+      for (const g of this.pooledObjects) {
+        if (g.parent) {
+          g.parent.removeChild(g);
+        }
+        this.graphicsPool.release(g);
+      }
+    }
+    this.pooledObjects = [];
+    super.destroy({ children: !this.graphicsPool });
   }
 }

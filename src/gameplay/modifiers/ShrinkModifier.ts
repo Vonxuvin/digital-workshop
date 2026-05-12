@@ -4,9 +4,9 @@ import { ContainerModifier, ModifierConfig } from './ContainerModifier';
 import { PhysicsManager } from '../../core/PhysicsManager';
 
 export interface ShrinkConfig extends ModifierConfig {
-  targetWidth: number;         // 目标宽度（像素）
-  shrinkSpeed: number;         // 收缩速度（像素/秒）
-  minWidth: number;            // 最小宽度限制
+  targetWidth: number;
+  shrinkSpeed: number;
+  minWidth: number;
 }
 
 export class ShrinkModifier extends ContainerModifier {
@@ -84,8 +84,8 @@ export class ShrinkModifier extends ContainerModifier {
     }
   }
 
-  protected onTick(): void {
-    const dt = 0.016;
+  protected onTick(deltaMS: number): void {
+    const dt = deltaMS / 1000;
     const shrinkAmount = this.shrinkSpeed * dt;
 
     if (this.currentWidth > Math.max(this.targetWidth, this.minWidth)) {

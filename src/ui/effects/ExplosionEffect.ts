@@ -1,13 +1,28 @@
 import * as PIXI from 'pixi.js';
 import gsap from 'gsap';
+import { GraphicsPool } from '../../utils/GraphicsPool';
 
 export class ExplosionEffect extends PIXI.Container {
   public allComplete: boolean = false;
   private timeline: gsap.core.Timeline | null = null;
+  private pooledObjects: PIXI.Graphics[] = [];
+  private graphicsPool: GraphicsPool | null;
 
-  constructor(centerX: number, centerY: number, radius: number, onComplete?: () => void) {
+  constructor(centerX: number, centerY: number, radius: number, onComplete?: () => void, graphicsPool?: GraphicsPool) {
     super();
+    this.graphicsPool = graphicsPool || null;
     this.createEffect(centerX, centerY, radius, onComplete);
+  }
+
+  private acquireGraphics(): PIXI.Graphics {
+    if (this.graphicsPool) {
+      const g = this.graphicsPool.acquire();
+      this.pooledObjects.push(g);
+      return g;
+    }
+    const g = new PIXI.Graphics();
+    this.pooledObjects.push(g);
+    return g;
   }
 
   private createEffect(cx: number, cy: number, radius: number, onComplete?: () => void): void {
@@ -16,7 +31,7 @@ export class ExplosionEffect extends PIXI.Container {
 
     const rings: PIXI.Graphics[] = [];
     for (let i = 0; i < numRings; i++) {
-      const ring = new PIXI.Graphics();
+      const ring = this.acquireGraphics();
       const ringRadius = (radius / numRings) * (i + 1);
       const alpha = 1 - i * 0.2;
       ring.fill({ color: 0xff6b6b, alpha });
@@ -29,7 +44,7 @@ export class ExplosionEffect extends PIXI.Container {
 
     const particles: PIXI.Graphics[] = [];
     for (let i = 0; i < numParticles; i++) {
-      const particle = new PIXI.Graphics();
+      const particle = this.acquireGraphics();
       const angle = (i / numParticles) * Math.PI * 2;
       const distance = radius * 0.8;
       particle.fill({ color: 0xffd93d, alpha: 1 });
@@ -45,7 +60,7 @@ export class ExplosionEffect extends PIXI.Container {
       (particle as any)._targetY = targetY;
     }
 
-    const flash = new PIXI.Graphics();
+    const flash = this.acquireGraphics();
     flash.fill({ color: 0xffffff, alpha: 0.8 });
     flash.circle(0, 0, 30);
     flash.x = cx;
@@ -81,6 +96,15 @@ export class ExplosionEffect extends PIXI.Container {
       this.timeline.kill();
       this.timeline = null;
     }
-    super.destroy({ children: true });
+    if (this.graphicsPool) {
+      for (const g of this.pooledObjects) {
+        if (g.parent) {
+          g.parent.removeChild(g);
+        }
+        this.graphicsPool.release(g);
+      }
+    }
+    this.pooledObjects = [];
+    super.destroy({ children: !this.graphicsPool });
   }
 }

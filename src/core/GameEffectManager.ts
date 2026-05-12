@@ -2,14 +2,18 @@ import { Container } from 'pixi.js';
 import { MergeEffect } from '../ui/effects/MergeEffect';
 import { ExplosionEffect } from '../ui/effects/ExplosionEffect';
 import { FreezeEffect } from '../ui/effects/FreezeEffect';
+import { GraphicsPool } from '../utils/GraphicsPool';
 
 export class GameEffectManager {
   private stage: Container;
   private effects: any[] = [];
   private freezeEffect: FreezeEffect | null = null;
+  private graphicsPool: GraphicsPool;
 
   constructor(stage: Container) {
     this.stage = stage;
+    this.graphicsPool = new GraphicsPool(60);
+    this.graphicsPool.setParent(stage);
   }
 
   addMergeEffect(x: number, y: number, oldValue: number, newValue: number): void {
@@ -18,13 +22,13 @@ export class GameEffectManager {
       y,
       oldNumber: oldValue,
       newNumber: newValue,
-    });
+    }, undefined, this.graphicsPool);
     this.stage.addChild(effect);
     this.effects.push(effect);
   }
 
   addExplosionEffect(x: number, y: number, radius: number): void {
-    const effect = new ExplosionEffect(x, y, radius);
+    const effect = new ExplosionEffect(x, y, radius, undefined, this.graphicsPool);
     this.stage.addChild(effect);
     this.effects.push(effect);
   }
@@ -57,9 +61,15 @@ export class GameEffectManager {
       this.freezeEffect.destroy();
       this.freezeEffect = null;
     }
+    this.graphicsPool.releaseAll();
   }
 
   getEffects(): any[] {
     return this.effects;
+  }
+
+  destroy(): void {
+    this.clearAll();
+    this.graphicsPool.destroy();
   }
 }

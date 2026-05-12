@@ -1,5 +1,6 @@
-import { Container, Graphics, Text } from 'pixi.js';
+import { Container, Sprite } from 'pixi.js';
 import Matter from 'matter-js';
+import { BlockTextureCache } from '../utils/BlockTextureCache';
 
 export interface BlockConfig {
   value: number;
@@ -50,8 +51,7 @@ export class Block extends Container {
   public body: Matter.Body;
   public value: number;
   private config: BlockConfig;
-  private graphics: Graphics;
-  private valueText: Text;
+  private sprite: Sprite;
   private _destroyed: boolean = false;
   public isRainbow: boolean = false;
 
@@ -62,46 +62,24 @@ export class Block extends Container {
     this.isRainbow = isRainbow;
     this.config = getBlockConfig(value);
 
-    this.graphics = new Graphics();
-    this.drawBlock();
-    this.addChild(this.graphics);
+    const cache = BlockTextureCache.getInstance();
+    const texture = cache.getTexture(value, isRainbow);
+    this.sprite = new Sprite(texture);
+    this.sprite.anchor.set(0.5);
 
-    this.valueText = new Text({
-      text: String(value),
-      style: {
-        fontFamily: 'Arial',
-        fontSize: this.config.radius * 0.8,
-        fill: 0xffffff,
-        fontWeight: 'bold',
-      },
-    });
-    this.valueText.anchor.set(0.5);
-    this.addChild(this.valueText);
+    const padding = 4;
+    const textureSize = (this.config.radius + padding) * 2;
+    this.sprite.width = textureSize;
+    this.sprite.height = textureSize;
+
+    this.addChild(this.sprite);
 
     this.syncFromBody();
   }
 
-  private drawBlock(): void {
-    this.graphics.clear();
-    if (this.isRainbow) {
-      this.graphics.circle(0, 0, this.config.radius + 2);
-      this.graphics.fill({ color: 0xffffff, alpha: 0.3 });
-      this.graphics.circle(0, 0, this.config.radius);
-      this.graphics.fill({ color: 0xFF69B4 });
-      this.graphics.circle(-this.config.radius * 0.25, -this.config.radius * 0.25, this.config.radius * 0.35);
-      this.graphics.fill({ color: 0xFFD700, alpha: 0.6 });
-    } else {
-      this.graphics.circle(0, 0, this.config.radius + 2);
-      this.graphics.fill({ color: this.config.color, alpha: 0.3 });
-      this.graphics.circle(0, 0, this.config.radius);
-      this.graphics.fill(this.config.color);
-      this.graphics.circle(-this.config.radius * 0.3, -this.config.radius * 0.3, this.config.radius * 0.25);
-      this.graphics.fill({ color: 0xffffff, alpha: 0.3 });
-    }
-  }
-
   syncFromBody(): void {
     if (this._destroyed) return;
+    if (this.body.isSleeping) return;
     this.x = this.body.position.x;
     this.y = this.body.position.y;
     this.rotation = this.body.angle;
@@ -118,8 +96,7 @@ export class Block extends Container {
   destroy(): void {
     if (this._destroyed) return;
     this._destroyed = true;
-    this.graphics.destroy();
-    this.valueText.destroy();
+    this.sprite.destroy();
     super.destroy();
   }
 }

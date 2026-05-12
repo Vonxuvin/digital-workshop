@@ -31,6 +31,7 @@ import { ShrinkProp } from '../gameplay/props/ShrinkProp';
 import { LuckyProp } from '../gameplay/props/LuckyProp';
 import { ModifierManager } from '../gameplay/modifiers/ModifierManager';
 import { SaveManager } from './SaveManager';
+import { BlockTextureCache } from '../utils/BlockTextureCache';
 import propsData from '../data/props/props.json';
 import Matter from 'matter-js';
 
@@ -180,6 +181,10 @@ export class Game {
     this.blockSpawner = new BlockSpawner(this.physics, this.mergeSystem, PropSystem.getInstance(), this.app.stage);
     this.effectManager = new GameEffectManager(this.app.stage);
     this.uiManager = new UIManager(this.app);
+
+    const textureCache = BlockTextureCache.getInstance();
+    textureCache.setApp(this.app);
+    textureCache.preload([1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]);
     this.gameHUD.layout(this.app.screen.width, this.app.screen.height);
 
     this.stateMachine.transition('loading');
