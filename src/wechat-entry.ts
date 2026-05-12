@@ -6,8 +6,8 @@ declare const GameGlobal: any;
 async function initWechatGame(): Promise<void> {
   const canvas = wx.createCanvas();
   const systemInfo = wx.getSystemInfoSync();
-  canvas.width = systemInfo.windowWidth * systemInfo.pixelRatio;
-  canvas.height = systemInfo.windowHeight * systemInfo.pixelRatio;
+  canvas.width = systemInfo.windowWidth;
+  canvas.height = systemInfo.windowHeight;
 
   const game = new Game(canvas as unknown as HTMLCanvasElement);
   await game.init();

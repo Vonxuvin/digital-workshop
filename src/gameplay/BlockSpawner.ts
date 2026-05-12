@@ -26,6 +26,8 @@ export class BlockSpawner {
   private currentLevelConfig: LevelConfig | null = null;
   private luckyMode = false;
   private luckyMultiplier = 1;
+  private containerWidth: number = 400;
+  private containerOffsetX: number = 0;
 
   constructor(
     physics: PhysicsManager,
@@ -37,6 +39,11 @@ export class BlockSpawner {
     this.mergeSystem = mergeSystem;
     this.propSystem = propSystem;
     this.stage = stage;
+  }
+
+  setContainerBounds(width: number, offsetX: number): void {
+    this.containerWidth = width;
+    this.containerOffsetX = offsetX;
   }
 
   dropBlock(x: number, y: number, value: number): void {
@@ -125,8 +132,10 @@ export class BlockSpawner {
       this.autoSpawnElapsed += deltaMS;
       if (this.autoSpawnElapsed >= this.autoSpawnInterval) {
         this.autoSpawnElapsed -= this.autoSpawnInterval;
-        const w = (this.stage as any).renderer?.width || 400;
-        const x = Math.random() * (w - 100) + 50;
+        const margin = 50;
+        const minX = this.containerOffsetX + margin;
+        const maxX = this.containerOffsetX + this.containerWidth - margin;
+        const x = Math.random() * (maxX - minX) + minX;
         this.dropBlock(x, this.autoSpawnDropY, this.currentValue);
         this.startCooldown();
       }

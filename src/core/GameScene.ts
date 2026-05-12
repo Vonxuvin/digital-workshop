@@ -70,7 +70,7 @@ export class GameScene {
     this.modifierManager = modifierManager;
     this.propSystem = propSystem;
     this.performanceMonitor = performanceMonitor;
-    this.groundY = window.innerHeight - 50;
+    this.groundY = 550;
   }
 
   init(): void {
@@ -115,6 +115,7 @@ export class GameScene {
     this.propEffectHandler.setWarningLine(this.warningLine);
     this.preview.setGroundY(this.groundY);
     this.preview.setBounds(this.containerOffsetX, this.containerOffsetX + this.containerWidth);
+    this.blockSpawner.setContainerBounds(this.containerWidth, this.containerOffsetX);
   }
 
   rebuildPhysicsWalls(): void {
@@ -153,6 +154,7 @@ export class GameScene {
 
     this.rebuildPhysicsWalls();
     this.drawContainerWalls();
+    this.blockSpawner.setContainerBounds(this.containerWidth, this.containerOffsetX);
 
     if (this.warningLine) {
       this.warningLine.y = this.groundY * 0.8;

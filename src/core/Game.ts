@@ -97,16 +97,20 @@ export class Game {
       await this.saveManager.init();
       this.saveManager.startAutoSave();
 
-      const dpr = systemInfo.pixelRatio || window.devicePixelRatio || 1;
+      const dpr = systemInfo.pixelRatio || (typeof window !== 'undefined' ? window.devicePixelRatio : 1) || 1;
 
-      await this.app.init({
+      const initOptions: any = {
         canvas: this.canvas,
-        resizeTo: window,
         backgroundColor: 0x1a1a2e,
         antialias: true,
         resolution: dpr,
         autoDensity: true,
-      });
+      };
+      if (typeof window !== 'undefined') {
+        initOptions.resizeTo = window;
+      }
+
+      await this.app.init(initOptions);
 
       this.gameScene = new GameScene(
         this.app,
@@ -239,7 +243,8 @@ export class Game {
         return;
       }
       if (this.gameScene.getPreview().visible && this.gameScene.getBlockSpawner().getCanDrop() && this.sceneManager.isPlaying()) {
-        this.gameScene.getBlockSpawner().dropBlock(this.gameScene.getPreview().getTargetX(), dropY, this.gameScene.getBlockSpawner().getCurrentValue());
+        const targetX = this.gameScene.getPreview().getTargetX();
+        this.gameScene.getBlockSpawner().dropBlock(targetX, dropY, this.gameScene.getBlockSpawner().getCurrentValue());
         this.gameScene.getPreview().hide();
         this.gameScene.getBlockSpawner().startCooldown();
         this.lastActionTime = now;
@@ -250,8 +255,9 @@ export class Game {
   private syncInputScale(): void {
     const rect = this.canvas.getBoundingClientRect();
     const rendererWidth = this.app.screen.width;
-    if (rect.width > 0) {
-      this.input.setScale(rendererWidth / rect.width);
+    const rendererHeight = this.app.screen.height;
+    if (rect.width > 0 && rect.height > 0) {
+      this.input.setScale(rendererWidth / rect.width, rendererHeight / rect.height);
     }
   }
 
@@ -285,12 +291,14 @@ export class Game {
   }
 
   private handleResize(): void {
+    if (typeof window === 'undefined') return;
     if (this.resizeTimer) clearTimeout(this.resizeTimer);
     this.resizeTimer = window.setTimeout(() => {
       this.app.renderer.resize(window.innerWidth, window.innerHeight);
       this.gameScene.handleResize();
       this.uiManager.handleResize(this.app.screen.width, this.app.screen.height);
       this.syncInputScale();
+      this.gameHUD.layout(this.app.screen.width, this.app.screen.height);
     }, 300);
   }
 
