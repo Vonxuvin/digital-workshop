@@ -24,6 +24,8 @@ export class BlockSpawner {
   private autoSpawnDropY: number = 80;
   private rainbowRemaining = 0;
   private currentLevelConfig: LevelConfig | null = null;
+  private luckyMode = false;
+  private luckyMultiplier = 1;
 
   constructor(
     physics: PhysicsManager,
@@ -53,11 +55,36 @@ export class BlockSpawner {
     this.mergeSystem.registerBlock(block);
 
     this.currentValue = this.getRandomValue();
+
+    if (this.luckyMode) {
+      const luckyProp = this.propSystem.getProp(PropType.LUCKY) as any;
+      if (luckyProp && typeof luckyProp.consumeLuckyDrop === 'function') {
+        luckyProp.consumeLuckyDrop();
+        if (!luckyProp.isLuckyActive()) {
+          this.luckyMode = false;
+          this.luckyMultiplier = 1;
+        }
+      }
+    }
+
     console.log(`[BlockSpawner] 投放方块 ${value}${isRainbowBlock ? '(彩虹)' : ''}, 下一个: ${this.currentValue}`);
   }
 
   getRandomValue(): number {
     const availableNumbers = this.currentLevelConfig?.spawn.availableNumbers || [1, 2, 4];
+    if (this.luckyMode && this.luckyMultiplier > 1) {
+      const midIndex = Math.floor(availableNumbers.length / 2);
+      const highNumbers = availableNumbers.slice(midIndex);
+      const targetNumbers = highNumbers.length > 0 ? highNumbers : availableNumbers;
+      const weights: number[] = [];
+      for (const num of targetNumbers) {
+        const w = Math.max(1, Math.floor(8 / num));
+        for (let i = 0; i < w; i++) {
+          weights.push(num);
+        }
+      }
+      return weights[Math.floor(Math.random() * weights.length)];
+    }
     const weights: number[] = [];
     for (const num of availableNumbers) {
       const w = Math.max(1, Math.floor(8 / num));
@@ -194,6 +221,11 @@ export class BlockSpawner {
     this.rainbowRemaining = count;
   }
 
+  setLuckyMode(enabled: boolean, multiplier: number): void {
+    this.luckyMode = enabled;
+    this.luckyMultiplier = multiplier;
+  }
+
   getCurrentValue(): number {
     return this.currentValue;
   }
@@ -223,6 +255,8 @@ export class BlockSpawner {
     this.autoSpawnInterval = 0;
     this.autoSpawnElapsed = 0;
     this.rainbowRemaining = 0;
+    this.luckyMode = false;
+    this.luckyMultiplier = 1;
     this.currentValue = 1;
   }
 }

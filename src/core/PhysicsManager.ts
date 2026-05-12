@@ -7,9 +7,12 @@ export class PhysicsManager {
   private running = false;
   private readonly fixedStep = 1000 / 60;
 
+  private readonly maxVelocity = 20;
+  private readonly sleepSpeedThreshold = 0.5;
+
   constructor() {
     this.engine = Matter.Engine.create({
-      gravity: { x: 0, y: 2.0, scale: 0.001 },
+      gravity: { x: 0, y: 1.0, scale: 0.001 },
       enableSleeping: true,
     });
   }
@@ -35,14 +38,36 @@ export class PhysicsManager {
     Matter.Engine.update(this.engine, dt);
   }
 
+  private readonly maxPhysicsSteps = 3;
+
   fixedUpdate(accumulator: number): number {
     if (!this.running) return accumulator;
     let acc = accumulator;
-    while (acc >= this.fixedStep) {
+    let steps = 0;
+    while (acc >= this.fixedStep && steps < this.maxPhysicsSteps) {
       Matter.Engine.update(this.engine, this.fixedStep);
+      this.clampVelocities();
       acc -= this.fixedStep;
+      steps++;
+    }
+    if (steps >= this.maxPhysicsSteps) {
+      acc = 0;
     }
     return acc;
+  }
+
+  private clampVelocities(): void {
+    for (const body of this.bodies.values()) {
+      if (body.isStatic) continue;
+      const speed = Math.sqrt(body.velocity.x ** 2 + body.velocity.y ** 2);
+      if (speed > this.maxVelocity) {
+        const scale = this.maxVelocity / speed;
+        Matter.Body.setVelocity(body, {
+          x: body.velocity.x * scale,
+          y: body.velocity.y * scale,
+        });
+      }
+    }
   }
 
   clearAll(): void {
@@ -62,11 +87,11 @@ export class PhysicsManager {
 
   createCircle(x: number, y: number, radius: number, options?: Matter.IBodyDefinition): Matter.Body {
     const body = Matter.Bodies.circle(x, y, radius, {
-      restitution: 0.15,
+      restitution: 0.3,
       friction: 0.5,
-      frictionAir: 0.005,
+      frictionAir: 0.01,
       frictionStatic: 0.6,
-      density: 0.005,
+      density: 0.001,
       sleepThreshold: 60,
       ...options,
     });

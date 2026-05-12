@@ -164,7 +164,8 @@ export class LevelSystem {
 
       if (elapsedSeconds !== this.survivalTime) {
         this.survivalTime = elapsedSeconds;
-        eventBus.emit('level:timeUpdate', this.survivalTime);
+        const remaining = Math.max(0, this.config.objective.timeLimit - this.survivalTime);
+        eventBus.emit('level:timeUpdate', remaining);
       }
 
       if (this.survivalTime >= this.config.objective.timeLimit) {

@@ -27,6 +27,8 @@ import { PropType } from '../gameplay/props/Prop';
 import { FreezeProp } from '../gameplay/props/FreezeProp';
 import { BombProp } from '../gameplay/props/BombProp';
 import { RainbowProp } from '../gameplay/props/RainbowProp';
+import { ShrinkProp } from '../gameplay/props/ShrinkProp';
+import { LuckyProp } from '../gameplay/props/LuckyProp';
 import { ModifierManager } from '../gameplay/modifiers/ModifierManager';
 import { SaveManager } from './SaveManager';
 import propsData from '../data/props/props.json';
@@ -81,12 +83,17 @@ export class Game {
   private onBackToMenuBound: () => void;
   private onNextLevelBound: () => void;
   private onLevelSelectBound: () => void;
+  private onReviveBound: () => void;
   private onBombExplodeBound: (data: { x: number; y: number; radius: number }) => void;
   private onFreezeActivatedBound: (data: { duration: number; endTime: number }) => void;
   private onFreezeDeactivatedBound: () => void;
   private onPropTargetModeBound: (data: { type?: PropType; enabled: boolean }) => void;
   private onNextRainbowBlockBound: (data: { isRainbow: boolean; remaining: number }) => void;
   private onRainbowConsumedBound: (data: { remainingBlocks: number }) => void;
+  private onShrinkActivateBound: (data: { factor: number; duration: number }) => void;
+  private onShrinkDeactivateBound: () => void;
+  private onLuckyActivateBound: (data: { multiplier: number; remainingDrops: number }) => void;
+  private onLuckyDeactivateBound: () => void;
   private bombTargetMode = false;
   private modifierManager: ModifierManager;
   private saveManager: SaveManager;
@@ -125,12 +132,17 @@ export class Game {
     this.onBackToMenuBound = this.handleBackToMenu.bind(this);
     this.onNextLevelBound = this.handleNextLevel.bind(this);
     this.onLevelSelectBound = this.handleLevelSelect.bind(this);
+    this.onReviveBound = this.handleRevive.bind(this);
     this.onBombExplodeBound = this.handleBombExplode.bind(this);
     this.onFreezeActivatedBound = this.handleFreezeActivated.bind(this);
     this.onFreezeDeactivatedBound = this.handleFreezeDeactivated.bind(this);
     this.onPropTargetModeBound = this.handlePropTargetMode.bind(this);
     this.onNextRainbowBlockBound = this.handleNextRainbowBlock.bind(this);
     this.onRainbowConsumedBound = this.handleRainbowConsumed.bind(this);
+    this.onShrinkActivateBound = this.handleShrinkActivate.bind(this);
+    this.onShrinkDeactivateBound = this.handleShrinkDeactivate.bind(this);
+    this.onLuckyActivateBound = this.handleLuckyActivate.bind(this);
+    this.onLuckyDeactivateBound = this.handleLuckyDeactivate.bind(this);
   }
 
   static getInstance(): Game {
@@ -324,12 +336,17 @@ export class Game {
     eventBus.on('ui:backToMenu', this.onBackToMenuBound);
     eventBus.on('ui:nextLevel', this.onNextLevelBound);
     eventBus.on('ui:levelSelect', this.onLevelSelectBound);
+    eventBus.on('ui:revive', this.onReviveBound);
     eventBus.on('props:bomb:explode', this.onBombExplodeBound);
     eventBus.on('props:freeze:activated', this.onFreezeActivatedBound);
     eventBus.on('props:freeze:deactivated', this.onFreezeDeactivatedBound);
     eventBus.on('ui:propTargetMode', this.onPropTargetModeBound);
     eventBus.on('gameplay:nextBlock', this.onNextRainbowBlockBound);
     eventBus.on('props:rainbow:consumed', this.onRainbowConsumedBound);
+    eventBus.on('props:shrink:activate', this.onShrinkActivateBound);
+    eventBus.on('props:shrink:deactivate', this.onShrinkDeactivateBound);
+    eventBus.on('props:lucky:activate', this.onLuckyActivateBound);
+    eventBus.on('props:lucky:deactivate', this.onLuckyDeactivateBound);
     eventBus.on('level:timeUpdate', (seconds: number) => this.gameHUD.updateTimer(seconds));
   }
 
@@ -499,6 +516,14 @@ export class Game {
       this.physics.stop();
       this.levelSystem?.pause();
       this.modifierManager.pauseAll();
+      const freezeProp = this.propSystem.getProp(PropType.FREEZE) as FreezeProp;
+      if (freezeProp) {
+        freezeProp.pause();
+      }
+      const shrinkProp = this.propSystem.getProp(PropType.SHRINK) as ShrinkProp;
+      if (shrinkProp) {
+        shrinkProp.pause();
+      }
       this.preview.hide();
       this.uiManager.showScreen('pause');
     }
@@ -508,7 +533,18 @@ export class Game {
     if (this.stateMachine.canTransition('playing')) {
       this.stateMachine.transition('playing');
       this.uiManager.hideCurrentScreen();
-      this.physics.start();
+      const freezeProp = this.propSystem.getProp(PropType.FREEZE) as FreezeProp;
+      const isFrozen = freezeProp?.isCurrentlyFrozen() ?? false;
+      if (!isFrozen) {
+        this.physics.start();
+      }
+      if (freezeProp) {
+        freezeProp.resume();
+      }
+      const shrinkProp = this.propSystem.getProp(PropType.SHRINK) as ShrinkProp;
+      if (shrinkProp) {
+        shrinkProp.resume();
+      }
       this.levelSystem?.resume();
       this.modifierManager.resumeAll();
     }
@@ -570,6 +606,24 @@ export class Game {
     this.stateMachine.transition('menu');
   }
 
+  private handleRevive(): void {
+    this.uiManager.hideCurrentScreen();
+    const warningY = this.warningLine ? this.warningLine.y : this.groundY * 0.8;
+    const blocks = this.blockSpawner.getBlocks();
+    const blocksToRemove = blocks.filter(b => b.y < warningY);
+    for (const block of blocksToRemove) {
+      this.blockSpawner.removeBlock(block);
+      this.mergeSystem.unregisterBlock(block);
+      this.physics.removeBody(block.body);
+      block.destroy();
+    }
+    this.warningLine?.reset();
+    this.physics.start();
+    this.levelSystem?.resume();
+    this.modifierManager.resumeAll();
+    this.stateMachine.transition('playing');
+  }
+
   private handleBombExplode(data: { x: number; y: number; radius: number }): void {
     console.log('[Game] handleBombExplode 被调用', data);
     const bombProp = this.propSystem.getProp(PropType.BOMB) as BombProp;
@@ -619,6 +673,39 @@ export class Game {
 
   private handleRainbowConsumed(data: { remainingBlocks: number }): void {
     this.blockSpawner.setRainbowRemaining(data.remainingBlocks);
+  }
+
+  private handleShrinkActivate(data: { factor: number; duration: number }): void {
+    const blocks = this.blockSpawner.getBlocks();
+    for (const block of blocks) {
+      const currentRadius = block.getConfig().radius;
+      const newRadius = currentRadius * data.factor;
+      const scale = data.factor;
+      block.scale.set(scale);
+      const body = block.body;
+      Matter.Body.scale(body, scale, scale);
+    }
+    this.audioManager.play('freeze');
+  }
+
+  private handleShrinkDeactivate(): void {
+    const blocks = this.blockSpawner.getBlocks();
+    for (const block of blocks) {
+      const currentScale = block.scale.x;
+      if (currentScale < 1) {
+        const restoreScale = 1 / currentScale;
+        block.scale.set(1);
+        Matter.Body.scale(block.body, restoreScale, restoreScale);
+      }
+    }
+  }
+
+  private handleLuckyActivate(data: { multiplier: number; remainingDrops: number }): void {
+    this.blockSpawner.setLuckyMode(true, data.multiplier);
+  }
+
+  private handleLuckyDeactivate(): void {
+    this.blockSpawner.setLuckyMode(false, 1);
   }
 
   private spawnObstacles(): void {
@@ -787,12 +874,17 @@ export class Game {
     eventBus.off('ui:backToMenu', this.onBackToMenuBound);
     eventBus.off('ui:nextLevel', this.onNextLevelBound);
     eventBus.off('ui:levelSelect', this.onLevelSelectBound);
+    eventBus.off('ui:revive', this.onReviveBound);
     eventBus.off('props:bomb:explode', this.onBombExplodeBound);
     eventBus.off('props:freeze:activated', this.onFreezeActivatedBound);
     eventBus.off('props:freeze:deactivated', this.onFreezeDeactivatedBound);
     eventBus.off('ui:propTargetMode', this.onPropTargetModeBound);
     eventBus.off('gameplay:nextBlock', this.onNextRainbowBlockBound);
     eventBus.off('props:rainbow:consumed', this.onRainbowConsumedBound);
+    eventBus.off('props:shrink:activate', this.onShrinkActivateBound);
+    eventBus.off('props:shrink:deactivate', this.onShrinkDeactivateBound);
+    eventBus.off('props:lucky:activate', this.onLuckyActivateBound);
+    eventBus.off('props:lucky:deactivate', this.onLuckyDeactivateBound);
     this.scoreSystem.destroy();
     this.levelSystem?.destroy();
     this.input.destroy();
