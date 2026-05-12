@@ -102,9 +102,6 @@ export class PropEffectHandler {
       });
       block.scale.set(data.factor);
       Matter.Body.scale(block.body, data.factor, data.factor);
-      if (block.body.circleRadius !== undefined) {
-        block.body.circleRadius *= data.factor;
-      }
     }
   }
 

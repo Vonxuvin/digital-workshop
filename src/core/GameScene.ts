@@ -183,7 +183,7 @@ export class GameScene {
     this.physics.start();
     this.levelSystem?.start();
     this.drawContainerWalls();
-    this.blockSpawner.spawnObstacles(config.obstacles, this.containerWidth, this.groundY);
+    this.blockSpawner.spawnObstacles(config.obstacles, this.containerWidth, this.groundY, this.containerOffsetX);
     this.startAutoSpawn();
     this.modifierManager.startAll();
     if (this.levelSystem) {
@@ -215,7 +215,7 @@ export class GameScene {
     this.physics.start();
     this.levelSystem?.start();
     this.drawContainerWalls();
-    this.blockSpawner.spawnObstacles(this.currentLevelConfig!.obstacles, this.containerWidth, this.groundY);
+    this.blockSpawner.spawnObstacles(this.currentLevelConfig!.obstacles, this.containerWidth, this.groundY, this.containerOffsetX);
     this.startAutoSpawn();
     if (this.currentLevelConfig?.modifiers) {
       this.modifierManager.setContainerSize(this.containerWidth, this.containerHeight);

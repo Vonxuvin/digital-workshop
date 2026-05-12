@@ -133,12 +133,12 @@ export class BlockSpawner {
     }
   }
 
-  spawnObstacles(obstacles: LevelConfig['obstacles'], screenWidth: number, groundY: number): void {
+  spawnObstacles(obstacles: LevelConfig['obstacles'], screenWidth: number, groundY: number, containerOffsetX: number = 0): void {
     if (!obstacles) return;
 
     obstacles.forEach((obs, i) => {
       const config = getBlockConfig(obs.value);
-      const posX = obs.x;
+      const posX = obs.x + containerOffsetX;
       const posY = obs.y !== undefined ? obs.y : groundY - config.radius;
 
       const body = this.physics.createCircle(posX, posY, config.radius, {
