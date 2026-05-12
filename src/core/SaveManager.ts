@@ -110,7 +110,7 @@ export class SaveManager {
       const saved = await this.platform.getStorage<string>(this.STORAGE_KEY);
       if (saved) {
         const parsed = typeof saved === 'string' ? JSON.parse(saved) : saved;
-        this.data = { ...this.getDefaultData(), ...parsed };
+        this.data = this.deepMerge(this.getDefaultData(), parsed);
         console.log('[SaveManager] 存档加载成功');
         eventBus.emit('save:loaded', this.data);
         return true;
@@ -278,6 +278,26 @@ export class SaveManager {
     eventBus.emit('save:reset', this.data);
   }
 
+  private deepMerge<T extends Record<string, any>>(target: T, source: any): T {
+    if (!source || typeof source !== 'object') return target;
+    const result = { ...target };
+    for (const key of Object.keys(source)) {
+      if (!(key in result)) continue;
+      const sourceVal = source[key];
+      const targetVal = (result as any)[key];
+      if (
+        targetVal && sourceVal &&
+        typeof targetVal === 'object' && !Array.isArray(targetVal) &&
+        typeof sourceVal === 'object' && !Array.isArray(sourceVal)
+      ) {
+        (result as any)[key] = this.deepMerge(targetVal, sourceVal);
+      } else {
+        (result as any)[key] = sourceVal;
+      }
+    }
+    return result;
+  }
+
   exportSave(): string {
     return JSON.stringify(this.data);
   }
@@ -288,7 +308,7 @@ export class SaveManager {
       if (typeof parsed.totalScore !== 'number' || !parsed.levelProgress || typeof parsed.levelProgress !== 'object') {
         throw new Error('无效的存档数据');
       }
-      this.data = { ...this.getDefaultData(), ...parsed };
+      this.data = this.deepMerge(this.getDefaultData(), parsed);
       await this.save();
       console.log('[SaveManager] 存档导入成功');
       eventBus.emit('save:imported', this.data);

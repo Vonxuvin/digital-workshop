@@ -125,4 +125,14 @@ export class UIManager {
   isModalOverlayVisible(): boolean {
     return this.modalOverlay.visible;
   }
+
+  handleResize(width: number, height: number): void {
+    if (this.currentScreen && 'resize' in this.currentScreen) {
+      (this.currentScreen as any).resize(width, height);
+    }
+    (this.modalOverlay as any)._drawn = false;
+    if (this.modalOverlay.visible) {
+      this.ensureModalOverlayDrawn();
+    }
+  }
 }

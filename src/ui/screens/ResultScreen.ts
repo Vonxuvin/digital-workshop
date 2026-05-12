@@ -15,6 +15,7 @@ export interface ResultData {
 
 export class ResultScreen extends Screen {
   private resultData: ResultData | null = null;
+  private background!: Graphics;
   private titleText!: Text;
   private scoreText!: Text;
   private starsContainer!: Container;
@@ -44,10 +45,18 @@ export class ResultScreen extends Screen {
   }
 
   private createBackground(): void {
-    const bg = new Graphics();
-    bg.rect(0, 0, this.currentScreenWidth, this.currentScreenHeight);
-    bg.fill({ color: 0x000000, alpha: 0.8 });
-    this.addChild(bg);
+    this.background = new Graphics();
+    this.drawBackground();
+    this.addChild(this.background);
+  }
+
+  private drawBackground(): void {
+    if (!this.background) return;
+    const w = this.currentScreenWidth;
+    const h = this.currentScreenHeight;
+    this.background.clear();
+    this.background.rect(0, 0, w, h);
+    this.background.fill({ color: 0x000000, alpha: 0.8 });
   }
 
   private createTitle(): void {
@@ -269,6 +278,7 @@ export class ResultScreen extends Screen {
     this.currentScreenWidth = screenWidth || 800;
     this.currentScreenHeight = screenHeight || 600;
     this.initialize();
+    this.drawBackground();
     this.visible = true;
     if (this.resultData) {
       this.animateStars(this.resultData.stars);
@@ -277,5 +287,11 @@ export class ResultScreen extends Screen {
 
   hide(): void {
     this.visible = false;
+  }
+
+  resize(screenWidth: number, screenHeight: number): void {
+    this.currentScreenWidth = screenWidth;
+    this.currentScreenHeight = screenHeight;
+    this.drawBackground();
   }
 }

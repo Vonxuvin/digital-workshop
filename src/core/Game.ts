@@ -53,6 +53,7 @@ export class Game {
   private resizeTimer: ReturnType<typeof setTimeout> | null = null;
   private fpsDisplayEnabled = false;
   private fpsDisplay: Text | null = null;
+  private boundHandleResize: (() => void) | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     Game.instance = this;
@@ -156,7 +157,8 @@ export class Game {
 
     this.performanceMonitor.start();
 
-    window.addEventListener('resize', this.handleResize.bind(this));
+    this.boundHandleResize = this.handleResize.bind(this);
+    window.addEventListener('resize', this.boundHandleResize);
 
     this.stateMachine.transition('menu');
     this.uiManager.showScreen('mainMenu');
@@ -218,14 +220,19 @@ export class Game {
         await this.propSystem.loadConfig((propsData as any).props);
         return;
       }
-    } catch {}
+    } catch (e) {
+      console.warn('[Game] 静态导入道具配置失败，尝试fetch加载:', e);
+    }
 
     try {
       const response = await fetch('/src/data/props/props.json');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
       const data = await response.json();
       await this.propSystem.loadConfig(data.props || []);
     } catch (e) {
-      console.warn('[Game] 加载道具配置失败，使用默认配置');
+      console.warn('[Game] 加载道具配置失败，使用默认配置:', e);
       await this.propSystem.loadConfig([
         { id: 'prop_bomb', type: PropType.BOMB, name: '炸弹', description: '销毁指定区域内所有方块', icon: 'bomb', maxCount: 3, cooldown: 1000, price: 50 },
         { id: 'prop_rainbow', type: PropType.RAINBOW, name: '彩虹方块', description: '可与任意数字合成', icon: 'rainbow', maxCount: 3, cooldown: 1000, price: 80 },
@@ -241,6 +248,7 @@ export class Game {
     this.resizeTimer = window.setTimeout(() => {
       this.app.renderer.resize(window.innerWidth, window.innerHeight);
       this.gameScene.handleResize();
+      this.uiManager.handleResize(this.app.screen.width, this.app.screen.height);
     }, 300);
   }
 
@@ -298,6 +306,10 @@ export class Game {
   }
 
   destroy(): void {
+    if (this.boundHandleResize) {
+      window.removeEventListener('resize', this.boundHandleResize);
+      this.boundHandleResize = null;
+    }
     this.eventRouter.destroy();
     this.gameScene.destroy();
     this.input.destroy();

@@ -41,14 +41,18 @@ export class LevelLoader {
           return await response.json();
         }
       }
-    } catch {}
+    } catch (e) {
+      console.warn(`[LevelLoader] fetch加载失败(${url}):`, e);
+    }
 
     try {
       const platform = createPlatformAdapter();
       await platform.init();
       const data = await platform.getStorage<any>(url);
       if (data) return data;
-    } catch {}
+    } catch (e) {
+      console.warn(`[LevelLoader] 平台存储加载失败(${url}):`, e);
+    }
 
     return null;
   }
@@ -102,7 +106,9 @@ export class LevelLoader {
         const data = (globalThis as any).require(`../data/levels/${fileName}`);
         return data?.default || data;
       }
-    } catch {}
+    } catch (e) {
+      console.warn(`[LevelLoader] require加载失败(${fileName}):`, e);
+    }
 
     try {
       const wxGlobal = (globalThis as any).wx;
@@ -113,9 +119,13 @@ export class LevelLoader {
         try {
           const content = fs.readFileSync(filePath, 'utf-8');
           return JSON.parse(content);
-        } catch {}
+        } catch (e) {
+          console.warn(`[LevelLoader] 微信文件系统读取失败(${filePath}):`, e);
+        }
       }
-    } catch {}
+    } catch (e) {
+      console.warn(`[LevelLoader] 微信环境加载失败(${fileName}):`, e);
+    }
 
     return null;
   }
@@ -429,6 +439,15 @@ export class LevelLoader {
           }
         }
       }
+    }
+
+    if (this.levelConfigs.size === 0) {
+      for (let id = 1; id <= 50; id++) {
+        if (this.levelConfigs.has(id)) continue;
+        const config = await this.loadLevel(id);
+        if (!config) break;
+      }
+      return;
     }
 
     let id = 1;
