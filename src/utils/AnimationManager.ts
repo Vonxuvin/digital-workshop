@@ -8,9 +8,18 @@ interface AnimationEntry {
   active: boolean;
 }
 
+interface TimerEntry {
+  id: string;
+  callback: () => void;
+  remainingMs: number;
+  active: boolean;
+  repeat: boolean;
+}
+
 export class AnimationManager {
   private static instance: AnimationManager | null = null;
   private entries: Map<string, AnimationEntry> = new Map();
+  private timers: Map<string, TimerEntry> = new Map();
   private idCounter = 0;
 
   constructor() {}
@@ -48,6 +57,10 @@ export class AnimationManager {
     if (entry) {
       entry.active = false;
     }
+    const timer = this.timers.get(id);
+    if (timer) {
+      timer.active = false;
+    }
   }
 
   resume(id: string): void {
@@ -55,11 +68,18 @@ export class AnimationManager {
     if (entry) {
       entry.active = true;
     }
+    const timer = this.timers.get(id);
+    if (timer) {
+      timer.active = true;
+    }
   }
 
   pauseAll(): void {
     for (const entry of this.entries.values()) {
       entry.active = false;
+    }
+    for (const timer of this.timers.values()) {
+      timer.active = false;
     }
   }
 
@@ -67,6 +87,41 @@ export class AnimationManager {
     for (const entry of this.entries.values()) {
       entry.active = true;
     }
+    for (const timer of this.timers.values()) {
+      timer.active = true;
+    }
+  }
+
+  setTimeout(callback: () => void, delayMs: number, id?: string): string {
+    const timerId = id || `timer_${++this.idCounter}`;
+    this.timers.set(timerId, {
+      id: timerId,
+      callback,
+      remainingMs: delayMs,
+      active: true,
+      repeat: false,
+    });
+    return timerId;
+  }
+
+  setInterval(callback: () => void, intervalMs: number, id?: string): string {
+    const timerId = id || `interval_${++this.idCounter}`;
+    this.timers.set(timerId, {
+      id: timerId,
+      callback,
+      remainingMs: intervalMs,
+      active: true,
+      repeat: true,
+    });
+    return timerId;
+  }
+
+  clearTimeout(id: string): void {
+    this.timers.delete(id);
+  }
+
+  clearInterval(id: string): void {
+    this.timers.delete(id);
   }
 
   update(deltaMS: number): void {
@@ -74,6 +129,23 @@ export class AnimationManager {
       if (entry.active) {
         entry.callback(deltaMS);
       }
+    }
+
+    const expiredTimers: string[] = [];
+    for (const timer of this.timers.values()) {
+      if (!timer.active) continue;
+      timer.remainingMs -= deltaMS;
+      if (timer.remainingMs <= 0) {
+        timer.callback();
+        if (timer.repeat) {
+          timer.remainingMs += Math.abs(timer.remainingMs);
+        } else {
+          expiredTimers.push(timer.id);
+        }
+      }
+    }
+    for (const id of expiredTimers) {
+      this.timers.delete(id);
     }
   }
 
@@ -89,7 +161,12 @@ export class AnimationManager {
     return count;
   }
 
+  getTimerCount(): number {
+    return this.timers.size;
+  }
+
   destroy(): void {
     this.entries.clear();
+    this.timers.clear();
   }
 }

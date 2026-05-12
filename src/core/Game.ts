@@ -75,12 +75,6 @@ export class Game {
     this.levelSelectScreen = new LevelSelectScreen(this.saveManager, this.levelLoader);
     this.pauseScreen = new PauseScreen();
     this.gameHUD = new GameHUD(this.propSystem);
-
-    AudioManager.setInstance(this.audioManager);
-    SaveManager.setInstance(this.saveManager);
-    LevelLoader.setInstance(this.levelLoader);
-    PropSystem.setInstance(this.propSystem);
-    ModifierManager.setInstance(this.modifierManager);
   }
 
   static getInstance(): Game {

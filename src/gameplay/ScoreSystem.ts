@@ -1,4 +1,5 @@
 import { eventBus } from '../utils/EventBus';
+import { AnimationManager } from '../utils/AnimationManager';
 
 export interface ScoreConfig {
   baseScore: number;
@@ -26,7 +27,7 @@ export interface ScoreResult {
 export class ScoreSystem {
   private currentScore = 0;
   private chainCount = 0;
-  private chainTimer: number | null = null;
+  private chainTimer: string | null = null;
   private readonly chainTimeout = 2000;
   private onMergeBound: (data: { newValue: number; chainCount: number }) => void;
 
@@ -50,9 +51,9 @@ export class ScoreSystem {
     this.currentScore += earnedScore;
 
     if (this.chainTimer) {
-      clearTimeout(this.chainTimer);
+      AnimationManager.getInstance().clearTimeout(this.chainTimer);
     }
-    this.chainTimer = globalThis.setTimeout(() => {
+    this.chainTimer = AnimationManager.getInstance().setTimeout(() => {
       this.chainCount = 0;
     }, this.chainTimeout);
 
@@ -79,7 +80,7 @@ export class ScoreSystem {
     this.currentScore = 0;
     this.chainCount = 0;
     if (this.chainTimer) {
-      clearTimeout(this.chainTimer);
+      AnimationManager.getInstance().clearTimeout(this.chainTimer);
       this.chainTimer = null;
     }
   }

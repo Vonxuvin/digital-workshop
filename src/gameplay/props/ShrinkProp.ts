@@ -1,6 +1,6 @@
-import * as PIXI from 'pixi.js';
 import { Prop, PropConfig } from './Prop';
 import { eventBus } from '../../utils/EventBus';
+import { AnimationManager } from '../../utils/AnimationManager';
 
 export class ShrinkProp extends Prop {
   private lastUseTime: number = 0;
@@ -9,7 +9,7 @@ export class ShrinkProp extends Prop {
   private shrinkDuration: number = 8000;
   private isActive: boolean = false;
   private remainingMs: number = 0;
-  private tickerCallback: ((ticker: any) => void) | null = null;
+  private shrinkTimerId: string | null = null;
 
   constructor(config: PropConfig) {
     super(config);
@@ -39,19 +39,18 @@ export class ShrinkProp extends Prop {
 
   private startShrinkTimer(): void {
     this.stopShrinkTimer();
-    this.tickerCallback = (ticker: any) => {
-      this.remainingMs -= ticker.deltaMS;
+    this.shrinkTimerId = AnimationManager.getInstance().register((deltaMS) => {
+      this.remainingMs -= deltaMS;
       if (this.remainingMs <= 0) {
         this.deactivate();
       }
-    };
-    PIXI.Ticker.shared.add(this.tickerCallback);
+    }, `shrink_${this.config.id}`);
   }
 
   private stopShrinkTimer(): void {
-    if (this.tickerCallback) {
-      PIXI.Ticker.shared.remove(this.tickerCallback);
-      this.tickerCallback = null;
+    if (this.shrinkTimerId) {
+      AnimationManager.getInstance().unregister(this.shrinkTimerId);
+      this.shrinkTimerId = null;
     }
   }
 
@@ -64,12 +63,14 @@ export class ShrinkProp extends Prop {
   }
 
   pause(): void {
-    this.stopShrinkTimer();
+    if (this.shrinkTimerId) {
+      AnimationManager.getInstance().pause(this.shrinkTimerId);
+    }
   }
 
   resume(): void {
-    if (this.isActive && this.remainingMs > 0) {
-      this.startShrinkTimer();
+    if (this.isActive && this.remainingMs > 0 && this.shrinkTimerId) {
+      AnimationManager.getInstance().resume(this.shrinkTimerId);
     }
   }
 

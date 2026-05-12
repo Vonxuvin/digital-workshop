@@ -1,18 +1,21 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ScoreSystem, SCORE_CONFIGS } from '../src/gameplay/ScoreSystem';
 import { eventBus } from '../src/utils/EventBus';
+import { AnimationManager } from '../src/utils/AnimationManager';
 
 describe('ScoreSystem', () => {
   let ss: ScoreSystem;
+  let animMgr: AnimationManager;
 
   beforeEach(() => {
-    vi.useFakeTimers();
+    animMgr = new AnimationManager();
+    AnimationManager.setInstance(animMgr);
     ss = new ScoreSystem();
   });
 
   afterEach(() => {
     ss.reset();
-    vi.useRealTimers();
+    AnimationManager.resetInstance();
   });
 
   it('should initialize with zero score', () => {
@@ -45,7 +48,7 @@ describe('ScoreSystem', () => {
   it('should reset chain after timeout', () => {
     eventBus.emit('block:merged', { newValue: 2, chainCount: 1 });
     expect(ss.getChainCount()).toBe(1);
-    vi.advanceTimersByTime(2500);
+    animMgr.update(2500);
     expect(ss.getChainCount()).toBe(0);
   });
 
@@ -57,6 +60,7 @@ describe('ScoreSystem', () => {
     const data = handler.mock.calls[0][0];
     expect(data.totalScore).toBeGreaterThan(0);
     expect(data.earnedScore).toBeGreaterThan(0);
+    eventBus.off('score:updated', handler);
   });
 
   it('should chain bonus increase score', () => {
@@ -77,7 +81,7 @@ describe('ScoreSystem', () => {
   it('should accumulate scores across multiple merges', () => {
     eventBus.emit('block:merged', { newValue: 2, chainCount: 1 });
     const score1 = ss.getCurrentScore();
-    vi.advanceTimersByTime(2500);
+    animMgr.update(2500);
     eventBus.emit('block:merged', { newValue: 4, chainCount: 1 });
     const score2 = ss.getCurrentScore();
     expect(score2).toBeGreaterThan(score1);

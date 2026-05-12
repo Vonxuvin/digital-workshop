@@ -1,7 +1,7 @@
-import * as PIXI from 'pixi.js';
 import { Prop, PropConfig } from './Prop';
 import { eventBus } from '../../utils/EventBus';
 import { PhysicsManager } from '../../core/PhysicsManager';
+import { AnimationManager } from '../../utils/AnimationManager';
 
 export class FreezeProp extends Prop {
   private eventBus = eventBus;
@@ -11,7 +11,7 @@ export class FreezeProp extends Prop {
   private freezeDuration: number = 5000;
   private isFrozen: boolean = false;
   private remainingFreezeMs: number = 0;
-  private tickerCallback: ((ticker: any) => void) | null = null;
+  private freezeTimerId: string | null = null;
 
   constructor(config: PropConfig) {
     super(config);
@@ -48,19 +48,18 @@ export class FreezeProp extends Prop {
 
   private startFreezeTimer(): void {
     this.stopFreezeTimer();
-    this.tickerCallback = (ticker: any) => {
-      this.remainingFreezeMs -= ticker.deltaMS;
+    this.freezeTimerId = AnimationManager.getInstance().register((deltaMS) => {
+      this.remainingFreezeMs -= deltaMS;
       if (this.remainingFreezeMs <= 0) {
         this.unfreeze();
       }
-    };
-    PIXI.Ticker.shared.add(this.tickerCallback);
+    }, `freeze_${this.config.id}`);
   }
 
   private stopFreezeTimer(): void {
-    if (this.tickerCallback) {
-      PIXI.Ticker.shared.remove(this.tickerCallback);
-      this.tickerCallback = null;
+    if (this.freezeTimerId) {
+      AnimationManager.getInstance().unregister(this.freezeTimerId);
+      this.freezeTimerId = null;
     }
   }
 
@@ -86,12 +85,14 @@ export class FreezeProp extends Prop {
   }
 
   pause(): void {
-    this.stopFreezeTimer();
+    if (this.freezeTimerId) {
+      AnimationManager.getInstance().pause(this.freezeTimerId);
+    }
   }
 
   resume(): void {
-    if (this.isFrozen && this.remainingFreezeMs > 0) {
-      this.startFreezeTimer();
+    if (this.isFrozen && this.remainingFreezeMs > 0 && this.freezeTimerId) {
+      AnimationManager.getInstance().resume(this.freezeTimerId);
     }
   }
 

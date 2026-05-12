@@ -4,7 +4,7 @@ import { AudioManager } from './AudioManager';
 import { SaveManager } from './SaveManager';
 import { LevelLoader } from './LevelLoader';
 import { PropType } from '../gameplay/props/Prop';
-import { eventBus } from '../utils/EventBus';
+import { eventBus, NamespacedEventBus } from '../utils/EventBus';
 
 export class GameEventRouter {
   private gameScene: GameScene;
@@ -12,8 +12,7 @@ export class GameEventRouter {
   private audioManager: AudioManager;
   private saveManager: SaveManager;
   private levelLoader: LevelLoader;
-
-  private boundHandlers: Map<string, (...args: any[]) => void> = new Map();
+  private ns: NamespacedEventBus;
 
   constructor(
     gameScene: GameScene,
@@ -27,38 +26,34 @@ export class GameEventRouter {
     this.audioManager = audioManager;
     this.saveManager = saveManager;
     this.levelLoader = levelLoader;
+    this.ns = eventBus.createNamespace('gameRouter');
   }
 
   setup(): void {
-    this.registerHandler('block:merged', this.handleBlockMerged.bind(this));
-    this.registerHandler('game:over', this.handleGameOver.bind(this));
-    this.registerHandler('game:timeout', this.handleTimeout.bind(this));
-    this.registerHandler('level:completed', this.handleLevelCompleted.bind(this));
-    this.registerHandler('ui:startGame', this.handleStartGame.bind(this));
-    this.registerHandler('ui:selectLevel', this.handleSelectLevel.bind(this));
-    this.registerHandler('ui:pause', this.handlePause.bind(this));
-    this.registerHandler('ui:resume', this.handleResume.bind(this));
-    this.registerHandler('ui:restart', this.handleRestart.bind(this));
-    this.registerHandler('ui:backToMenu', this.handleBackToMenu.bind(this));
-    this.registerHandler('ui:nextLevel', this.handleNextLevel.bind(this));
-    this.registerHandler('ui:levelSelect', this.handleLevelSelect.bind(this));
-    this.registerHandler('ui:revive', this.handleRevive.bind(this));
-    this.registerHandler('props:bomb:explode', this.handleBombExplode.bind(this));
-    this.registerHandler('props:freeze:activated', this.handleFreezeActivated.bind(this));
-    this.registerHandler('props:freeze:deactivated', this.handleFreezeDeactivated.bind(this));
-    this.registerHandler('ui:propTargetMode', this.handlePropTargetMode.bind(this));
-    this.registerHandler('gameplay:nextBlock', this.handleNextRainbowBlock.bind(this));
-    this.registerHandler('props:rainbow:consumed', this.handleRainbowConsumed.bind(this));
-    this.registerHandler('props:shrink:activate', this.handleShrinkActivate.bind(this));
-    this.registerHandler('props:shrink:deactivate', this.handleShrinkDeactivate.bind(this));
-    this.registerHandler('props:lucky:activate', this.handleLuckyActivate.bind(this));
-    this.registerHandler('props:lucky:deactivate', this.handleLuckyDeactivate.bind(this));
-    this.registerHandler('level:timeUpdate', this.handleLevelTimeUpdate.bind(this));
-  }
-
-  private registerHandler(event: string, handler: (...args: any[]) => void): void {
-    this.boundHandlers.set(event, handler);
-    eventBus.on(event, handler);
+    this.ns.on('block:merged', this.handleBlockMerged.bind(this));
+    this.ns.on('game:over', this.handleGameOver.bind(this));
+    this.ns.on('game:timeout', this.handleTimeout.bind(this));
+    this.ns.on('level:completed', this.handleLevelCompleted.bind(this));
+    this.ns.on('ui:startGame', this.handleStartGame.bind(this));
+    this.ns.on('ui:selectLevel', this.handleSelectLevel.bind(this));
+    this.ns.on('ui:pause', this.handlePause.bind(this));
+    this.ns.on('ui:resume', this.handleResume.bind(this));
+    this.ns.on('ui:restart', this.handleRestart.bind(this));
+    this.ns.on('ui:backToMenu', this.handleBackToMenu.bind(this));
+    this.ns.on('ui:nextLevel', this.handleNextLevel.bind(this));
+    this.ns.on('ui:levelSelect', this.handleLevelSelect.bind(this));
+    this.ns.on('ui:revive', this.handleRevive.bind(this));
+    this.ns.on('props:bomb:explode', this.handleBombExplode.bind(this));
+    this.ns.on('props:freeze:activated', this.handleFreezeActivated.bind(this));
+    this.ns.on('props:freeze:deactivated', this.handleFreezeDeactivated.bind(this));
+    this.ns.on('ui:propTargetMode', this.handlePropTargetMode.bind(this));
+    this.ns.on('gameplay:nextBlock', this.handleNextRainbowBlock.bind(this));
+    this.ns.on('props:rainbow:consumed', this.handleRainbowConsumed.bind(this));
+    this.ns.on('props:shrink:activate', this.handleShrinkActivate.bind(this));
+    this.ns.on('props:shrink:deactivate', this.handleShrinkDeactivate.bind(this));
+    this.ns.on('props:lucky:activate', this.handleLuckyActivate.bind(this));
+    this.ns.on('props:lucky:deactivate', this.handleLuckyDeactivate.bind(this));
+    this.ns.on('level:timeUpdate', this.handleLevelTimeUpdate.bind(this));
   }
 
   private handleBlockMerged(data: BlockMergedData): void {
@@ -172,9 +167,6 @@ export class GameEventRouter {
   }
 
   destroy(): void {
-    for (const [event, handler] of this.boundHandlers) {
-      eventBus.off(event, handler);
-    }
-    this.boundHandlers.clear();
+    this.ns.offAll();
   }
 }

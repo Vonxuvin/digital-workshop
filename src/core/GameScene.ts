@@ -11,10 +11,7 @@ import { GameHUD } from '../ui/hud/GameHUD';
 import { GameEffectManager } from './GameEffectManager';
 import { ModifierManager } from '../gameplay/modifiers/ModifierManager';
 import { PropSystem } from '../gameplay/props/PropSystem';
-import { PropType } from '../gameplay/props/Prop';
-import { FreezeProp } from '../gameplay/props/FreezeProp';
-import { ShrinkProp } from '../gameplay/props/ShrinkProp';
-import { BombProp } from '../gameplay/props/BombProp';
+import { PropEffectHandler } from './PropEffectHandler';
 import { PerformanceMonitor } from '../utils/PerformanceMonitor';
 import Matter from 'matter-js';
 
@@ -43,9 +40,9 @@ export class GameScene {
   private gameHUD: GameHUD;
   private modifierManager: ModifierManager;
   private propSystem: PropSystem;
+  private propEffectHandler!: PropEffectHandler;
   private performanceMonitor: PerformanceMonitor;
   private physicsAccumulator = 0;
-  private bombTargetMode = false;
   private gameStartTime: number = 0;
   private containerWidth: number = 0;
   private containerHeight: number = 0;
@@ -77,6 +74,15 @@ export class GameScene {
   init(): void {
     this.blockSpawner = new BlockSpawner(this.physics, this.mergeSystem, this.propSystem, this.app.stage);
     this.effectManager = new GameEffectManager(this.app.stage);
+    this.propEffectHandler = new PropEffectHandler(
+      this.blockSpawner,
+      this.mergeSystem,
+      this.physics,
+      this.effectManager,
+      this.propSystem,
+      this.gameHUD,
+      this.preview,
+    );
   }
 
   setupContainer(): void {
@@ -104,6 +110,7 @@ export class GameScene {
     this.warningLine.y = this.groundY * 0.8;
     this.warningLine.visible = false;
     this.app.stage.addChild(this.warningLine);
+    this.propEffectHandler.setWarningLine(this.warningLine);
     this.preview.setGroundY(this.groundY);
   }
 
@@ -158,6 +165,7 @@ export class GameScene {
     }
     this.levelSystem = new LevelSystem(config);
     this.currentLevelConfig = config;
+    this.propEffectHandler.setLevelSystem(this.levelSystem);
     this.blockSpawner.setLevelConfig(config);
     this.gameHUD.updateLevel(config.id, config.name);
     this.setupContainer();
@@ -190,12 +198,8 @@ export class GameScene {
     this.warningLine?.reset();
     this.warningLine?.setDisabled(false);
     this.levelSystem?.reset();
-    this.bombTargetMode = false;
-    this.shrinkActive = false;
-    this.shrinkFactor = 1;
-    this.originalBodyVertices.clear();
+    this.propEffectHandler.reset();
     this.blockSpawner.reset();
-    this.effectManager.removeFreezeEffect();
     this.modifierManager.stopAll();
     this.modifierManager.clearAll();
     this.rebuildPhysicsWalls();
@@ -206,7 +210,7 @@ export class GameScene {
     this.setupContainer();
     this.resetGame();
     this.propSystem.reset();
-    this.initializeProps();
+    this.propEffectHandler.initializeProps();
     this.physics.start();
     this.levelSystem?.start();
     this.drawContainerWalls();
@@ -227,30 +231,12 @@ export class GameScene {
     this.physics.stop();
     this.levelSystem?.pause();
     this.modifierManager.pauseAll();
-    const freezeProp = this.propSystem.getProp(PropType.FREEZE) as FreezeProp;
-    if (freezeProp) {
-      freezeProp.pause();
-    }
-    const shrinkProp = this.propSystem.getProp(PropType.SHRINK) as ShrinkProp;
-    if (shrinkProp) {
-      shrinkProp.pause();
-    }
+    this.propEffectHandler.pause();
     this.preview.hide();
   }
 
   resume(): void {
-    const freezeProp = this.propSystem.getProp(PropType.FREEZE) as FreezeProp;
-    const isFrozen = freezeProp?.isCurrentlyFrozen() ?? false;
-    if (!isFrozen) {
-      this.physics.start();
-    }
-    if (freezeProp) {
-      freezeProp.resume();
-    }
-    const shrinkProp = this.propSystem.getProp(PropType.SHRINK) as ShrinkProp;
-    if (shrinkProp) {
-      shrinkProp.resume();
-    }
+    this.propEffectHandler.resume();
     this.levelSystem?.resume();
     this.modifierManager.resumeAll();
   }
@@ -291,131 +277,55 @@ export class GameScene {
   }
 
   handleBombExplode(data: { x: number; y: number; radius: number }): void {
-    const bombProp = this.propSystem.getProp(PropType.BOMB) as BombProp;
-    if (!bombProp) {
-      console.error('[GameScene] BombProp 未找到');
-      return;
-    }
-
-    const affectedBlocks = bombProp.getAffectedBlocks(this.blockSpawner.getBlocks(), data.x, data.y);
-    for (const block of affectedBlocks) {
-      this.blockSpawner.removeBlock(block);
-      this.mergeSystem.unregisterBlock(block);
-      this.physics.removeBody(block.body);
-      block.destroy();
-    }
-
-    this.effectManager.addExplosionEffect(data.x, data.y, data.radius);
-
-    if (this.levelSystem) {
-      this.gameHUD.setObjectiveProgress(this.levelSystem.getProgress());
-    }
+    this.propEffectHandler.handleBombExplode(data);
   }
 
   handleFreezeActivated(data: { duration: number; endTime: number }): void {
-    this.effectManager.addFreezeEffect(this.app.screen.width, this.app.screen.height);
+    this.propEffectHandler.handleFreezeActivated(data);
   }
 
   handleFreezeDeactivated(): void {
-    this.effectManager.removeFreezeEffect();
+    this.propEffectHandler.handleFreezeDeactivated();
   }
 
-  private shrinkActive: boolean = false;
-  private shrinkFactor: number = 1;
-  private originalBodyVertices: Map<string, Matter.Vector[]> = new Map();
-
   handleShrinkActivate(data: { factor: number; duration: number }): void {
-    if (this.shrinkActive) {
-      this.handleShrinkDeactivate();
-    }
-    this.shrinkActive = true;
-    this.shrinkFactor = data.factor;
-    const blocks = this.blockSpawner.getBlocks();
-    for (const block of blocks) {
-      this.originalBodyVertices.set(block.body.label, block.body.vertices.map(v => ({ x: v.x, y: v.y })));
-      block.scale.set(data.factor);
-      Matter.Body.scale(block.body, data.factor, data.factor);
-    }
+    this.propEffectHandler.handleShrinkActivate(data);
   }
 
   handleShrinkDeactivate(): void {
-    if (!this.shrinkActive) return;
-    this.shrinkActive = false;
-    const blocks = this.blockSpawner.getBlocks();
-    for (const block of blocks) {
-      const original = this.originalBodyVertices.get(block.body.label);
-      if (original) {
-        const centre = {
-          x: (original[0].x + original[2].x) / 2,
-          y: (original[0].y + original[2].y) / 2,
-        };
-        Matter.Body.setVertices(block.body, original);
-        Matter.Body.setPosition(block.body, centre);
-        Matter.Body.setAngle(block.body, block.body.angle);
-      }
-      block.scale.set(1);
-    }
-    this.originalBodyVertices.clear();
-    this.shrinkFactor = 1;
+    this.propEffectHandler.handleShrinkDeactivate();
   }
 
   handleLuckyActivate(data: { multiplier: number; remainingDrops: number }): void {
-    this.blockSpawner.setLuckyMode(true, data.multiplier);
+    this.propEffectHandler.handleLuckyActivate(data);
   }
 
   handleLuckyDeactivate(): void {
-    this.blockSpawner.setLuckyMode(false, 1);
+    this.propEffectHandler.handleLuckyDeactivate();
   }
 
-  handlePropTargetMode(data: { type?: PropType; enabled: boolean }): void {
-    this.bombTargetMode = data.enabled === true;
-    if (this.bombTargetMode) {
-      this.preview.hide();
-    }
+  handlePropTargetMode(data: { type?: any; enabled: boolean }): void {
+    this.propEffectHandler.handlePropTargetMode(data);
   }
 
   handleNextRainbowBlock(data: { isRainbow: boolean; remaining: number }): void {
-    if (data.isRainbow) {
-      this.blockSpawner.setRainbowRemaining(data.remaining);
-    }
+    this.propEffectHandler.handleNextRainbowBlock(data);
   }
 
   handleRainbowConsumed(data: { remainingBlocks: number }): void {
-    this.blockSpawner.setRainbowRemaining(data.remainingBlocks);
+    this.propEffectHandler.handleRainbowConsumed(data);
   }
 
   handleRevive(): void {
-    const warningY = this.warningLine ? this.warningLine.y : this.groundY * 0.8;
-    const blocks = this.blockSpawner.getBlocks();
-    const blocksToRemove = blocks.filter(b => b.y < warningY);
-    for (const block of blocksToRemove) {
-      this.blockSpawner.removeBlock(block);
-      this.mergeSystem.unregisterBlock(block);
-      this.physics.removeBody(block.body);
-      block.destroy();
-    }
-    this.warningLine?.reset();
-    this.physics.start();
-    this.levelSystem?.resume();
-    this.modifierManager.resumeAll();
+    this.propEffectHandler.handleRevive(this.groundY, this.modifierManager);
   }
 
   initializeProps(): void {
-    this.propSystem.initialize([
-      { type: PropType.BOMB, count: 3 },
-      { type: PropType.RAINBOW, count: 3 },
-      { type: PropType.FREEZE, count: 3 },
-      { type: PropType.SHRINK, count: 2 },
-      { type: PropType.LUCKY, count: 2 },
-    ]);
-    const freezeProp = this.propSystem.getProp(PropType.FREEZE) as FreezeProp;
-    if (freezeProp) {
-      freezeProp.setPhysicsManager(this.physics);
-    }
+    this.propEffectHandler.initializeProps();
   }
 
   getBombTargetMode(): boolean {
-    return this.bombTargetMode;
+    return this.propEffectHandler.getBombTargetMode();
   }
 
   usePropAtPosition(x: number, y: number): void {
@@ -530,6 +440,7 @@ export class GameScene {
   getEffectManager(): GameEffectManager { return this.effectManager; }
   getPropSystem(): PropSystem { return this.propSystem; }
   getModifierManager(): ModifierManager { return this.modifierManager; }
+  getPropEffectHandler(): PropEffectHandler { return this.propEffectHandler; }
 
   setWarningLineVisible(visible: boolean): void {
     if (this.warningLine) {

@@ -7,6 +7,7 @@ import { LevelLoader } from '../src/core/LevelLoader';
 import { GameStateMachine, GameState } from '../src/core/GameStateMachine';
 import { InputManager } from '../src/core/InputManager';
 import { WarningLine } from '../src/ui/components/WarningLine';
+import { AnimationManager } from '../src/utils/AnimationManager';
 
 describe('Deep Integration Tests', () => {
 
@@ -442,15 +443,17 @@ describe('Deep Integration Tests', () => {
 
     describe('3.1 ScoreSystem boundary conditions', () => {
       let ss: ScoreSystem;
+      let animMgr: AnimationManager;
 
       beforeEach(() => {
-        vi.useFakeTimers();
+        animMgr = new AnimationManager();
+        AnimationManager.setInstance(animMgr);
         ss = new ScoreSystem();
       });
 
       afterEach(() => {
         ss.reset();
-        vi.useRealTimers();
+        AnimationManager.resetInstance();
       });
 
       it('should handle merge with value 0 (edge case)', () => {
@@ -514,7 +517,7 @@ describe('Deep Integration Tests', () => {
           eventBus.emit('block:merged', { newValue: 2, chainCount: 1 });
         }
         expect(ss.getChainCount()).toBe(50);
-        vi.advanceTimersByTime(2500);
+        animMgr.update(2500);
         expect(ss.getChainCount()).toBe(0);
       });
     });

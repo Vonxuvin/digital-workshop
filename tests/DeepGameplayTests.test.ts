@@ -6,18 +6,21 @@ import { PhysicsManager } from '../src/core/PhysicsManager';
 import { Block, BLOCK_CONFIGS } from '../src/gameplay/Block';
 import { WarningLine } from '../src/ui/components/WarningLine';
 import { eventBus } from '../src/utils/EventBus';
+import { AnimationManager } from '../src/utils/AnimationManager';
 
 describe('ScoreSystem Deep Tests', () => {
   let ss: ScoreSystem;
+  let animMgr: AnimationManager;
 
   beforeEach(() => {
-    vi.useFakeTimers();
+    animMgr = new AnimationManager();
+    AnimationManager.setInstance(animMgr);
     ss = new ScoreSystem();
   });
 
   afterEach(() => {
     ss.reset();
-    vi.useRealTimers();
+    AnimationManager.resetInstance();
   });
 
   describe('MEMORY LEAK: Event listener never cleaned up', () => {
@@ -111,18 +114,18 @@ describe('ScoreSystem Deep Tests', () => {
       eventBus.emit('block:merged', { newValue: 2, chainCount: 1 });
       expect(ss.getChainCount()).toBe(1);
 
-      vi.advanceTimersByTime(1500);
+      animMgr.update(1500);
       eventBus.emit('block:merged', { newValue: 2, chainCount: 2 });
       expect(ss.getChainCount()).toBe(2);
 
-      vi.advanceTimersByTime(1500);
+      animMgr.update(1500);
       eventBus.emit('block:merged', { newValue: 2, chainCount: 3 });
       expect(ss.getChainCount()).toBe(3);
     });
 
     it('chain resets after full timeout', () => {
       eventBus.emit('block:merged', { newValue: 2, chainCount: 1 });
-      vi.advanceTimersByTime(2500);
+      animMgr.update(2500);
       expect(ss.getChainCount()).toBe(0);
 
       eventBus.emit('block:merged', { newValue: 2, chainCount: 1 });
