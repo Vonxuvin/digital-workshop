@@ -18,7 +18,10 @@ export class BlockSpawner {
   private currentValue: number = 1;
   private canDrop = true;
   private dropCooldown = 500;
-  private autoSpawnTimer: ReturnType<typeof setInterval> | null = null;
+  private cooldownRemaining: number = 0;
+  private autoSpawnInterval: number = 0;
+  private autoSpawnElapsed: number = 0;
+  private autoSpawnDropY: number = 80;
   private rainbowRemaining = 0;
   private currentLevelConfig: LevelConfig | null = null;
 
@@ -66,28 +69,40 @@ export class BlockSpawner {
   }
 
   startCooldown(): void {
+    this.cooldownRemaining = this.dropCooldown;
     this.canDrop = false;
-    setTimeout(() => {
-      this.canDrop = true;
-    }, this.dropCooldown);
   }
 
   startAutoSpawn(interval: number, dropY: number): void {
     this.stopAutoSpawn();
     if (interval <= 0) return;
-
-    this.autoSpawnTimer = window.setInterval(() => {
-      const w = (this.stage as any).renderer?.width || 400;
-      const x = Math.random() * (w - 100) + 50;
-      this.dropBlock(x, dropY, this.currentValue);
-      this.startCooldown();
-    }, interval);
+    this.autoSpawnInterval = interval;
+    this.autoSpawnElapsed = 0;
+    this.autoSpawnDropY = dropY;
   }
 
   stopAutoSpawn(): void {
-    if (this.autoSpawnTimer) {
-      clearInterval(this.autoSpawnTimer);
-      this.autoSpawnTimer = null;
+    this.autoSpawnInterval = 0;
+  }
+
+  update(deltaMS: number): void {
+    if (this.cooldownRemaining > 0) {
+      this.cooldownRemaining -= deltaMS;
+      if (this.cooldownRemaining <= 0) {
+        this.cooldownRemaining = 0;
+        this.canDrop = true;
+      }
+    }
+
+    if (this.autoSpawnInterval > 0) {
+      this.autoSpawnElapsed += deltaMS;
+      if (this.autoSpawnElapsed >= this.autoSpawnInterval) {
+        this.autoSpawnElapsed -= this.autoSpawnInterval;
+        const w = (this.stage as any).renderer?.width || 400;
+        const x = Math.random() * (w - 100) + 50;
+        this.dropBlock(x, this.autoSpawnDropY, this.currentValue);
+        this.startCooldown();
+      }
     }
   }
 
@@ -204,6 +219,9 @@ export class BlockSpawner {
     this.clearObstacles();
     this.stopAutoSpawn();
     this.canDrop = true;
+    this.cooldownRemaining = 0;
+    this.autoSpawnInterval = 0;
+    this.autoSpawnElapsed = 0;
     this.rainbowRemaining = 0;
     this.currentValue = 1;
   }

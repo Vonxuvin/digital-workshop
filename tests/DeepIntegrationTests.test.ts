@@ -253,7 +253,7 @@ describe('Deep Integration Tests', () => {
 
       it('BUG: parseLevelConfig with missing objective field crashes (no validation)', async () => {
         const malformedData = {
-          id: 1,
+          id: 90,
           name: 'Broken Level',
         };
 
@@ -262,13 +262,13 @@ describe('Deep Integration Tests', () => {
           json: () => Promise.resolve(malformedData),
         });
 
-        const config = await loader.loadLevel(1);
+        const config = await loader.loadLevel(90);
         expect(config).toBeNull();
       });
 
       it('BUG: parseLevelConfig with missing container field crashes (no validation)', async () => {
         const malformedData = {
-          id: 2,
+          id: 91,
           name: 'No Container',
           objective: { type: 'score', target: 100 },
         };
@@ -278,13 +278,13 @@ describe('Deep Integration Tests', () => {
           json: () => Promise.resolve(malformedData),
         });
 
-        const config = await loader.loadLevel(2);
+        const config = await loader.loadLevel(91);
         expect(config).toBeNull();
       });
 
       it('BUG: parseLevelConfig with missing spawn field crashes (no validation)', async () => {
         const malformedData = {
-          id: 3,
+          id: 92,
           name: 'No Spawn',
           objective: { type: 'score', target: 100 },
           container: { width: 400, height: 600 },
@@ -295,13 +295,13 @@ describe('Deep Integration Tests', () => {
           json: () => Promise.resolve(malformedData),
         });
 
-        const config = await loader.loadLevel(3);
+        const config = await loader.loadLevel(92);
         expect(config).toBeNull();
       });
 
       it('should work with extra fields in JSON data', async () => {
         const dataWithExtras = {
-          id: 4,
+          id: 93,
           name: 'Extra Fields Level',
           objective: { type: 'score', target: 500, timeLimit: 60 },
           container: { width: 400, height: 600 },
@@ -316,9 +316,9 @@ describe('Deep Integration Tests', () => {
           json: () => Promise.resolve(dataWithExtras),
         });
 
-        const config = await loader.loadLevel(4);
+        const config = await loader.loadLevel(93);
         expect(config).not.toBeNull();
-        expect(config!.id).toBe(4);
+        expect(config!.id).toBe(93);
         expect(config!.name).toBe('Extra Fields Level');
         expect(config!.objective.type).toBe('score');
         expect(config!.objective.target).toBe(500);
@@ -356,7 +356,7 @@ describe('Deep Integration Tests', () => {
 
       it('should return cached result when loading same level twice', async () => {
         const mockConfig = {
-          id: 5,
+          id: 94,
           name: 'Cached Level',
           objective: { type: 'score', target: 200 },
           container: { width: 400, height: 600 },
@@ -368,8 +368,8 @@ describe('Deep Integration Tests', () => {
           json: () => Promise.resolve(mockConfig),
         });
 
-        const first = await loader.loadLevel(5);
-        const second = await loader.loadLevel(5);
+        const first = await loader.loadLevel(94);
+        const second = await loader.loadLevel(94);
 
         expect(first).toBe(second);
         expect(global.fetch).toHaveBeenCalledTimes(1);
@@ -377,7 +377,7 @@ describe('Deep Integration Tests', () => {
 
       it('should clear cache and allow re-fetching', async () => {
         const mockConfig = {
-          id: 6,
+          id: 95,
           name: 'Cache Clear Level',
           objective: { type: 'score', target: 300 },
           container: { width: 400, height: 600 },
@@ -389,50 +389,50 @@ describe('Deep Integration Tests', () => {
           json: () => Promise.resolve(mockConfig),
         });
 
-        await loader.loadLevel(6);
+        await loader.loadLevel(95);
         expect(global.fetch).toHaveBeenCalledTimes(1);
 
         loader.clearCache();
 
-        await loader.loadLevel(6);
+        await loader.loadLevel(95);
         expect(global.fetch).toHaveBeenCalledTimes(2);
       });
 
       it('should cache multiple different levels independently', async () => {
-        const mockConfig7 = {
-          id: 7,
-          name: 'Level Seven',
+        const mockConfig96 = {
+          id: 96,
+          name: 'Level Ninety-Six',
           objective: { type: 'score', target: 700 },
           container: { width: 400, height: 600 },
           spawn: { availableNumbers: [1, 2, 4] },
         };
-        const mockConfig8 = {
-          id: 8,
-          name: 'Level Eight',
+        const mockConfig97 = {
+          id: 97,
+          name: 'Level Ninety-Seven',
           objective: { type: 'target_merge', target: 32 },
           container: { width: 500, height: 700 },
           spawn: { availableNumbers: [1, 2, 4, 8] },
         };
 
         global.fetch = vi.fn().mockImplementation((url: string) => {
-          if (url.includes('level_07')) {
-            return Promise.resolve({ ok: true, json: () => Promise.resolve(mockConfig7) });
+          if (url.includes('level_96')) {
+            return Promise.resolve({ ok: true, json: () => Promise.resolve(mockConfig96) });
           }
-          return Promise.resolve({ ok: true, json: () => Promise.resolve(mockConfig8) });
+          return Promise.resolve({ ok: true, json: () => Promise.resolve(mockConfig97) });
         });
 
-        const config7 = await loader.loadLevel(7);
-        const config8 = await loader.loadLevel(8);
+        const config96 = await loader.loadLevel(96);
+        const config97 = await loader.loadLevel(97);
 
-        expect(config7).not.toBeNull();
-        expect(config8).not.toBeNull();
-        expect(config7!.name).toBe('Level Seven');
-        expect(config8!.name).toBe('Level Eight');
+        expect(config96).not.toBeNull();
+        expect(config97).not.toBeNull();
+        expect(config96!.name).toBe('Level Ninety-Six');
+        expect(config97!.name).toBe('Level Ninety-Seven');
 
-        const cached7 = await loader.loadLevel(7);
-        const cached8 = await loader.loadLevel(8);
-        expect(cached7).toBe(config7);
-        expect(cached8).toBe(config8);
+        const cached96 = await loader.loadLevel(96);
+        const cached97 = await loader.loadLevel(97);
+        expect(cached96).toBe(config96);
+        expect(cached97).toBe(config97);
         expect(global.fetch).toHaveBeenCalledTimes(2);
       });
     });
@@ -522,13 +522,8 @@ describe('Deep Integration Tests', () => {
     describe('3.2 LevelSystem boundary conditions', () => {
       let ls: LevelSystem;
 
-      beforeEach(() => {
-        vi.useFakeTimers();
-      });
-
       afterEach(() => {
         if (ls) ls.reset();
-        vi.useRealTimers();
       });
 
       it('should complete immediately with target score of 0', () => {
@@ -587,7 +582,7 @@ describe('Deep Integration Tests', () => {
         };
         ls = new LevelSystem(config);
         ls.start();
-        vi.advanceTimersByTime(1000);
+        ls.update(1000);
         expect(ls.isLevelCompleted()).toBe(true);
       });
 
@@ -602,7 +597,7 @@ describe('Deep Integration Tests', () => {
         };
         ls = new LevelSystem(config);
         ls.start();
-        vi.advanceTimersByTime(5000);
+        ls.update(5000);
         expect(ls.isLevelCompleted()).toBe(false);
         expect(ls.getProgress()).toBeGreaterThan(0);
         expect(ls.getProgress()).toBeLessThan(1);

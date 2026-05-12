@@ -14,12 +14,7 @@ describe('LevelSystem Enhanced', () => {
     ...overrides,
   });
 
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
-
   afterEach(() => {
-    vi.useRealTimers();
     eventBus.offAll('*');
   });
 
@@ -95,7 +90,7 @@ describe('LevelSystem Enhanced', () => {
       }));
       const spy = vi.spyOn(eventBus, 'emit');
       levelSystem.start();
-      vi.advanceTimersByTime(60000);
+      levelSystem.update(60000);
       expect(spy).toHaveBeenCalledWith('level:completed', expect.any(Object));
     });
 
@@ -105,7 +100,7 @@ describe('LevelSystem Enhanced', () => {
       }));
       const spy = vi.spyOn(eventBus, 'emit');
       levelSystem.start();
-      vi.advanceTimersByTime(60000);
+      levelSystem.update(60000);
       expect(spy).toHaveBeenCalledWith('game:timeout');
     });
 
@@ -114,7 +109,7 @@ describe('LevelSystem Enhanced', () => {
         objective: { type: 'survival', target: 60, timeLimit: 60 },
       }));
       levelSystem.start();
-      vi.advanceTimersByTime(30000);
+      levelSystem.update(30000);
       expect(levelSystem.getProgress()).toBe(0.5);
     });
   });
@@ -126,7 +121,7 @@ describe('LevelSystem Enhanced', () => {
       }));
       levelSystem.start();
       levelSystem.pause();
-      vi.advanceTimersByTime(30000);
+      levelSystem.update(30000);
       expect(levelSystem.getProgress()).toBe(0);
     });
 
@@ -136,9 +131,9 @@ describe('LevelSystem Enhanced', () => {
       }));
       levelSystem.start();
       levelSystem.pause();
-      vi.advanceTimersByTime(30000);
+      levelSystem.update(30000);
       levelSystem.resume();
-      vi.advanceTimersByTime(30000);
+      levelSystem.update(30000);
       expect(levelSystem.getProgress()).toBe(0.5);
     });
   });

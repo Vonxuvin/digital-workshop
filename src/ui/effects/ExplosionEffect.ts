@@ -1,154 +1,86 @@
 import * as PIXI from 'pixi.js';
+import gsap from 'gsap';
 
 export class ExplosionEffect extends PIXI.Container {
-  private centerX: number;
-  private centerY: number;
-  private radius: number;
-  private onComplete: (() => void) | undefined;
-  private rings: PIXI.Graphics[] = [];
-  private particles: PIXI.Graphics[] = [];
-  private flash!: PIXI.Graphics;
-  private startTime: number = 0;
   public allComplete: boolean = false;
-  private tickerCallback: ((ticker: any) => void) | null = null;
-  private readonly DURATION = 0.8;
+  private timeline: gsap.core.Timeline | null = null;
 
   constructor(centerX: number, centerY: number, radius: number, onComplete?: () => void) {
     super();
-    this.centerX = centerX;
-    this.centerY = centerY;
-    this.radius = radius;
-    this.onComplete = onComplete;
-    this.createEffect();
-    this.playAnimation();
+    this.createEffect(centerX, centerY, radius, onComplete);
   }
 
-  private createEffect(): void {
+  private createEffect(cx: number, cy: number, radius: number, onComplete?: () => void): void {
     const numRings = 3;
     const numParticles = 12;
 
+    const rings: PIXI.Graphics[] = [];
     for (let i = 0; i < numRings; i++) {
       const ring = new PIXI.Graphics();
-      const ringRadius = (this.radius / numRings) * (i + 1);
-      const alpha = 1 - (i * 0.2);
-
+      const ringRadius = (radius / numRings) * (i + 1);
+      const alpha = 1 - i * 0.2;
       ring.fill({ color: 0xff6b6b, alpha });
       ring.circle(0, 0, ringRadius);
-      ring.x = this.centerX;
-      ring.y = this.centerY;
-      (ring as any).delay = i * 0.05;
-      (ring as any).duration = 0.4;
-      (ring as any).maxScale = 1.5;
+      ring.x = cx;
+      ring.y = cy;
       this.addChild(ring);
-      this.rings.push(ring);
+      rings.push(ring);
     }
 
+    const particles: PIXI.Graphics[] = [];
     for (let i = 0; i < numParticles; i++) {
       const particle = new PIXI.Graphics();
       const angle = (i / numParticles) * Math.PI * 2;
-      const distance = this.radius * 0.8;
-
+      const distance = radius * 0.8;
       particle.fill({ color: 0xffd93d, alpha: 1 });
       particle.circle(0, 0, 8);
-      particle.x = this.centerX;
-      particle.y = this.centerY;
-      (particle as any).targetX = this.centerX + Math.cos(angle) * distance;
-      (particle as any).targetY = this.centerY + Math.sin(angle) * distance;
-      (particle as any).delay = i * 0.02;
-      (particle as any).duration = 0.6;
+      particle.x = cx;
+      particle.y = cy;
       this.addChild(particle);
-      this.particles.push(particle);
+      particles.push(particle);
+
+      const targetX = cx + Math.cos(angle) * distance;
+      const targetY = cy + Math.sin(angle) * distance;
+      (particle as any)._targetX = targetX;
+      (particle as any)._targetY = targetY;
     }
 
-    this.flash = new PIXI.Graphics();
-    this.flash.fill({ color: 0xffffff, alpha: 0.8 });
-    this.flash.circle(0, 0, 30);
-    this.flash.x = this.centerX;
-    this.flash.y = this.centerY;
-    this.addChild(this.flash);
-  }
+    const flash = new PIXI.Graphics();
+    flash.fill({ color: 0xffffff, alpha: 0.8 });
+    flash.circle(0, 0, 30);
+    flash.x = cx;
+    flash.y = cy;
+    this.addChild(flash);
 
-  private playAnimation(): void {
-    this.startTime = performance.now();
-    this.tickerCallback = () => this.animate();
-    PIXI.Ticker.shared.add(this.tickerCallback);
-  }
-
-  private animate(): void {
-    if (this.allComplete) return;
-
-    const elapsed = (performance.now() - this.startTime) / 1000;
-    let allComplete = true;
-
-    this.rings.forEach((ring) => {
-      const ringElapsed = elapsed - (ring as any).delay;
-      if (ringElapsed < 0) {
-        allComplete = false;
-        return;
-      }
-      const progress = Math.min(ringElapsed / (ring as any).duration, 1);
-      const easeProgress = 1 - Math.pow(1 - progress, 2);
-      ring.alpha = 1 - easeProgress;
-      const scale = 1 + ((ring as any).maxScale - 1) * easeProgress;
-      ring.scale.set(scale);
-      if (progress < 1) allComplete = false;
+    this.timeline = gsap.timeline({
+      onComplete: () => {
+        this.allComplete = true;
+        if (onComplete) onComplete();
+        this.destroy();
+      },
     });
 
-    this.particles.forEach((particle) => {
-      const particleElapsed = elapsed - (particle as any).delay;
-      if (particleElapsed < 0) {
-        allComplete = false;
-        return;
-      }
-      const progress = Math.min(particleElapsed / (particle as any).duration, 1);
-      const easeProgress = 1 - Math.pow(1 - progress, 2);
+    this.timeline!.to(flash, { alpha: 0, duration: 0.3, ease: 'power2.out' }, 0);
+    this.timeline!.to(flash.scale, { x: 3, y: 3, duration: 0.3, ease: 'power2.out' }, 0);
 
-      const startX = this.centerX;
-      const startY = this.centerY;
-      const targetX = (particle as any).targetX;
-      const targetY = (particle as any).targetY;
-
-      particle.x = startX + (targetX - startX) * easeProgress;
-      particle.y = startY + (targetY - startY) * easeProgress;
-      particle.alpha = 1 - easeProgress;
-      particle.scale.set(1 - easeProgress * 0.5);
-
-      if (progress < 1) allComplete = false;
+    rings.forEach((ring, i) => {
+      this.timeline!.to(ring, { alpha: 0, duration: 0.4, ease: 'power2.out' }, i * 0.05);
+      this.timeline!.to(ring.scale, { x: 1.5, y: 1.5, duration: 0.4, ease: 'power2.out' }, i * 0.05);
     });
 
-    if (elapsed < 0.3) {
-      const flashProgress = elapsed / 0.3;
-      const easeFlash = 1 - Math.pow(1 - flashProgress, 2);
-      this.flash.alpha = 0.8 * (1 - easeFlash);
-      const flashScale = 1 + 2 * easeFlash;
-      this.flash.scale.set(flashScale);
-    } else {
-      this.flash.alpha = 0;
-    }
-
-    if (allComplete && elapsed >= this.DURATION) {
-      this.allComplete = true;
-      this.animationComplete();
-    }
-  }
-
-  private animationComplete(): void {
-    this.detachTicker();
-    if (this.onComplete) {
-      this.onComplete();
-    }
-    this.destroy();
-  }
-
-  private detachTicker(): void {
-    if (this.tickerCallback) {
-      PIXI.Ticker.shared.remove(this.tickerCallback);
-      this.tickerCallback = null;
-    }
+    particles.forEach((particle, i) => {
+      const targetX = (particle as any)._targetX;
+      const targetY = (particle as any)._targetY;
+      this.timeline!.to(particle, { x: targetX, y: targetY, alpha: 0, duration: 0.6, ease: 'power2.out' }, i * 0.02);
+      this.timeline!.to(particle.scale, { x: 0.5, y: 0.5, duration: 0.6, ease: 'power2.out' }, i * 0.02);
+    });
   }
 
   destroy(): void {
-    this.detachTicker();
+    if (this.timeline) {
+      this.timeline.kill();
+      this.timeline = null;
+    }
     super.destroy({ children: true });
   }
 }

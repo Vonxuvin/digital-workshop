@@ -33,14 +33,6 @@ describe('LevelSystem', () => {
     containerWidth: 400, containerHeight: 600, availableNumbers: [1, 2, 4],
   };
 
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
   it('should initialize correctly', () => {
     ls = new LevelSystem(scoreConfig);
     expect(ls.getConfig()).toBe(scoreConfig);
@@ -98,7 +90,7 @@ describe('LevelSystem', () => {
   it('should complete survival objective after time', () => {
     ls = new LevelSystem(survivalConfig);
     ls.start();
-    vi.advanceTimersByTime(10000);
+    ls.update(10000);
     expect(ls.isLevelCompleted()).toBe(true);
   });
 
@@ -120,7 +112,7 @@ describe('LevelSystem', () => {
     ls.start();
     const handler = vi.fn();
     eventBus.on('game:timeout', handler);
-    vi.advanceTimersByTime(5000);
+    ls.update(5000);
     expect(handler).toHaveBeenCalled();
   });
 
@@ -129,7 +121,9 @@ describe('LevelSystem', () => {
     ls.start();
     const handler = vi.fn();
     eventBus.on('level:timeUpdate', handler);
-    vi.advanceTimersByTime(3000);
+    ls.update(1000);
+    ls.update(1000);
+    ls.update(1000);
     expect(handler).toHaveBeenCalledTimes(3);
   });
 
@@ -158,7 +152,7 @@ describe('LevelSystem', () => {
     ls = new LevelSystem(survivalConfig);
     ls.start();
     ls.reset();
-    vi.advanceTimersByTime(20000);
+    ls.update(20000);
   });
 
   it('should return 0 progress for target_merge', () => {

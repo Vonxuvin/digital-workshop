@@ -1,4 +1,5 @@
 import * as PIXI from 'pixi.js';
+import gsap from 'gsap';
 
 export interface MergeEffectOptions {
   x: number;
@@ -8,107 +9,118 @@ export interface MergeEffectOptions {
 }
 
 export class MergeEffect extends PIXI.Container {
-  private centerX: number;
-  private centerY: number;
-  private onComplete: (() => void) | undefined;
-  private startTime: number = 0;
-  private rings: PIXI.Graphics[] = [];
-  private stars: PIXI.Graphics[] = [];
-  private particles: PIXI.Graphics[] = [];
-  private flash!: PIXI.Graphics;
   public allComplete: boolean = false;
-  private tickerCallback: ((ticker: any) => void) | null = null;
+  private timeline: gsap.core.Timeline | null = null;
 
   constructor(options: MergeEffectOptions, onComplete?: () => void) {
     super();
-    this.centerX = options.x;
-    this.centerY = options.y;
-    this.onComplete = onComplete;
-    this.createEffect();
-    this.playAnimation();
+    this.createEffect(options, onComplete);
   }
 
-  private createEffect(): void {
+  private createEffect(options: MergeEffectOptions, onComplete?: () => void): void {
+    const { x: cx, y: cy } = options;
+
     const ring1 = new PIXI.Graphics();
     ring1.setStrokeStyle({ width: 3, color: 0xffd93d, alpha: 0.8 });
     ring1.circle(0, 0, 40);
-    ring1.x = this.centerX;
-    ring1.y = this.centerY;
+    ring1.x = cx;
+    ring1.y = cy;
     this.addChild(ring1);
-    this.rings.push(ring1);
 
     const ring2 = new PIXI.Graphics();
     ring2.setStrokeStyle({ width: 2, color: 0xffffff, alpha: 0.6 });
     ring2.circle(0, 0, 60);
-    ring2.x = this.centerX;
-    ring2.y = this.centerY;
+    ring2.x = cx;
+    ring2.y = cy;
     this.addChild(ring2);
-    this.rings.push(ring2);
 
-    const star1 = this.createStar(0xffd93d, 20);
-    star1.x = this.centerX - 30;
-    star1.y = this.centerY - 30;
-    this.addChild(star1);
-    this.stars.push(star1);
+    const starPositions = [
+      { x: cx - 30, y: cy - 30, color: 0xffd93d, size: 20 },
+      { x: cx + 35, y: cy - 25, color: 0xff6b6b, size: 15 },
+      { x: cx - 25, y: cy + 35, color: 0x4ecdc4, size: 18 },
+      { x: cx + 30, y: cy + 30, color: 0xffffff, size: 12 },
+    ];
 
-    const star2 = this.createStar(0xff6b6b, 15);
-    star2.x = this.centerX + 35;
-    star2.y = this.centerY - 25;
-    this.addChild(star2);
-    this.stars.push(star2);
+    const stars: PIXI.Graphics[] = [];
+    starPositions.forEach(sp => {
+      const star = this.createStar(sp.color, sp.size);
+      star.x = cx;
+      star.y = cy;
+      this.addChild(star);
+      stars.push(star);
+    });
 
-    const star3 = this.createStar(0x4ecdc4, 18);
-    star3.x = this.centerX - 25;
-    star3.y = this.centerY + 35;
-    this.addChild(star3);
-    this.stars.push(star3);
-
-    const star4 = this.createStar(0xffffff, 12);
-    star4.x = this.centerX + 30;
-    star4.y = this.centerY + 30;
-    this.addChild(star4);
-    this.stars.push(star4);
-
-    this.flash = new PIXI.Graphics();
-    this.flash.fill({ color: 0xffffff, alpha: 0.9 });
-    this.flash.circle(0, 0, 25);
-    this.flash.x = this.centerX;
-    this.flash.y = this.centerY;
-    this.flash.scale.set(0);
-    this.addChild(this.flash);
+    const flash = new PIXI.Graphics();
+    flash.fill({ color: 0xffffff, alpha: 0.9 });
+    flash.circle(0, 0, 25);
+    flash.x = cx;
+    flash.y = cy;
+    flash.scale.set(0);
+    this.addChild(flash);
 
     const numParticles = 16;
     const colors = [0xffd93d, 0xff6b6b, 0x4ecdc4, 0xffffff];
+    const particles: PIXI.Graphics[] = [];
     for (let i = 0; i < numParticles; i++) {
       const particle = new PIXI.Graphics();
       const angle = (i / numParticles) * Math.PI * 2;
       const color = colors[i % 4];
-
       particle.fill({ color, alpha: 1 });
       particle.circle(0, 0, 4 + Math.random() * 4);
-      particle.x = this.centerX;
-      particle.y = this.centerY;
-      (particle as any).targetX = this.centerX + Math.cos(angle) * (60 + Math.random() * 40);
-      (particle as any).targetY = this.centerY + Math.sin(angle) * (60 + Math.random() * 40);
+      particle.x = cx;
+      particle.y = cy;
       this.addChild(particle);
-      this.particles.push(particle);
+      particles.push(particle);
+
+      const targetX = cx + Math.cos(angle) * (60 + Math.random() * 40);
+      const targetY = cy + Math.sin(angle) * (60 + Math.random() * 40);
+      (particle as any)._targetX = targetX;
+      (particle as any)._targetY = targetY;
     }
+
+    this.timeline = gsap.timeline({
+      onComplete: () => {
+        this.allComplete = true;
+        if (onComplete) onComplete();
+        this.destroy();
+      },
+    });
+
+    this.timeline!.fromTo(flash.scale, { x: 0, y: 0 }, { x: 2, y: 2, duration: 0.3, ease: 'power2.out' }, 0);
+    this.timeline!.to(flash, { alpha: 0, duration: 0.3, ease: 'power2.out' }, 0);
+
+    this.timeline!.to(ring1.scale, { x: 1.8, y: 1.8, duration: 0.5, ease: 'power2.out' }, 0);
+    this.timeline!.to(ring1, { alpha: 0, duration: 0.5, ease: 'power2.out' }, 0);
+
+    this.timeline!.to(ring2.scale, { x: 1.5, y: 1.5, duration: 0.4, ease: 'power2.out' }, 0.1);
+    this.timeline!.to(ring2, { alpha: 0, duration: 0.4, ease: 'power2.out' }, 0.1);
+
+    particles.forEach((particle, i) => {
+      const targetX = (particle as any)._targetX;
+      const targetY = (particle as any)._targetY;
+      this.timeline!.to(particle, { x: targetX, y: targetY, duration: 0.6, ease: 'power2.out' }, i * 0.02);
+      this.timeline!.to(particle, { alpha: 0, duration: 0.6, ease: 'power2.out' }, i * 0.02);
+      this.timeline!.to(particle.scale, { x: 0.3, y: 0.3, duration: 0.6, ease: 'power2.out' }, i * 0.02);
+    });
+
+    stars.forEach((star, i) => {
+      const sp = starPositions[i];
+      this.timeline!.to(star, { x: sp.x, y: sp.y, alpha: 0, duration: 0.5, ease: 'power2.out' }, i * 0.05);
+      this.timeline!.to(star.scale, { x: 0.5, y: 0.5, duration: 0.5, ease: 'power2.out' }, i * 0.05);
+    });
   }
 
   private createStar(color: number, size: number): PIXI.Graphics {
     const star = new PIXI.Graphics();
     star.fill({ color, alpha: 0.8 });
-
     const points = 5;
     const outerRadius = size;
     const innerRadius = size * 0.4;
-
     for (let i = 0; i < points * 2; i++) {
       const radius = i % 2 === 0 ? outerRadius : innerRadius;
       const angle = (i * Math.PI) / points - Math.PI / 2;
       const x = Math.cos(angle) * radius;
       const y = Math.sin(angle) * radius;
-
       if (i === 0) {
         star.moveTo(x, y);
       } else {
@@ -116,90 +128,14 @@ export class MergeEffect extends PIXI.Container {
       }
     }
     star.closePath();
-
     return star;
   }
 
-  private playAnimation(): void {
-    this.startTime = performance.now();
-    this.tickerCallback = () => this.animate();
-    PIXI.Ticker.shared.add(this.tickerCallback);
-  }
-
-  private animate(): void {
-    if (this.allComplete) return;
-
-    const elapsed = (performance.now() - this.startTime) / 1000;
-
-    if (elapsed < 0.3) {
-      const progress = elapsed / 0.3;
-      this.flash.scale.set(progress * 2);
-      this.flash.alpha = 1 - progress;
-    } else {
-      this.flash.alpha = 0;
-    }
-
-    const ring1Progress = Math.min(elapsed / 0.5, 1);
-    const ease1 = 1 - Math.pow(1 - ring1Progress, 2);
-    const ring1 = this.rings[0];
-    ring1.scale.set(1 + 0.8 * ease1);
-    ring1.alpha = 1 - ease1;
-
-    const ring2Progress = Math.min(Math.max(0, elapsed - 0.1) / 0.4, 1);
-    const ease2 = 1 - Math.pow(1 - ring2Progress, 2);
-    const ring2 = this.rings[1];
-    ring2.scale.set(1 + 0.5 * ease2);
-    ring2.alpha = 1 - ease2;
-
-    let particlesDone = 0;
-    this.particles.forEach((particle, i) => {
-      const particleProgress = Math.min(Math.max(0, elapsed - i * 0.02) / 0.6, 1);
-      const easeP = 1 - Math.pow(1 - particleProgress, 2);
-      const targetX = (particle as any).targetX;
-      const targetY = (particle as any).targetY;
-      particle.x = this.centerX + (targetX - this.centerX) * easeP;
-      particle.y = this.centerY + (targetY - this.centerY) * easeP;
-      particle.alpha = 1 - easeP;
-      particle.scale.set(1 - 0.7 * easeP);
-      if (particleProgress >= 1) particlesDone++;
-    });
-
-    this.stars.forEach((star, i) => {
-      const starProgress = Math.min(Math.max(0, elapsed - i * 0.05) / 0.5, 1);
-      const easeS = 1 - Math.pow(1 - starProgress, 2);
-      const targetX = this.centerX + (star.x - this.centerX) * easeS;
-      const targetY = this.centerY + (star.y - this.centerY) * easeS;
-      star.x = targetX;
-      star.y = targetY;
-      star.alpha = 1 - easeS;
-      star.scale.set(1 - 0.5 * easeS);
-    });
-
-    const allDone = ring1Progress >= 1 && ring2Progress >= 1 && particlesDone === this.particles.length;
-
-    if (allDone) {
-      this.allComplete = true;
-      this.animationComplete();
-    }
-  }
-
-  private animationComplete(): void {
-    this.detachTicker();
-    if (this.onComplete) {
-      this.onComplete();
-    }
-    this.destroy();
-  }
-
-  private detachTicker(): void {
-    if (this.tickerCallback) {
-      PIXI.Ticker.shared.remove(this.tickerCallback);
-      this.tickerCallback = null;
-    }
-  }
-
   destroy(): void {
-    this.detachTicker();
+    if (this.timeline) {
+      this.timeline.kill();
+      this.timeline = null;
+    }
     super.destroy({ children: true });
   }
 }

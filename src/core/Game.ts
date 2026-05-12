@@ -29,6 +29,7 @@ import { BombProp } from '../gameplay/props/BombProp';
 import { RainbowProp } from '../gameplay/props/RainbowProp';
 import { ModifierManager } from '../gameplay/modifiers/ModifierManager';
 import { SaveManager } from './SaveManager';
+import propsData from '../data/props/props.json';
 import Matter from 'matter-js';
 
 interface BlockMergedData {
@@ -329,6 +330,7 @@ export class Game {
     eventBus.on('ui:propTargetMode', this.onPropTargetModeBound);
     eventBus.on('gameplay:nextBlock', this.onNextRainbowBlockBound);
     eventBus.on('props:rainbow:consumed', this.onRainbowConsumedBound);
+    eventBus.on('level:timeUpdate', (seconds: number) => this.gameHUD.updateTimer(seconds));
   }
 
   private handleBlockMerged(data: BlockMergedData): void {
@@ -426,6 +428,13 @@ export class Game {
 
   private async loadLevelConfig(): Promise<void> {
     try {
+      if (propsData && (propsData as any).props) {
+        await this.propSystem.loadConfig((propsData as any).props);
+        return;
+      }
+    } catch {}
+
+    try {
       const response = await fetch('/src/data/props/props.json');
       const data = await response.json();
       await this.propSystem.loadConfig(data.props || []);
@@ -490,7 +499,6 @@ export class Game {
       this.physics.stop();
       this.levelSystem?.pause();
       this.modifierManager.pauseAll();
-      this.blockSpawner.stopAutoSpawn();
       this.preview.hide();
       this.uiManager.showScreen('pause');
     }
@@ -503,7 +511,6 @@ export class Game {
       this.physics.start();
       this.levelSystem?.resume();
       this.modifierManager.resumeAll();
-      this.startAutoSpawn();
     }
   }
 
@@ -724,6 +731,9 @@ export class Game {
 
     this.physicsAccumulator += this.app.ticker.deltaMS;
     this.physicsAccumulator = this.physics.fixedUpdate(this.physicsAccumulator);
+
+    this.blockSpawner.update(this.app.ticker.deltaMS);
+    this.levelSystem?.update(this.app.ticker.deltaMS);
 
     this.blockSpawner.cleanupOutOfBounds(this.app.screen.height);
 

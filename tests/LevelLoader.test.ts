@@ -29,10 +29,10 @@ describe('LevelLoader', () => {
     expect(loader.getLevelConfig(1)).toBeNull();
   });
 
-  it('should load and cache level config from JSON', async () => {
+  it('should load and cache level config from JSON via fetch fallback', async () => {
     const mockConfig = {
-      id: 1,
-      name: '新手入门',
+      id: 99,
+      name: 'Test Level',
       objective: { type: 'score', target: 500 },
       container: { width: 400, height: 600 },
       spawn: { availableNumbers: [1, 2, 4] },
@@ -44,10 +44,10 @@ describe('LevelLoader', () => {
       json: () => Promise.resolve(mockConfig),
     });
 
-    const config = await loader.loadLevel(1);
+    const config = await loader.loadLevel(99);
     expect(config).not.toBeNull();
-    expect(config!.id).toBe(1);
-    expect(config!.name).toBe('新手入门');
+    expect(config!.id).toBe(99);
+    expect(config!.name).toBe('Test Level');
     expect(config!.objective.type).toBe('score');
     expect(config!.objective.target).toBe(500);
     expect(config!.containerWidth).toBe(400);
@@ -56,9 +56,16 @@ describe('LevelLoader', () => {
 
     expect(global.fetch).toHaveBeenCalledTimes(1);
 
-    const cached = await loader.loadLevel(1);
+    const cached = await loader.loadLevel(99);
     expect(cached).toBe(config);
     expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('should load level from pre-loaded modules', async () => {
+    const config = await loader.loadLevel(1);
+    expect(config).not.toBeNull();
+    expect(config!.id).toBe(1);
+    expect(config!.name).toBe('新手入门');
   });
 
   it('should handle fetch error', async () => {

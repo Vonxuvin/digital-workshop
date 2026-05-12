@@ -149,13 +149,8 @@ describe('LevelSystem Deep Tests', () => {
     containerWidth: 400, containerHeight: 600, availableNumbers: [1, 2, 4],
   };
 
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
-
   afterEach(() => {
     if (ls) ls.reset();
-    vi.useRealTimers();
   });
 
   describe('MEMORY LEAK: Event listeners never cleaned up', () => {
@@ -195,14 +190,14 @@ describe('LevelSystem Deep Tests', () => {
     it('should calculate survival progress based on time', () => {
       ls = new LevelSystem(survivalConfig);
       ls.start();
-      vi.advanceTimersByTime(5000);
+      ls.update(5000);
       expect(ls.getProgress()).toBeCloseTo(0.5, 1);
     });
 
     it('should return 1.0 progress when survival time reaches timeLimit', () => {
       ls = new LevelSystem(survivalConfig);
       ls.start();
-      vi.advanceTimersByTime(10000);
+      ls.update(10000);
       expect(ls.getProgress()).toBe(1);
       expect(ls.isLevelCompleted()).toBe(true);
     });
@@ -228,7 +223,7 @@ describe('LevelSystem Deep Tests', () => {
       };
       ls = new LevelSystem(noTimeConfig);
       ls.start();
-      vi.advanceTimersByTime(5000);
+      ls.update(5000);
       expect(ls.isLevelCompleted()).toBe(false);
     });
   });

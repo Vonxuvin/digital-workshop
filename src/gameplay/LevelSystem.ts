@@ -43,7 +43,7 @@ export class LevelSystem {
   private survivalTime = 0;
   private isCompleted = false;
   private isPaused = false;
-  private timer: ReturnType<typeof setInterval> | null = null;
+  private timerElapsed: number = 0;
   private highestMergeValue = 0;
   private onScoreUpdatedBound: (data: { totalScore: number }) => void;
   private onBlockMergedBound: (data: { newValue: number }) => void;
@@ -87,24 +87,9 @@ export class LevelSystem {
 
   start(): void {
     if (this.config.objective.timeLimit !== undefined && this.config.objective.timeLimit !== null) {
+      this.timerElapsed = 0;
       this.survivalTime = 0;
-      this.startTimer();
     }
-  }
-
-  private startTimer(): void {
-    this.timer = window.setInterval(() => {
-      if (this.isPaused || this.isCompleted) return;
-      this.survivalTime++;
-      if (this.config.objective.timeLimit !== undefined && this.config.objective.timeLimit !== null && this.survivalTime >= this.config.objective.timeLimit) {
-        if (this.config.objective.type === 'survival') {
-          this.completeLevel();
-        } else {
-          eventBus.emit('game:timeout');
-        }
-      }
-      eventBus.emit('level:timeUpdate', this.survivalTime);
-    }, 1000);
   }
 
   // 为了向后兼容，提供一些快捷方法
@@ -158,7 +143,6 @@ export class LevelSystem {
   private completeLevel(): void {
     if (this.isCompleted) return;
     this.isCompleted = true;
-    this.stopTimer();
     const eventData: LevelCompletedData = {
       levelId: this.config.id,
       score: this.currentScore,
@@ -169,15 +153,32 @@ export class LevelSystem {
   }
 
   stopTimer(): void {
-    if (this.timer) {
-      clearInterval(this.timer);
-      this.timer = null;
+  }
+
+  update(deltaMS: number): void {
+    if (this.isPaused || this.isCompleted) return;
+
+    if (this.config.objective.timeLimit !== undefined && this.config.objective.timeLimit !== null) {
+      this.timerElapsed += deltaMS;
+      const elapsedSeconds = Math.floor(this.timerElapsed / 1000);
+
+      if (elapsedSeconds !== this.survivalTime) {
+        this.survivalTime = elapsedSeconds;
+        eventBus.emit('level:timeUpdate', this.survivalTime);
+      }
+
+      if (this.survivalTime >= this.config.objective.timeLimit) {
+        if (this.config.objective.type === 'survival') {
+          this.completeLevel();
+        } else {
+          eventBus.emit('game:timeout');
+        }
+      }
     }
   }
 
   forceComplete(): void {
     this.isCompleted = true;
-    this.stopTimer();
   }
 
   getConfig(): LevelConfig {
@@ -211,16 +212,15 @@ export class LevelSystem {
     this.currentScore = 0;
     this.obstaclesCleared = 0;
     this.survivalTime = 0;
+    this.timerElapsed = 0;
     this.isCompleted = false;
     this.isPaused = false;
     this.highestMergeValue = 0;
-    this.stopTimer();
   }
 
   destroy(): void {
     eventBus.off('score:updated', this.onScoreUpdatedBound);
     eventBus.off('block:merged', this.onBlockMergedBound);
     eventBus.off('obstacle:cleared', this.onObstacleClearedBound);
-    this.stopTimer();
   }
 }

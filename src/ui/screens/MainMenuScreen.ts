@@ -1,8 +1,9 @@
-import { Container, Text, Graphics, Ticker } from 'pixi.js';
+import { Container, Text, Graphics } from 'pixi.js';
 import { Screen } from '../UIManager';
 import { eventBus } from '../../utils/EventBus';
 import { Layout } from '../layout/Layout';
 import { AudioManager } from '../../core/AudioManager';
+import gsap from 'gsap';
 
 export class MainMenuScreen extends Screen {
   private titleText!: Text;
@@ -13,11 +14,9 @@ export class MainMenuScreen extends Screen {
   private versionText!: Text;
   private soundIcon!: Text;
   private allButtons: Container[] = [];
-  private buttonTargetY: number[] = [];
   private currentScreenWidth = 800;
   private currentScreenHeight = 600;
   private initialized = false;
-  private tickerCallback: ((ticker: any) => void) | null = null;
 
   constructor() {
     super();
@@ -215,57 +214,29 @@ export class MainMenuScreen extends Screen {
 
     this.allButtons.forEach((btn, i) => {
       const targetY = btn.y;
+      (btn as any)._targetY = targetY;
       btn.y = targetY + 80;
       btn.alpha = 0;
-      this.buttonTargetY[i] = targetY;
     });
 
-    this.detachTicker();
-    const startTime = performance.now();
-    const fadeDuration = 400;
-    const slideDuration = 250;
+    gsap.to(this, { alpha: 1, duration: 0.4, ease: 'power2.out' });
 
-    this.tickerCallback = () => {
-      const now = performance.now();
-      const elapsed = now - startTime;
-
-      const fadeProgress = Math.min(elapsed / fadeDuration, 1);
-      this.alpha = fadeProgress;
-
-      let allSlideComplete = true;
-      this.allButtons.forEach((btn, i) => {
-        const slideElapsed = elapsed - i * 100;
-        if (slideElapsed < 0) {
-          allSlideComplete = false;
-          return;
-        }
-        const progress = Math.min(slideElapsed / slideDuration, 1);
-        const targetY = this.buttonTargetY[i];
-        btn.y = targetY + 80 * (1 - progress);
-        btn.alpha = progress;
-        if (progress < 1) allSlideComplete = false;
+    this.allButtons.forEach((btn, i) => {
+      gsap.to(btn, {
+        y: (btn as any)._targetY,
+        alpha: 1,
+        duration: 0.25,
+        delay: i * 0.1,
+        ease: 'power2.out',
       });
-
-      if (fadeProgress >= 1 && allSlideComplete) {
-        this.detachTicker();
-      }
-    };
-    Ticker.shared.add(this.tickerCallback);
+    });
   }
 
   hide(): void {
     this.visible = false;
   }
 
-  private detachTicker(): void {
-    if (this.tickerCallback) {
-      Ticker.shared.remove(this.tickerCallback);
-      this.tickerCallback = null;
-    }
-  }
-
   destroy(): void {
-    this.detachTicker();
     super.destroy();
   }
 }

@@ -1,6 +1,8 @@
 import { LevelConfig } from '../gameplay/LevelSystem';
 import { createPlatformAdapter } from '../platform/PlatformFactory';
 
+const levelModules = import.meta.glob('/src/data/levels/level_*.json', { eager: true }) as Record<string, any>;
+
 export interface ValidationResult {
   valid: boolean;
   errors: string[];
@@ -47,6 +49,20 @@ export class LevelLoader {
   async loadLevel(levelId: number): Promise<LevelConfig | null> {
     if (this.levelConfigs.has(levelId)) {
       return this.levelConfigs.get(levelId)!;
+    }
+
+    const moduleKey = `/src/data/levels/level_${String(levelId).padStart(2, '0')}.json`;
+    const moduleData = levelModules[moduleKey];
+    if (moduleData && moduleData.default) {
+      const data = moduleData.default;
+      const validation = this.validateConfig(data);
+      if (validation.valid) {
+        const config = this.parseLevelConfig(data);
+        if (config) {
+          this.levelConfigs.set(levelId, config);
+          return config;
+        }
+      }
     }
 
     const url = `/src/data/levels/level_${String(levelId).padStart(2, '0')}.json`;
@@ -360,10 +376,27 @@ export class LevelLoader {
   }
 
   async discoverAndLoadAllLevels(): Promise<void> {
+    for (const [path, module] of Object.entries(levelModules)) {
+      const match = path.match(/level_(\d+)\.json$/);
+      if (match) {
+        const levelId = parseInt(match[1], 10);
+        if (!this.levelConfigs.has(levelId)) {
+          const data = module?.default || module;
+          if (data) {
+            const validation = this.validateConfig(data);
+            if (validation.valid) {
+              const config = this.parseLevelConfig(data);
+              if (config) {
+                this.levelConfigs.set(levelId, config);
+              }
+            }
+          }
+        }
+      }
+    }
+
     let id = 1;
-    while (true) {
-      const config = await this.loadLevel(id);
-      if (!config) break;
+    while (this.levelConfigs.has(id)) {
       id++;
     }
   }
