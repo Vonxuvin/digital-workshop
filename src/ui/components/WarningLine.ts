@@ -12,6 +12,7 @@ export class WarningLine extends Container {
   private readonly SPEED_THRESHOLD = 5;
   private readonly GRACE_PERIOD = 500;
   private graceTimer = 0;
+  private disabled = false;
 
   constructor(containerHeight: number, containerWidth: number = 800) {
     super();
@@ -38,6 +39,8 @@ export class WarningLine extends Container {
   }
 
   update(blocks: { y: number; radius: number; speed: number }[], deltaMS: number): void {
+    if (this.disabled) return;
+
     const warningY = this.y;
     const hasBlockAboveLine = blocks.some(block =>
       block.y - block.radius < warningY && block.speed < this.SPEED_THRESHOLD
@@ -88,5 +91,14 @@ export class WarningLine extends Container {
     this.flashTimer = 0;
     this.graceTimer = 0;
     this.graphics.alpha = 0.8;
+  }
+
+  setDisabled(disabled: boolean): void {
+    this.disabled = disabled;
+    if (disabled) {
+      this.isWarning = false;
+      this.warningDuration = 0;
+      this.graphics.alpha = 0.8;
+    }
   }
 }

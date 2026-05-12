@@ -22,6 +22,8 @@ export class RotateModifier extends ContainerModifier {
   private rotationIndicator: Graphics | null = null;
   private wallGraphics: Graphics | null = null;
 
+  private prevAngle: number = 0;
+
   constructor(
     config: RotateConfig,
     physics: PhysicsManager,
@@ -137,6 +139,7 @@ export class RotateModifier extends ContainerModifier {
 
   private applyRotation(): void {
     const angleRad = (this.currentAngle * Math.PI) / 180;
+    const prevAngleRad = (this.prevAngle * Math.PI) / 180;
 
     for (const body of this.containerBodies) {
       const originalPos = this.originalPositions.get(body.id);
@@ -148,9 +151,22 @@ export class RotateModifier extends ContainerModifier {
       const newX = this.centerX + dx * Math.cos(angleRad) - dy * Math.sin(angleRad);
       const newY = this.centerY + dx * Math.sin(angleRad) + dy * Math.cos(angleRad);
 
+      const prevX = this.centerX + dx * Math.cos(prevAngleRad) - dy * Math.sin(prevAngleRad);
+      const prevY = this.centerY + dx * Math.sin(prevAngleRad) + dy * Math.cos(prevAngleRad);
+
       Matter.Body.setPosition(body, { x: newX, y: newY });
       Matter.Body.setAngle(body, angleRad);
+      Matter.Body.setVelocity(body, {
+        x: (newX - prevX) * 0.1,
+        y: (newY - prevY) * 0.1,
+      });
+
+      if (body.isSleeping) {
+        Matter.Sleeping.set(body, false);
+      }
     }
+
+    this.prevAngle = this.currentAngle;
   }
 
   private updateGravity(): void {
@@ -163,6 +179,7 @@ export class RotateModifier extends ContainerModifier {
   protected onDeactivate(): void {
     this.physics.setGravity(0, 1.0);
     this.currentAngle = 0;
+    this.prevAngle = 0;
     this.direction = 1;
 
     for (const body of this.containerBodies) {

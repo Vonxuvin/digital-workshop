@@ -47,6 +47,9 @@ export class GameScene {
   private physicsAccumulator = 0;
   private bombTargetMode = false;
   private gameStartTime: number = 0;
+  private containerWidth: number = 0;
+  private containerHeight: number = 0;
+  private containerOffsetX: number = 0;
 
   constructor(
     app: Application,
@@ -77,14 +80,28 @@ export class GameScene {
   }
 
   setupContainer(): void {
-    const w = this.app.screen.width;
-    const h = this.app.screen.height;
-    this.groundY = h - 50;
+    const screenW = this.app.screen.width;
+    const screenH = this.app.screen.height;
+
+    if (this.currentLevelConfig) {
+      this.containerWidth = Math.min(this.currentLevelConfig.container.width, screenW);
+      this.containerHeight = Math.min(this.currentLevelConfig.container.height, screenH);
+    } else {
+      this.containerWidth = screenW;
+      this.containerHeight = screenH;
+    }
+    this.containerOffsetX = (screenW - this.containerWidth) / 2;
+    this.groundY = this.containerHeight - 50;
 
     this.rebuildPhysicsWalls();
 
-    this.warningLine = new WarningLine(h, w);
-    this.warningLine.y = this.groundY * 0.2;
+    if (this.warningLine) {
+      this.app.stage.removeChild(this.warningLine);
+      this.warningLine.destroy();
+    }
+    this.warningLine = new WarningLine(this.containerHeight, this.containerWidth);
+    this.warningLine.x = this.containerOffsetX;
+    this.warningLine.y = this.groundY * 0.8;
     this.warningLine.visible = false;
     this.app.stage.addChild(this.warningLine);
     this.preview.setGroundY(this.groundY);
@@ -96,26 +113,39 @@ export class GameScene {
     }
     this.physicsWalls = [];
 
-    const w = this.app.screen.width;
-    const h = this.app.screen.height;
+    const w = this.containerWidth || this.app.screen.width;
+    const h = this.containerHeight || this.app.screen.height;
+    const offsetX = this.containerOffsetX || 0;
 
-    const ground = this.physics.createRectangle(w / 2, this.groundY + 25, w, 50);
+    const ground = this.physics.createRectangle(offsetX + w / 2, this.groundY + 25, w, 50);
     ground.label = 'ground';
-    const leftWall = this.physics.createRectangle(-22, h / 2, 50, h);
+    const leftWall = this.physics.createRectangle(offsetX - 22, h / 2, 50, h);
     leftWall.label = 'wall_left';
-    const rightWall = this.physics.createRectangle(w + 22, h / 2, 50, h);
+    const rightWall = this.physics.createRectangle(offsetX + w + 22, h / 2, 50, h);
     rightWall.label = 'wall_right';
 
     this.physicsWalls = [ground, leftWall, rightWall];
   }
 
   handleResize(): void {
-    this.groundY = window.innerHeight - 50;
+    const screenW = this.app.screen.width;
+    const screenH = this.app.screen.height;
+
+    if (this.currentLevelConfig) {
+      this.containerWidth = Math.min(this.currentLevelConfig.container.width, screenW);
+      this.containerHeight = Math.min(this.currentLevelConfig.container.height, screenH);
+    } else {
+      this.containerWidth = screenW;
+      this.containerHeight = screenH;
+    }
+    this.containerOffsetX = (screenW - this.containerWidth) / 2;
+    this.groundY = this.containerHeight - 50;
+
     if (this.warningLine) {
-      this.warningLine.y = this.groundY * 0.2;
+      this.warningLine.y = this.groundY * 0.8;
     }
     if (this.gameHUD) {
-      this.gameHUD.layout(this.app.screen.width, this.app.screen.height);
+      this.gameHUD.layout(screenW, screenH);
     }
   }
 
@@ -127,10 +157,11 @@ export class GameScene {
     this.currentLevelConfig = config;
     this.blockSpawner.setLevelConfig(config);
     this.gameHUD.updateLevel(config.id, config.name);
+    this.setupContainer();
     this.resetGame();
     this.gameStartTime = Date.now();
 
-    this.modifierManager.setContainerSize(this.app.screen.width, this.app.screen.height);
+    this.modifierManager.setContainerSize(this.containerWidth, this.containerHeight);
     this.modifierManager.setStageContainer(this.app.stage);
     if (config.modifiers && config.modifiers.length > 0) {
       console.log(`[GameScene] 加载 ${config.modifiers.length} 个变形器`);
@@ -140,7 +171,7 @@ export class GameScene {
     this.physics.start();
     this.levelSystem?.start();
     this.drawContainerWalls();
-    this.blockSpawner.spawnObstacles(config.obstacles, this.app.screen.width, this.groundY);
+    this.blockSpawner.spawnObstacles(config.obstacles, this.containerWidth, this.groundY);
     this.startAutoSpawn();
     this.modifierManager.startAll();
     if (this.levelSystem) {
@@ -154,6 +185,7 @@ export class GameScene {
     this.scoreSystem.reset();
     this.gameHUD.reset();
     this.warningLine?.reset();
+    this.warningLine?.setDisabled(false);
     this.levelSystem?.reset();
     this.bombTargetMode = false;
     this.shrinkActive = false;
@@ -168,16 +200,17 @@ export class GameScene {
   }
 
   restartLevel(): void {
+    this.setupContainer();
     this.resetGame();
     this.propSystem.reset();
     this.initializeProps();
     this.physics.start();
     this.levelSystem?.start();
     this.drawContainerWalls();
-    this.blockSpawner.spawnObstacles(this.currentLevelConfig!.obstacles, this.app.screen.width, this.groundY);
+    this.blockSpawner.spawnObstacles(this.currentLevelConfig!.obstacles, this.containerWidth, this.groundY);
     this.startAutoSpawn();
     if (this.currentLevelConfig?.modifiers) {
-      this.modifierManager.setContainerSize(this.app.screen.width, this.app.screen.height);
+      this.modifierManager.setContainerSize(this.containerWidth, this.containerHeight);
       this.modifierManager.setStageContainer(this.app.stage);
       this.modifierManager.loadFromLevelConfig(this.currentLevelConfig.modifiers);
       this.modifierManager.startAll();
@@ -404,6 +437,9 @@ export class GameScene {
     }
 
     if (this.warningLine) {
+      if (this.levelSystem && this.levelSystem.isLevelCompleted()) {
+        this.warningLine.setDisabled(true);
+      }
       this.warningLine.update(
         this.blockSpawner.getBlocks().map(b => ({
           y: b.y,
@@ -441,29 +477,30 @@ export class GameScene {
 
   private drawContainerWalls(): void {
     this.clearContainerWalls();
-    const w = this.app.screen.width;
+    const w = this.containerWidth || this.app.screen.width;
+    const offsetX = this.containerOffsetX || 0;
 
     this.containerWalls = new Graphics();
-    this.containerWalls.rect(0, this.groundY, w, 50);
+    this.containerWalls.rect(offsetX, this.groundY, w, 50);
     this.containerWalls.fill({ color: 0x2d2d44 });
-    this.containerWalls.rect(0, 0, 6, this.groundY);
+    this.containerWalls.rect(offsetX, 0, 6, this.groundY);
     this.containerWalls.fill({ color: 0x4a4a6a });
-    this.containerWalls.rect(w - 6, 0, 6, this.groundY);
+    this.containerWalls.rect(offsetX + w - 6, 0, 6, this.groundY);
     this.containerWalls.fill({ color: 0x4a4a6a });
-    this.containerWalls.moveTo(0, 0);
-    this.containerWalls.lineTo(0, this.groundY);
+    this.containerWalls.moveTo(offsetX, 0);
+    this.containerWalls.lineTo(offsetX, this.groundY);
     this.containerWalls.stroke({ width: 2, color: 0x6a6a8a });
-    this.containerWalls.moveTo(6, 0);
-    this.containerWalls.lineTo(6, this.groundY);
+    this.containerWalls.moveTo(offsetX + 6, 0);
+    this.containerWalls.lineTo(offsetX + 6, this.groundY);
     this.containerWalls.stroke({ width: 1, color: 0x5a5a7a });
-    this.containerWalls.moveTo(w - 6, 0);
-    this.containerWalls.lineTo(w - 6, this.groundY);
+    this.containerWalls.moveTo(offsetX + w - 6, 0);
+    this.containerWalls.lineTo(offsetX + w - 6, this.groundY);
     this.containerWalls.stroke({ width: 1, color: 0x5a5a7a });
-    this.containerWalls.moveTo(w, 0);
-    this.containerWalls.lineTo(w, this.groundY);
+    this.containerWalls.moveTo(offsetX + w, 0);
+    this.containerWalls.lineTo(offsetX + w, this.groundY);
     this.containerWalls.stroke({ width: 2, color: 0x6a6a8a });
-    this.containerWalls.moveTo(0, this.groundY);
-    this.containerWalls.lineTo(w, this.groundY);
+    this.containerWalls.moveTo(offsetX, this.groundY);
+    this.containerWalls.lineTo(offsetX + w, this.groundY);
     this.containerWalls.stroke({ width: 2, color: 0x6a6a8a });
     this.app.stage.addChild(this.containerWalls);
   }

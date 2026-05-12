@@ -8,8 +8,15 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: isWechat ? 'dist-wechat' : 'dist',
       target: 'es2020',
-      minify: isWechat ? 'terser' : false,
-      sourcemap: !isWechat,
+      minify: 'terser',
+      terserOptions: {
+        compress: {
+          drop_console: isWechat,
+          drop_debugger: true,
+          pure_funcs: isWechat ? ['console.log', 'console.warn'] : [],
+        },
+      },
+      sourcemap: false,
       lib: isWechat
         ? {
             entry: './src/main.ts',
@@ -23,7 +30,24 @@ export default defineConfig(({ mode }) => {
               inlineDynamicImports: true,
             },
           }
-        : {},
+        : {
+            output: {
+              manualChunks(id) {
+                if (id.includes('node_modules/pixi.js')) {
+                  return 'vendor-pixi';
+                }
+                if (id.includes('node_modules/matter-js')) {
+                  return 'vendor-matter';
+                }
+                if (id.includes('node_modules/gsap')) {
+                  return 'vendor-gsap';
+                }
+                if (id.includes('node_modules')) {
+                  return 'vendor-other';
+                }
+              },
+            },
+          },
     },
     server: {
       port: 3000,
