@@ -466,4 +466,9 @@ export class LevelLoader {
     }
     return configs;
   }
+
+  destroy(): void {
+    this.disableHotReload();
+    this.levelConfigs.clear();
+  }
 }

@@ -49,7 +49,8 @@ export class GameEffectManager {
 
   cleanup(): void {
     this.effects = this.effects.filter(effect => {
-      if (effect.isDestroyed || effect.allComplete) return false;
+      if ((effect as any).destroyed) return false;
+      if ((effect as any).allComplete) return false;
       return true;
     });
   }

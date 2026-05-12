@@ -47,6 +47,7 @@ export class GameScene {
   private containerWidth: number = 0;
   private containerHeight: number = 0;
   private containerOffsetX: number = 0;
+  private warningLineData: Array<{ y: number; radius: number; speed: number }> = [];
 
   constructor(
     app: Application,
@@ -355,14 +356,19 @@ export class GameScene {
       if (this.levelSystem && this.levelSystem.isLevelCompleted()) {
         this.warningLine.setDisabled(true);
       }
-      this.warningLine.update(
-        this.blockSpawner.getBlocks().map(b => ({
-          y: b.y,
-          radius: b.getConfig().radius,
-          speed: Math.sqrt(b.body.velocity.x ** 2 + b.body.velocity.y ** 2),
-        })),
-        deltaMS
-      );
+      const blocks = this.blockSpawner.getBlocks();
+      this.warningLineData.length = blocks.length;
+      for (let i = 0; i < blocks.length; i++) {
+        const b = blocks[i];
+        if (!this.warningLineData[i]) {
+          this.warningLineData[i] = { y: 0, radius: 0, speed: 0 };
+        }
+        const d = this.warningLineData[i];
+        d.y = b.y;
+        d.radius = b.getConfig().radius;
+        d.speed = Math.sqrt(b.body.velocity.x ** 2 + b.body.velocity.y ** 2);
+      }
+      this.warningLine.update(this.warningLineData, deltaMS);
     }
 
     this.effectManager.cleanup();
@@ -462,9 +468,22 @@ export class GameScene {
   }
 
   destroy(): void {
-    this.scoreSystem.destroy();
-    this.levelSystem?.destroy();
-    this.physics.stop();
+    this.blockSpawner.clearBlocks();
+    this.blockSpawner.clearObstacles();
+    this.blockSpawner.stopAutoSpawn();
     this.effectManager.destroy();
+    this.propEffectHandler.reset();
+    this.levelSystem?.destroy();
+    if (this.warningLine) {
+      this.warningLine.destroy();
+      this.warningLine = null;
+    }
+    this.clearContainerWalls();
+    for (const wall of this.physicsWalls) {
+      this.physics.removeBody(wall);
+    }
+    this.physicsWalls = [];
+    this.warningLineData.length = 0;
+    this.physics.stop();
   }
 }

@@ -83,6 +83,7 @@ export class GameHUD extends Container {
   private createPropsBar(): void {
     this.propsContainer = new Container();
     this.propsContainer.eventMode = 'static';
+    this.propsContainer.x = -360;
 
     const propsData = [
       { type: PropType.BOMB, icon: 'bomb', x: 0 },
@@ -174,8 +175,8 @@ export class GameHUD extends Container {
     icon.anchor.set(0.5);
     this.pauseButton.addChild(icon);
 
-    this.pauseButton.x = 750;
-    this.pauseButton.y = 100;
+    this.pauseButton.x = -100;
+    this.pauseButton.y = 30;
     this.pauseButton.eventMode = 'static';
     this.pauseButton.cursor = 'pointer';
 
@@ -197,7 +198,7 @@ export class GameHUD extends Container {
       },
     });
     this.timerText.anchor.set(0.5, 0);
-    this.timerText.x = 400;
+    this.timerText.x = -100;
     this.timerText.y = 10;
     this.timerText.visible = false;
     this.addChild(this.timerText);
@@ -221,7 +222,7 @@ export class GameHUD extends Container {
 
   private createObjectiveBar(): void {
     this.objectiveBar = new UIProgressBar(150, 12, 0x333333, 0x4ECDC4);
-    this.objectiveBar.x = 580;
+    this.objectiveBar.x = -100;
     this.objectiveBar.y = 85;
 
     const label = new Text({

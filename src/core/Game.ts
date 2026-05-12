@@ -54,6 +54,7 @@ export class Game {
   private fpsDisplayEnabled = false;
   private fpsDisplay: Text | null = null;
   private boundHandleResize: (() => void) | null = null;
+  private boundUpdate: (() => void) | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     Game.instance = this;
@@ -153,7 +154,8 @@ export class Game {
       this.gameScene.setWarningLineVisible(isPlaying);
     });
 
-    this.app.ticker.add(this.update.bind(this));
+    this.boundUpdate = this.update.bind(this);
+    this.app.ticker.add(this.boundUpdate);
 
     this.performanceMonitor.start();
 
@@ -310,10 +312,37 @@ export class Game {
       window.removeEventListener('resize', this.boundHandleResize);
       this.boundHandleResize = null;
     }
+    if (this.resizeTimer) {
+      clearTimeout(this.resizeTimer);
+      this.resizeTimer = null;
+    }
+    if (this.boundUpdate) {
+      this.app.ticker.remove(this.boundUpdate);
+      this.boundUpdate = null;
+    }
     this.eventRouter.destroy();
     this.gameScene.destroy();
+    this.uiManager.destroy();
     this.input.destroy();
     this.mergeSystem.destroy();
     this.physics.destroy();
+    this.scoreSystem.destroy();
+    this.audioManager.destroy();
+    this.saveManager.destroy();
+    this.propSystem.destroy();
+    this.modifierManager.destroy();
+    this.levelLoader.destroy();
+    this.preview.destroy();
+    this.gameHUD.destroy();
+    this.resultScreen.destroy();
+    this.levelSelectScreen.destroy();
+    this.pauseScreen.destroy();
+    if (this.fpsDisplay) {
+      this.fpsDisplay.destroy();
+      this.fpsDisplay = null;
+    }
+    BlockTextureCache.resetInstance();
+    AnimationManager.resetInstance();
+    Game.instance = null;
   }
 }

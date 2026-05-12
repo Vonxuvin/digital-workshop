@@ -160,7 +160,7 @@ export class MergeSystem {
   private scheduleChainCheck(label: string): void {
     this.pendingChainChecks.push(label);
     if (this.pendingChainChecks.length === 1 && !this.chainCheckAnimId) {
-      this.chainCheckAnimId = AnimationManager.getInstance().register((deltaMS) => {
+      this.chainCheckAnimId = AnimationManager.getInstance().registerOnce(() => {
         this.chainCheckAnimId = null;
         this.processChainChecks();
       }, `merge_chain_${Date.now()}`);

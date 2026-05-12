@@ -48,6 +48,16 @@ export class AnimationManager {
     return entryId;
   }
 
+  registerOnce(callback: AnimationCallback, id?: string): string {
+    const entryId = id || `anim_once_${++this.idCounter}`;
+    const wrappedCallback: AnimationCallback = (deltaMS) => {
+      this.entries.delete(entryId);
+      callback(deltaMS);
+    };
+    this.entries.set(entryId, { id: entryId, callback: wrappedCallback, active: true });
+    return entryId;
+  }
+
   unregister(id: string): void {
     this.entries.delete(id);
   }

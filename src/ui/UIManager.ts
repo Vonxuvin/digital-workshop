@@ -135,4 +135,21 @@ export class UIManager {
       this.ensureModalOverlayDrawn();
     }
   }
+
+  destroy(): void {
+    for (const screen of this.screens.values()) {
+      if ((screen as any).destroy) (screen as any).destroy();
+    }
+    this.screens.clear();
+    this.currentScreen = null;
+    if (this.currentPopup) {
+      if ((this.currentPopup as any).destroy) (this.currentPopup as any).destroy();
+      this.currentPopup = null;
+    }
+    this.popupQueue = [];
+    for (const layer of this.layers.values()) {
+      layer.destroy({ children: true });
+    }
+    this.layers.clear();
+  }
 }

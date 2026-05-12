@@ -318,4 +318,9 @@ export class SaveManager {
       return false;
     }
   }
+
+  destroy(): void {
+    this.stopAutoSave();
+    this.data = this.getDefaultData();
+  }
 }
