@@ -17,9 +17,11 @@ export class MainMenuScreen extends Screen {
   private currentScreenWidth = 800;
   private currentScreenHeight = 600;
   private initialized = false;
+  private audioManager: AudioManager;
 
-  constructor() {
+  constructor(audioManager: AudioManager) {
     super();
+    this.audioManager = audioManager;
   }
 
   private initialize(): void {
@@ -143,7 +145,7 @@ export class MainMenuScreen extends Screen {
     bg.fill({ color: 0x333333 });
     this.soundToggleButton.addChild(bg);
 
-    const audioManager = AudioManager.getInstance();
+    const audioManager = this.audioManager;
     this.soundIcon = new Text({
       text: audioManager.isCurrentlyMuted() ? '🔇' : '🔊',
       style: {
@@ -169,7 +171,7 @@ export class MainMenuScreen extends Screen {
     this.soundToggleButton.eventMode = 'static';
     this.soundToggleButton.cursor = 'pointer';
     this.soundToggleButton.on('pointerdown', () => {
-      const am = AudioManager.getInstance();
+      const am = this.audioManager;
       const isMuted = am.toggleMute();
       this.soundIcon.text = isMuted ? '🔇' : '🔊';
     });

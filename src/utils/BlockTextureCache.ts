@@ -6,6 +6,12 @@ export class BlockTextureCache {
   private textures: Map<string, Texture> = new Map();
   private app: Application | null = null;
 
+  constructor() {}
+
+  static setInstance(instance: BlockTextureCache): void {
+    BlockTextureCache.instance = instance;
+  }
+
   static getInstance(): BlockTextureCache {
     if (!BlockTextureCache.instance) {
       BlockTextureCache.instance = new BlockTextureCache();

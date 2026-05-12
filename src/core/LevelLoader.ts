@@ -9,12 +9,19 @@ export interface ValidationResult {
 }
 
 export class LevelLoader {
-  private static instance: LevelLoader;
+  private static instance: LevelLoader | null = null;
   private levelConfigs: Map<number, LevelConfig> = new Map();
   private hotReloadTimer: ReturnType<typeof setInterval> | null = null;
   private watchedLevels: Set<number> = new Set();
   private onConfigReload?: (levelId: number, config: LevelConfig) => void;
 
+  constructor() {}
+
+  static setInstance(instance: LevelLoader): void {
+    LevelLoader.instance = instance;
+  }
+
+  /** @deprecated 使用依赖注入代替，保留向后兼容 */
   static getInstance(): LevelLoader {
     if (!LevelLoader.instance) {
       LevelLoader.instance = new LevelLoader();

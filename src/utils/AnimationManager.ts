@@ -15,6 +15,12 @@ export class AnimationManager {
   private attached = false;
   private idCounter = 0;
 
+  constructor() {}
+
+  static setInstance(instance: AnimationManager): void {
+    AnimationManager.instance = instance;
+  }
+
   static getInstance(): AnimationManager {
     if (!AnimationManager.instance) {
       AnimationManager.instance = new AnimationManager();

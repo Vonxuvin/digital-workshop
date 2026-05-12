@@ -8,7 +8,7 @@ export interface SoundConfig {
 }
 
 export class AudioManager {
-  private static instance: AudioManager;
+  private static instance: AudioManager | null = null;
   private audioContext: AudioContext | null = null;
   private sounds: Map<string, HTMLAudioElement> = new Map();
   private volumes: Map<string, number> = new Map();
@@ -19,10 +19,15 @@ export class AudioManager {
   private currentMusic: string | null = null;
   private initialized: boolean = false;
 
-  private constructor() {
+  constructor() {
     this.setupEventListeners();
   }
 
+  static setInstance(instance: AudioManager): void {
+    AudioManager.instance = instance;
+  }
+
+  /** @deprecated 使用依赖注入代替，保留向后兼容 */
   static getInstance(): AudioManager {
     if (!AudioManager.instance) {
       AudioManager.instance = new AudioManager();

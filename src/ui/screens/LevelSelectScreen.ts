@@ -22,10 +22,10 @@ export class LevelSelectScreen extends Screen {
   private currentScreenHeight = 600;
   private initialized = false;
 
-  constructor() {
+  constructor(saveManager: SaveManager, levelLoader: LevelLoader) {
     super();
-    this.saveManager = SaveManager.getInstance();
-    this.levelLoader = LevelLoader.getInstance();
+    this.saveManager = saveManager;
+    this.levelLoader = levelLoader;
   }
 
   private async initialize(): Promise<void> {

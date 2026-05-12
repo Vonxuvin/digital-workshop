@@ -3,12 +3,16 @@ import { MainMenuScreen } from '../src/ui/screens/MainMenuScreen';
 import { ResultScreen } from '../src/ui/screens/ResultScreen';
 import { LevelSelectScreen } from '../src/ui/screens/LevelSelectScreen';
 import { eventBus } from '../src/utils/EventBus';
+import { AudioManager } from '../src/core/AudioManager';
+import { SaveManager } from '../src/core/SaveManager';
+import { LevelLoader } from '../src/core/LevelLoader';
 
 describe('MainMenuScreen', () => {
   let screen: MainMenuScreen;
 
   beforeEach(() => {
-    screen = new MainMenuScreen();
+    const audioManager = new AudioManager();
+    screen = new MainMenuScreen(audioManager);
   });
 
   it('should create without error', () => {
@@ -58,7 +62,9 @@ describe('LevelSelectScreen', () => {
   let screen: LevelSelectScreen;
 
   beforeEach(() => {
-    screen = new LevelSelectScreen();
+    const saveManager = new SaveManager();
+    const levelLoader = new LevelLoader();
+    screen = new LevelSelectScreen(saveManager, levelLoader);
   });
 
   it('should create without error', () => {

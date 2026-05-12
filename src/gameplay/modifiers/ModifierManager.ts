@@ -8,7 +8,7 @@ import { ForkModifier, ForkConfig } from './ForkModifier';
 import { PhysicsManager } from '../../core/PhysicsManager';
 
 export class ModifierManager {
-  private static instance: ModifierManager;
+  private static instance: ModifierManager | null = null;
   private modifiers: Map<ModifierType, ContainerModifier> = new Map();
   private physics: PhysicsManager;
   private eventBus: EventBus;
@@ -17,11 +17,16 @@ export class ModifierManager {
   private isPaused: boolean = false;
   private stageContainer: Container | null = null;
 
-  private constructor(physics: PhysicsManager) {
+  constructor(physics: PhysicsManager) {
     this.physics = physics;
     this.eventBus = eventBus;
   }
 
+  static setInstance(instance: ModifierManager): void {
+    ModifierManager.instance = instance;
+  }
+
+  /** @deprecated 使用依赖注入代替，保留向后兼容 */
   static getInstance(physics?: PhysicsManager): ModifierManager {
     if (!ModifierManager.instance) {
       if (!physics) {
@@ -32,8 +37,12 @@ export class ModifierManager {
     return ModifierManager.instance;
   }
 
+  /** @deprecated 使用依赖注入代替 */
   static resetInstance(): void {
-    ModifierManager.instance = null as any;
+    if (ModifierManager.instance) {
+      ModifierManager.instance.destroy();
+    }
+    ModifierManager.instance = null;
   }
 
   setContainerSize(width: number, height: number): void {
@@ -156,6 +165,6 @@ export class ModifierManager {
 
   destroy(): void {
     this.clearAll();
-    ModifierManager.instance = null as any;
+    ModifierManager.instance = null;
   }
 }

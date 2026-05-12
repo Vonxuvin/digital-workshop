@@ -37,7 +37,7 @@ export interface PlayerData {
 }
 
 export class SaveManager {
-  private static instance: SaveManager;
+  private static instance: SaveManager | null = null;
   private data: PlayerData;
   private readonly STORAGE_KEY = 'digital_workshop_save';
   private autoSaveInterval: ReturnType<typeof setInterval> | null = null;
@@ -45,11 +45,16 @@ export class SaveManager {
   private platform: PlatformAdapter;
   private initialized: boolean = false;
 
-  private constructor() {
+  constructor() {
     this.data = this.getDefaultData();
     this.platform = createPlatformAdapter();
   }
 
+  static setInstance(instance: SaveManager): void {
+    SaveManager.instance = instance;
+  }
+
+  /** @deprecated 使用依赖注入代替，保留向后兼容 */
   static getInstance(): SaveManager {
     if (!SaveManager.instance) {
       SaveManager.instance = new SaveManager();

@@ -7,14 +7,19 @@ import { ShrinkProp } from './ShrinkProp';
 import { LuckyProp } from './LuckyProp';
 
 export class PropSystem {
-  private static instance: PropSystem;
+  private static instance: PropSystem | null = null;
   private props: Map<PropType, Prop> = new Map();
   private propsConfig: Map<string, PropConfig> = new Map();
   private eventBus = eventBus;
   private isPaused: boolean = false;
 
-  private constructor() {}
+  constructor() {}
 
+  static setInstance(instance: PropSystem): void {
+    PropSystem.instance = instance;
+  }
+
+  /** @deprecated 使用依赖注入代替，保留向后兼容 */
   static getInstance(): PropSystem {
     if (!PropSystem.instance) {
       PropSystem.instance = new PropSystem();
