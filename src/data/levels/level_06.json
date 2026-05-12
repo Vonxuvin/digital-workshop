@@ -1,38 +1,21 @@
 {
   "id": 6,
-  "name": "移动挡板挑战",
-  "objective": { "type": "score", "target": 3000 },
+  "name": "挡板初体验",
+  "objective": { "type": "score", "target": 2000 },
   "container": { "width": 400, "height": 600 },
-  "spawn": { "availableNumbers": [1, 2, 4], "spawnInterval": 0 },
+  "spawn": { "availableNumbers": [1, 2, 4, 8], "spawnInterval": 0 },
   "modifiers": [
     {
       "type": "paddle",
       "enabled": true,
-      "mode": "slide",
+      "mode": "extend",
       "side": "left",
-      "extendLength": 120,
-      "triggerInterval": 0,
-      "xPosition": 100,
-      "xRange": 50,
-      "slideSpeed": 8,
-      "yPosition": 250,
-      "initialDirection": 1,
-      "duration": 999
-    },
-    {
-      "type": "paddle",
-      "enabled": true,
-      "mode": "slide",
-      "side": "right",
-      "extendLength": 120,
-      "triggerInterval": 0,
-      "xPosition": 300,
-      "xRange": 50,
-      "slideSpeed": 8,
-      "yPosition": 400,
-      "initialDirection": -1,
-      "duration": 999
+      "extendDuration": 3,
+      "retractDuration": 2,
+      "extendLength": 80,
+      "triggerInterval": 8,
+      "yPosition": 350
     }
   ],
-  "rewards": { "stars": [1000, 2000, 3000] }
+  "rewards": { "stars": [800, 1400, 2000] }
 }

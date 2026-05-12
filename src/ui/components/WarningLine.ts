@@ -1,26 +1,60 @@
-import { Container, Graphics } from 'pixi.js';
+import { Container, Graphics, Text } from 'pixi.js';
 import { eventBus } from '../../utils/EventBus';
+
+export interface WarningConfig {
+  warningThreshold: number;
+  speedThreshold: number;
+  gracePeriod: number;
+}
+
+const DEFAULT_WARNING_CONFIG: WarningConfig = {
+  warningThreshold: 5000,
+  speedThreshold: 2,
+  gracePeriod: 1000,
+};
 
 export class WarningLine extends Container {
   private graphics: Graphics;
+  private countdownText: Text;
   private containerHeight: number;
   private containerWidth: number;
   private isWarning = false;
   private flashTimer = 0;
   private warningDuration = 0;
-  private readonly WARNING_THRESHOLD = 3000;
-  private readonly SPEED_THRESHOLD = 5;
-  private readonly GRACE_PERIOD = 500;
+  private readonly WARNING_THRESHOLD: number;
+  private readonly SPEED_THRESHOLD: number;
+  private readonly GRACE_PERIOD: number;
   private graceTimer = 0;
   private disabled = false;
+  private config: WarningConfig;
 
-  constructor(containerHeight: number, containerWidth: number = 800) {
+  constructor(containerHeight: number, containerWidth: number = 800, config?: Partial<WarningConfig>) {
     super();
     this.containerHeight = containerHeight;
     this.containerWidth = containerWidth;
+    this.config = { ...DEFAULT_WARNING_CONFIG, ...config };
+    this.WARNING_THRESHOLD = this.config.warningThreshold;
+    this.SPEED_THRESHOLD = this.config.speedThreshold;
+    this.GRACE_PERIOD = this.config.gracePeriod;
 
     this.graphics = new Graphics();
     this.addChild(this.graphics);
+
+    this.countdownText = new Text({
+      text: '',
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 16,
+        fill: 0xff4444,
+        fontWeight: 'bold',
+      },
+    });
+    this.countdownText.anchor.set(0.5, 0);
+    this.countdownText.x = this.containerWidth / 2;
+    this.countdownText.y = 8;
+    this.countdownText.visible = false;
+    this.addChild(this.countdownText);
+
     this.drawLine();
   }
 
@@ -56,13 +90,13 @@ export class WarningLine extends Container {
       this.warningDuration += deltaMS;
 
       this.flashTimer += deltaMS * 0.005;
-      const alpha = 0.3 + Math.sin(this.flashTimer) * 0.3;
-      this.graphics.alpha = alpha;
+      this.updateVisualFeedback();
 
       if (this.warningDuration >= this.WARNING_THRESHOLD) {
         this.disabled = true;
         eventBus.emit('game:over');
         this.isWarning = false;
+        this.countdownText.visible = false;
       }
     } else {
       if (this.isWarning) {
@@ -71,11 +105,35 @@ export class WarningLine extends Container {
           this.isWarning = false;
           this.warningDuration = 0;
           this.graceTimer = 0;
+          this.countdownText.visible = false;
           eventBus.emit('warning:ended');
         }
       }
       this.graphics.alpha = 0.8;
     }
+  }
+
+  private updateVisualFeedback(): void {
+    const progress = this.warningDuration / this.WARNING_THRESHOLD;
+
+    if (progress < 0.3) {
+      this.graphics.alpha = 0.5 + Math.sin(this.flashTimer * 2) * 0.2;
+      this.graphics.tint = 0xffff44;
+    } else if (progress < 0.7) {
+      this.graphics.alpha = 0.4 + Math.sin(this.flashTimer * 4) * 0.4;
+      this.graphics.tint = 0xff8844;
+      this.showCountdown();
+    } else {
+      this.graphics.alpha = 0.3 + Math.sin(this.flashTimer * 8) * 0.5;
+      this.graphics.tint = 0xff2222;
+      this.showCountdown();
+    }
+  }
+
+  private showCountdown(): void {
+    const remaining = Math.max(0, Math.ceil((this.WARNING_THRESHOLD - this.warningDuration) / 1000));
+    this.countdownText.text = `${remaining}s`;
+    this.countdownText.visible = true;
   }
 
   getWarningHeight(): number {
@@ -86,12 +144,18 @@ export class WarningLine extends Container {
     return this.warningDuration;
   }
 
+  getWarningProgress(): number {
+    return this.warningDuration / this.WARNING_THRESHOLD;
+  }
+
   reset(): void {
     this.isWarning = false;
     this.warningDuration = 0;
     this.flashTimer = 0;
     this.graceTimer = 0;
     this.graphics.alpha = 0.8;
+    this.graphics.tint = 0xffffff;
+    this.countdownText.visible = false;
   }
 
   setDisabled(disabled: boolean): void {
@@ -100,6 +164,8 @@ export class WarningLine extends Container {
       this.isWarning = false;
       this.warningDuration = 0;
       this.graphics.alpha = 0.8;
+      this.graphics.tint = 0xffffff;
+      this.countdownText.visible = false;
     }
   }
 }

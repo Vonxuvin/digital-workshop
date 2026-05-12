@@ -6,6 +6,7 @@ import { PropType } from '../gameplay/props/Prop';
 import { RainbowProp } from '../gameplay/props/RainbowProp';
 import { LevelConfig } from '../gameplay/LevelSystem';
 import { Container } from 'pixi.js';
+import { eventBus } from '../utils/EventBus';
 
 export class BlockSpawner {
   private physics: PhysicsManager;
@@ -28,6 +29,7 @@ export class BlockSpawner {
   private luckyMultiplier = 1;
   private containerWidth: number = 400;
   private containerOffsetX: number = 0;
+  private isPaused: boolean = false;
 
   constructor(
     physics: PhysicsManager,
@@ -75,6 +77,7 @@ export class BlockSpawner {
     }
 
     console.log(`[BlockSpawner] 投放方块 ${value}${isRainbowBlock ? '(彩虹)' : ''}, 下一个: ${this.currentValue}`);
+    eventBus.emit('block:dropped');
   }
 
   getRandomValue(): number {
@@ -120,6 +123,8 @@ export class BlockSpawner {
   }
 
   update(deltaMS: number): void {
+    if (this.isPaused) return;
+
     if (this.cooldownRemaining > 0) {
       this.cooldownRemaining -= deltaMS;
       if (this.cooldownRemaining <= 0) {
@@ -246,6 +251,14 @@ export class BlockSpawner {
     return this.obstacleBlocks;
   }
 
+  pause(): void {
+    this.isPaused = true;
+  }
+
+  resume(): void {
+    this.isPaused = false;
+  }
+
   reset(): void {
     this.clearBlocks();
     this.clearObstacles();
@@ -258,5 +271,6 @@ export class BlockSpawner {
     this.luckyMode = false;
     this.luckyMultiplier = 1;
     this.currentValue = 1;
+    this.isPaused = false;
   }
 }

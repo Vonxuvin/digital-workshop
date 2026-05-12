@@ -24,6 +24,8 @@ import { BlockTextureCache } from '../utils/BlockTextureCache';
 import { GameScene } from './GameScene';
 import { GameEventRouter } from './GameEventRouter';
 import { SceneManager } from './SceneManager';
+import { TutorialOverlay } from '../ui/TutorialOverlay';
+import { TutorialManager } from './TutorialManager';
 import propsData from '../data/props/props.json';
 
 export class Game {
@@ -55,8 +57,9 @@ export class Game {
   private fpsDisplay: Text | null = null;
   private boundHandleResize: (() => void) | null = null;
   private boundUpdate: (() => void) | null = null;
-  private lastActionTime: number = 0;
-  private readonly actionDebounceMs: number = 200;
+  private static readonly TOUCH_OFFSET_Y = 30;
+  private tutorialOverlay!: TutorialOverlay;
+  private tutorialManager!: TutorialManager;
 
   constructor(canvas: HTMLCanvasElement) {
     Game.instance = this;
@@ -122,10 +125,15 @@ export class Game {
         this.modifierManager,
         this.propSystem,
         this.performanceMonitor,
+        this.tutorialManager,
       );
       this.gameScene.init();
 
       this.uiManager = new UIManager(this.app);
+
+      this.tutorialOverlay = new TutorialOverlay();
+      this.tutorialManager = new TutorialManager(this.tutorialOverlay, this.saveManager);
+      this.app.stage.addChild(this.tutorialOverlay);
 
       const textureCache = BlockTextureCache.getInstance();
       textureCache.setApp(this.app);
@@ -215,15 +223,12 @@ export class Game {
   }
 
   private setupInput(): void {
-    const dropY = 80;
-
     this.syncInputScale();
 
     this.input.onDown((state) => {
       if (!this.gameScene.getBlockSpawner().getCanDrop() || !this.sceneManager.isPlaying()) return;
       if (this.gameScene.getBombTargetMode()) return;
-      const now = Date.now();
-      if (now - this.lastActionTime < this.actionDebounceMs) return;
+      const dropY = this.calculateDropY(state.position.y);
       this.gameScene.getPreview().show(this.gameScene.getBlockSpawner().getCurrentValue(), state.position.x, dropY);
     });
 
@@ -234,22 +239,24 @@ export class Game {
     });
 
     this.input.onUp(() => {
-      const now = Date.now();
-      if (now - this.lastActionTime < this.actionDebounceMs) return;
       if (this.gameScene.getBombTargetMode() && this.sceneManager.isPlaying()) {
         const pos = this.input.getState().position;
         this.gameScene.usePropAtPosition(pos.x, pos.y);
-        this.lastActionTime = now;
         return;
       }
       if (this.gameScene.getPreview().visible && this.gameScene.getBlockSpawner().getCanDrop() && this.sceneManager.isPlaying()) {
         const targetX = this.gameScene.getPreview().getTargetX();
+        const dropY = this.gameScene.getPreview().y;
         this.gameScene.getBlockSpawner().dropBlock(targetX, dropY, this.gameScene.getBlockSpawner().getCurrentValue());
         this.gameScene.getPreview().hide();
         this.gameScene.getBlockSpawner().startCooldown();
-        this.lastActionTime = now;
       }
     });
+  }
+
+  private calculateDropY(touchY: number): number {
+    const offset = this.gameScene.getContainerOffsetX() > 0 ? 80 : 60;
+    return Math.max(60, touchY - Game.TOUCH_OFFSET_Y);
   }
 
   private syncInputScale(): void {
@@ -299,6 +306,7 @@ export class Game {
       this.uiManager.handleResize(this.app.screen.width, this.app.screen.height);
       this.syncInputScale();
       this.gameHUD.layout(this.app.screen.width, this.app.screen.height);
+      this.tutorialManager.resize(this.app.screen.width, this.app.screen.height);
     }, 300);
   }
 
@@ -322,6 +330,14 @@ export class Game {
     if (this.fpsDisplay) {
       this.fpsDisplay.visible = this.fpsDisplayEnabled;
     }
+  }
+
+  startTutorial(levelId: number): void {
+    this.tutorialManager.startTutorial(levelId, this.app.screen.width, this.app.screen.height);
+  }
+
+  getTutorialManager(): TutorialManager {
+    return this.tutorialManager;
   }
 
   private update(): void {
@@ -385,6 +401,8 @@ export class Game {
     this.resultScreen.destroy();
     this.levelSelectScreen.destroy();
     this.pauseScreen.destroy();
+    this.tutorialManager.destroy();
+    this.tutorialOverlay.destroy();
     if (this.fpsDisplay) {
       this.fpsDisplay.destroy();
       this.fpsDisplay = null;

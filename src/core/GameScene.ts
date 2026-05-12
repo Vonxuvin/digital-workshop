@@ -15,6 +15,7 @@ import { PropEffectHandler } from './PropEffectHandler';
 import { PerformanceMonitor } from '../utils/PerformanceMonitor';
 import Matter from 'matter-js';
 import gsap from 'gsap';
+import { TutorialManager } from './TutorialManager';
 
 export interface BlockMergedData {
   newValue: number;
@@ -49,6 +50,7 @@ export class GameScene {
   private containerHeight: number = 0;
   private containerOffsetX: number = 0;
   private warningLineData: Array<{ y: number; radius: number; speed: number }> = [];
+  private tutorialManager: TutorialManager | null = null;
 
   constructor(
     app: Application,
@@ -60,6 +62,7 @@ export class GameScene {
     modifierManager: ModifierManager,
     propSystem: PropSystem,
     performanceMonitor: PerformanceMonitor,
+    tutorialManager?: TutorialManager,
   ) {
     this.app = app;
     this.physics = physics;
@@ -71,6 +74,7 @@ export class GameScene {
     this.propSystem = propSystem;
     this.performanceMonitor = performanceMonitor;
     this.groundY = 550;
+    this.tutorialManager = tutorialManager || null;
   }
 
   init(): void {
@@ -194,6 +198,10 @@ export class GameScene {
       this.gameHUD.setObjectiveProgress(this.levelSystem.getProgress());
     }
     this.gameHUD.updatePropButtons();
+
+    if (this.tutorialManager) {
+      this.tutorialManager.startTutorial(config.id, this.app.screen.width, this.app.screen.height);
+    }
   }
 
   resetGame(): void {
@@ -237,7 +245,9 @@ export class GameScene {
     this.levelSystem?.pause();
     this.modifierManager.pauseAll();
     this.propEffectHandler.pause();
+    this.blockSpawner.pause();
     this.preview.hide();
+    this.propEffectHandler.clearBombTargetMode();
     gsap.globalTimeline.pause();
   }
 
@@ -245,6 +255,7 @@ export class GameScene {
     this.propEffectHandler.resume();
     this.levelSystem?.resume();
     this.modifierManager.resumeAll();
+    this.blockSpawner.resume();
     gsap.globalTimeline.resume();
   }
 

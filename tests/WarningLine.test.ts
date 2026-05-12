@@ -42,6 +42,8 @@ describe('WarningLine', () => {
     wl.update([{ y: 500, radius: 20, speed: 0 }], 16.67);
     expect(handler).not.toHaveBeenCalled();
     wl.update([{ y: 500, radius: 20, speed: 0 }], 500);
+    expect(handler).not.toHaveBeenCalled();
+    wl.update([{ y: 500, radius: 20, speed: 0 }], 500);
     expect(handler).toHaveBeenCalled();
     eventBus.off('warning:ended', handler);
   });
@@ -49,7 +51,7 @@ describe('WarningLine', () => {
   it('should emit game:over after threshold', () => {
     const handler = vi.fn();
     eventBus.on('game:over', handler);
-    for (let i = 0; i < 200; i++) {
+    for (let i = 0; i < 320; i++) {
       wl.update([{ y: 50, radius: 20, speed: 0.5 }], 16.67);
     }
     expect(handler).toHaveBeenCalled();

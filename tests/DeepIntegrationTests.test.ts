@@ -700,7 +700,7 @@ describe('Deep Integration Tests', () => {
         const warningHeight = wl.getWarningHeight();
         const gameOverHandler = vi.fn();
         eventBus.on('game:over', gameOverHandler);
-        wl.update([{ y: warningHeight - 10, radius: 5, speed: 0 }], 3100);
+        wl.update([{ y: warningHeight - 10, radius: 5, speed: 0 }], 5100);
         expect(gameOverHandler).toHaveBeenCalled();
         eventBus.off('game:over', gameOverHandler);
       });
@@ -719,7 +719,7 @@ describe('Deep Integration Tests', () => {
         const warningHeight = wl.getWarningHeight();
         const handler = vi.fn();
         eventBus.on('game:over', handler);
-        for (let i = 0; i < 200; i++) {
+        for (let i = 0; i < 320; i++) {
           wl.update([{ y: warningHeight - 10, radius: 5, speed: 0 }], 16.67);
         }
         expect(handler).toHaveBeenCalled();
@@ -731,6 +731,8 @@ describe('Deep Integration Tests', () => {
         wl.update([{ y: warningHeight - 10, radius: 5, speed: 0 }], 16.67);
         expect(wl.getWarningDuration()).toBeGreaterThan(0);
         wl.update([{ y: warningHeight + 100, radius: 5, speed: 0 }], 16.67);
+        expect(wl.getWarningDuration()).toBeGreaterThan(0);
+        wl.update([{ y: warningHeight + 100, radius: 5, speed: 0 }], 500);
         expect(wl.getWarningDuration()).toBeGreaterThan(0);
         wl.update([{ y: warningHeight + 100, radius: 5, speed: 0 }], 500);
         expect(wl.getWarningDuration()).toBe(0);

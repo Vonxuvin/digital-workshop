@@ -524,12 +524,12 @@ describe('WarningLine Deep Tests', () => {
   });
 
   describe('game:over emitted exactly once at threshold', () => {
-    it('should emit game:over when warningDuration >= 3000', () => {
+    it('should emit game:over when warningDuration >= 5000', () => {
       const wh = wl.getWarningHeight();
       const handler = vi.fn();
       eventBus.on('game:over', handler);
 
-      for (let i = 0; i < 200; i++) {
+      for (let i = 0; i < 320; i++) {
         wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
       }
 
@@ -542,7 +542,7 @@ describe('WarningLine Deep Tests', () => {
       const handler = vi.fn();
       eventBus.on('game:over', handler);
 
-      for (let i = 0; i < 200; i++) {
+      for (let i = 0; i < 320; i++) {
         wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
       }
       const callCount = handler.mock.calls.length;

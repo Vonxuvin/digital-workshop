@@ -187,6 +187,10 @@ export class PropEffectHandler {
     return this.bombTargetMode;
   }
 
+  clearBombTargetMode(): void {
+    this.bombTargetMode = false;
+  }
+
   reset(): void {
     this.bombTargetMode = false;
     this.shrinkActive = false;
