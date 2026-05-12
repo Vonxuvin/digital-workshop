@@ -39,7 +39,8 @@ export class PaddleModifier extends ContainerModifier {
   private initialDirection: 1 | -1;
   private phaseElapsed: number = 0;
   private cycleAnimationId: string | null = null;
-  private retractTimeout: ReturnType<typeof setTimeout> | null = null;
+  private idleDelayRemaining: number = 0;
+  private idleDelayAnimationId: string | null = null;
 
   constructor(
     config: PaddleConfig,
@@ -141,14 +142,15 @@ export class PaddleModifier extends ContainerModifier {
           this.phase = 'idle';
           this.phaseElapsed = 0;
           const delay = (this.config.triggerInterval || 5) * 1000 - this.extendDuration - this.retractDuration - 1000;
-          this.retractTimeout = setTimeout(() => {
-            this.retractTimeout = null;
-            if (this.state.isActive) {
-              this.phase = 'extending';
-              this.phaseElapsed = 0;
-              this.createPaddle();
-            }
-          }, Math.max(0, delay));
+          this.idleDelayRemaining = Math.max(0, delay);
+          if (this.idleDelayRemaining > 0) {
+            this.idleDelayAnimationId = AnimationManager.getInstance().register(
+              (deltaMS) => this.tickIdleDelay(deltaMS),
+              `paddle_idle_${Date.now()}`
+            );
+          } else {
+            this.beginNextCycle();
+          }
         }
         break;
     }
@@ -237,6 +239,25 @@ export class PaddleModifier extends ContainerModifier {
     return t * t;
   }
 
+  private tickIdleDelay(deltaMS: number): void {
+    this.idleDelayRemaining -= deltaMS;
+    if (this.idleDelayRemaining <= 0) {
+      if (this.idleDelayAnimationId) {
+        AnimationManager.getInstance().unregister(this.idleDelayAnimationId);
+        this.idleDelayAnimationId = null;
+      }
+      this.beginNextCycle();
+    }
+  }
+
+  private beginNextCycle(): void {
+    if (this.state.isActive) {
+      this.phase = 'extending';
+      this.phaseElapsed = 0;
+      this.createPaddle();
+    }
+  }
+
   private removePaddle(): void {
     if (this.paddleBody) {
       this.physics.removeBody(this.paddleBody);
@@ -260,9 +281,9 @@ export class PaddleModifier extends ContainerModifier {
       AnimationManager.getInstance().unregister(this.cycleAnimationId);
       this.cycleAnimationId = null;
     }
-    if (this.retractTimeout) {
-      clearTimeout(this.retractTimeout);
-      this.retractTimeout = null;
+    if (this.idleDelayAnimationId) {
+      AnimationManager.getInstance().unregister(this.idleDelayAnimationId);
+      this.idleDelayAnimationId = null;
     }
     this.phase = 'idle';
   }
@@ -274,9 +295,9 @@ export class PaddleModifier extends ContainerModifier {
       AnimationManager.getInstance().unregister(this.cycleAnimationId);
       this.cycleAnimationId = null;
     }
-    if (this.retractTimeout) {
-      clearTimeout(this.retractTimeout);
-      this.retractTimeout = null;
+    if (this.idleDelayAnimationId) {
+      AnimationManager.getInstance().unregister(this.idleDelayAnimationId);
+      this.idleDelayAnimationId = null;
     }
   }
 }

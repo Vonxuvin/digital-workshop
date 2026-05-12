@@ -90,7 +90,8 @@ export class BlockTextureCache {
 
     const renderer = this.app?.renderer;
     if (!renderer) {
-      throw new Error('[BlockTextureCache] Application renderer not available');
+      container.destroy({ children: true });
+      return Texture.EMPTY;
     }
 
     const texture = renderer.generateTexture({

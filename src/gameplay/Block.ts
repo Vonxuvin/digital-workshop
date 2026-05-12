@@ -77,9 +77,9 @@ export class Block extends Container {
     this.syncFromBody();
   }
 
-  syncFromBody(): void {
+  syncFromBody(force: boolean = false): void {
     if (this._destroyed) return;
-    if (this.body.isSleeping) return;
+    if (!force && this.body.isSleeping) return;
     this.x = this.body.position.x;
     this.y = this.body.position.y;
     this.rotation = this.body.angle;

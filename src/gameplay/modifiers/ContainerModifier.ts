@@ -26,9 +26,10 @@ export abstract class ContainerModifier {
   protected state: ModifierState;
   protected physics: PhysicsManager;
   protected animationId: string | null = null;
-  protected startDelayTimer: ReturnType<typeof setTimeout> | null = null;
   protected stageContainer: Container | null = null;
   protected containerBodies: Matter.Body[] = [];
+  private startDelayRemaining: number = 0;
+  private startDelayAnimationId: string | null = null;
 
   protected collectContainerBodies(): void {
     this.containerBodies = this.physics.getContainerBodies();
@@ -50,10 +51,23 @@ export abstract class ContainerModifier {
 
   start(): void {
     if (this.config.startDelay && this.config.startDelay > 0) {
-      this.startDelayTimer = setTimeout(() => {
-        this.activate();
-      }, this.config.startDelay * 1000);
+      this.startDelayRemaining = this.config.startDelay * 1000;
+      this.startDelayAnimationId = AnimationManager.getInstance().register(
+        (deltaMS) => this.tickStartDelay(deltaMS),
+        `modifier_delay_${this.config.type}_${Date.now()}`
+      );
     } else {
+      this.activate();
+    }
+  }
+
+  private tickStartDelay(deltaMS: number): void {
+    this.startDelayRemaining -= deltaMS;
+    if (this.startDelayRemaining <= 0) {
+      if (this.startDelayAnimationId) {
+        AnimationManager.getInstance().unregister(this.startDelayAnimationId);
+        this.startDelayAnimationId = null;
+      }
       this.activate();
     }
   }
@@ -130,9 +144,9 @@ export abstract class ContainerModifier {
       AnimationManager.getInstance().unregister(this.animationId);
       this.animationId = null;
     }
-    if (this.startDelayTimer) {
-      clearTimeout(this.startDelayTimer);
-      this.startDelayTimer = null;
+    if (this.startDelayAnimationId) {
+      AnimationManager.getInstance().unregister(this.startDelayAnimationId);
+      this.startDelayAnimationId = null;
     }
   }
 

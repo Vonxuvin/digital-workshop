@@ -129,10 +129,23 @@ export class PhysicsManager {
     };
   }
 
+  private collisionCallbacks: Array<(pair: Matter.Pair) => void> = [];
+
   onCollisionStart(callback: (pair: Matter.Pair) => void): void {
+    this.collisionCallbacks.push(callback);
     Matter.Events.on(this.engine, 'collisionStart', (event: any) => {
       event.pairs.forEach(callback);
     });
+  }
+
+  destroy(): void {
+    for (const cb of this.collisionCallbacks) {
+      Matter.Events.off(this.engine, 'collisionStart', cb as any);
+    }
+    this.collisionCallbacks = [];
+    Matter.Engine.clear(this.engine);
+    this.bodies.clear();
+    this.running = false;
   }
 
   getEngine(): Matter.Engine {
@@ -141,6 +154,18 @@ export class PhysicsManager {
 
   getAllBodies(): Matter.Body[] {
     return Array.from(this.bodies.values());
+  }
+
+  getBodiesInArea(minX: number, minY: number, maxX: number, maxY: number): Matter.Body[] {
+    const result: Matter.Body[] = [];
+    for (const body of this.bodies.values()) {
+      if (body.isStatic) continue;
+      const pos = body.position;
+      if (pos.x >= minX && pos.x <= maxX && pos.y >= minY && pos.y <= maxY) {
+        result.push(body);
+      }
+    }
+    return result;
   }
 
   getContainerBodies(): Matter.Body[] {

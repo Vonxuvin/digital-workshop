@@ -6,6 +6,7 @@ export class BlockPreview extends Container {
   private currentValue: number = 1;
   private targetX: number = 0;
   private trajectoryLength: number = 500;
+  private groundY: number = 600;
 
   constructor() {
     super();
@@ -14,11 +15,16 @@ export class BlockPreview extends Container {
     this.visible = false;
   }
 
+  setGroundY(y: number): void {
+    this.groundY = y;
+  }
+
   show(value: number, x: number, y: number): void {
     this.currentValue = value;
     this.targetX = x;
     this.x = x;
     this.y = y;
+    this.trajectoryLength = Math.max(0, this.groundY - y);
     this.visible = true;
     this.draw();
   }

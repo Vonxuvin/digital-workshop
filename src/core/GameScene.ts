@@ -87,6 +87,7 @@ export class GameScene {
     this.warningLine.y = this.groundY * 0.2;
     this.warningLine.visible = false;
     this.app.stage.addChild(this.warningLine);
+    this.preview.setGroundY(this.groundY);
   }
 
   rebuildPhysicsWalls(): void {
@@ -435,7 +436,7 @@ export class GameScene {
     if (score >= 1000) return 3;
     if (score >= 500) return 2;
     if (score >= 100) return 1;
-    return 1;
+    return 0;
   }
 
   private drawContainerWalls(): void {

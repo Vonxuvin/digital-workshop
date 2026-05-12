@@ -80,9 +80,10 @@ export class LevelSystem {
     if (this.config.objective.type !== 'clear_obstacle') return;
 
     const maxObstacles = this.config.obstacles?.length ?? this.config.objective.target;
-    if (this.obstaclesCleared >= maxObstacles) return;
     this.obstaclesCleared++;
-    this.checkObjective();
+    if (this.obstaclesCleared >= maxObstacles) {
+      this.checkObjective();
+    }
   }
 
   start(): void {
@@ -194,8 +195,10 @@ export class LevelSystem {
       case 'target_merge':
         if (objective.target <= 0) return 1;
         return Math.min(this.highestMergeValue / objective.target, 1);
-      case 'clear_obstacle':
-        return objective.target > 0 ? Math.min(this.obstaclesCleared / objective.target, 1) : 1;
+      case 'clear_obstacle': {
+        const maxObs = this.config.obstacles?.length ?? objective.target;
+        return maxObs > 0 ? Math.min(this.obstaclesCleared / maxObs, 1) : 1;
+      }
       case 'survival':
         return (objective.timeLimit !== undefined && objective.timeLimit !== null && objective.timeLimit > 0)
           ? Math.min(this.survivalTime / objective.timeLimit, 1)

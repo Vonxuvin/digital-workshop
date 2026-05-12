@@ -172,13 +172,21 @@ export class MergeSystem {
   };
 
   private checkChainReaction(block: Block, currentDepth: number): void {
-    const nearbyBodies = this.physics.getAllBodies().filter(b => {
-      if (b === block.body || b.isStatic) return false;
-      const dist = Matter.Vector.magnitude(Matter.Vector.sub(block.body.position, b.position));
-      return dist < (block.body.circleRadius || 20) + (b.circleRadius || 20) + 5;
-    });
+    const blockPos = block.body.position;
+    const blockRadius = block.body.circleRadius || 20;
+    const searchRadius = blockRadius * 4;
+
+    const nearbyBodies = this.physics.getBodiesInArea(
+      blockPos.x - searchRadius,
+      blockPos.y - searchRadius,
+      blockPos.x + searchRadius,
+      blockPos.y + searchRadius
+    );
 
     for (const other of nearbyBodies) {
+      if (other === block.body || other.isStatic) continue;
+      const dist = Matter.Vector.magnitude(Matter.Vector.sub(blockPos, other.position));
+      if (dist >= blockRadius + (other.circleRadius || 20) + 5) continue;
       const otherBlock = this.blocks.get(other.label);
       if (otherBlock && !otherBlock.isDestroyed && otherBlock.value === block.value) {
         this.chainDepthMap.set(block.body.label, currentDepth + 1);
@@ -186,5 +194,13 @@ export class MergeSystem {
         break;
       }
     }
+  }
+
+  destroy(): void {
+    this.blocks.clear();
+    this.obstacles.clear();
+    this.mergingBodies.clear();
+    this.chainDepthMap.clear();
+    this.pendingChainChecks = [];
   }
 }

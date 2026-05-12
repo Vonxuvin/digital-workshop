@@ -305,6 +305,7 @@ export class Game {
     this.eventRouter.destroy();
     this.gameScene.destroy();
     this.input.destroy();
-    this.physics.stop();
+    this.mergeSystem.destroy();
+    this.physics.destroy();
   }
 }

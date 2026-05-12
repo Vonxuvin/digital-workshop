@@ -35,11 +35,13 @@ describe('WarningLine', () => {
     eventBus.off('warning:started', handler);
   });
 
-  it('should emit warning:ended when block moves below line', () => {
+  it('should emit warning:ended when block moves below line after grace period', () => {
     const handler = vi.fn();
     eventBus.on('warning:ended', handler);
     wl.update([{ y: 50, radius: 20, speed: 0.5 }], 16.67);
     wl.update([{ y: 500, radius: 20, speed: 0 }], 16.67);
+    expect(handler).not.toHaveBeenCalled();
+    wl.update([{ y: 500, radius: 20, speed: 0 }], 500);
     expect(handler).toHaveBeenCalled();
     eventBus.off('warning:ended', handler);
   });
