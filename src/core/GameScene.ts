@@ -155,6 +155,9 @@ export class GameScene {
     this.warningLine?.reset();
     this.levelSystem?.reset();
     this.bombTargetMode = false;
+    this.shrinkActive = false;
+    this.shrinkFactor = 1;
+    this.originalBodyVertices.clear();
     this.blockSpawner.reset();
     this.effectManager.removeFreezeEffect();
     this.modifierManager.stopAll();
@@ -280,26 +283,43 @@ export class GameScene {
     this.effectManager.removeFreezeEffect();
   }
 
+  private shrinkActive: boolean = false;
+  private shrinkFactor: number = 1;
+  private originalBodyVertices: Map<string, Matter.Vector[]> = new Map();
+
   handleShrinkActivate(data: { factor: number; duration: number }): void {
+    if (this.shrinkActive) {
+      this.handleShrinkDeactivate();
+    }
+    this.shrinkActive = true;
+    this.shrinkFactor = data.factor;
     const blocks = this.blockSpawner.getBlocks();
     for (const block of blocks) {
-      const scale = data.factor;
-      block.scale.set(scale);
-      const body = block.body;
-      Matter.Body.scale(body, scale, scale);
+      this.originalBodyVertices.set(block.body.label, block.body.vertices.map(v => ({ x: v.x, y: v.y })));
+      block.scale.set(data.factor);
+      Matter.Body.scale(block.body, data.factor, data.factor);
     }
   }
 
   handleShrinkDeactivate(): void {
+    if (!this.shrinkActive) return;
+    this.shrinkActive = false;
     const blocks = this.blockSpawner.getBlocks();
     for (const block of blocks) {
-      const currentScale = block.scale.x;
-      if (currentScale < 1) {
-        const restoreScale = 1 / currentScale;
-        block.scale.set(1);
-        Matter.Body.scale(block.body, restoreScale, restoreScale);
+      const original = this.originalBodyVertices.get(block.body.label);
+      if (original) {
+        const centre = {
+          x: (original[0].x + original[2].x) / 2,
+          y: (original[0].y + original[2].y) / 2,
+        };
+        Matter.Body.setVertices(block.body, original);
+        Matter.Body.setPosition(block.body, centre);
+        Matter.Body.setAngle(block.body, block.body.angle);
       }
+      block.scale.set(1);
     }
+    this.originalBodyVertices.clear();
+    this.shrinkFactor = 1;
   }
 
   handleLuckyActivate(data: { multiplier: number; remainingDrops: number }): void {

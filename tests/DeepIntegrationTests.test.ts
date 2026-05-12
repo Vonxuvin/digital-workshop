@@ -723,11 +723,13 @@ describe('Deep Integration Tests', () => {
         eventBus.off('game:over', handler);
       });
 
-      it('should reset warning duration when blocks move below line', () => {
+      it('should reset warning duration when blocks move below line after grace period', () => {
         const warningHeight = wl.getWarningHeight();
         wl.update([{ y: warningHeight - 10, radius: 5, speed: 0 }], 16.67);
         expect(wl.getWarningDuration()).toBeGreaterThan(0);
         wl.update([{ y: warningHeight + 100, radius: 5, speed: 0 }], 16.67);
+        expect(wl.getWarningDuration()).toBeGreaterThan(0);
+        wl.update([{ y: warningHeight + 100, radius: 5, speed: 0 }], 500);
         expect(wl.getWarningDuration()).toBe(0);
       });
     });

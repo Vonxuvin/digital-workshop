@@ -13,6 +13,7 @@ import { LevelSelectScreen } from '../ui/screens/LevelSelectScreen';
 import { PauseScreen } from '../ui/screens/PauseScreen';
 import { GameHUD } from '../ui/hud/GameHUD';
 import { createPlatformAdapter } from '../platform/PlatformFactory';
+import { AnimationManager } from '../utils/AnimationManager';
 import { PerformanceMonitor } from '../utils/PerformanceMonitor';
 import { PropSystem } from '../gameplay/props/PropSystem';
 import { PropType } from '../gameplay/props/Prop';
@@ -28,6 +29,7 @@ import propsData from '../data/props/props.json';
 export class Game {
   private static instance: Game | null = null;
   private app: Application;
+  private canvas: HTMLCanvasElement;
   private physics: PhysicsManager;
   private input: InputManager;
   private mergeSystem: MergeSystem;
@@ -54,6 +56,7 @@ export class Game {
 
   constructor(canvas: HTMLCanvasElement) {
     Game.instance = this;
+    this.canvas = canvas;
 
     this.app = new Application();
     this.physics = new PhysicsManager();
@@ -98,7 +101,7 @@ export class Game {
     const dpr = systemInfo.pixelRatio || window.devicePixelRatio || 1;
 
     await this.app.init({
-      canvas: document.getElementById('game-canvas') as HTMLCanvasElement,
+      canvas: this.canvas,
       resizeTo: window,
       backgroundColor: 0x1a1a2e,
       antialias: true,
@@ -268,11 +271,14 @@ export class Game {
   }
 
   private update(): void {
+    const deltaMS = this.app.ticker.deltaMS;
+
     if (this.fpsDisplayEnabled && this.fpsDisplay) {
       this.fpsDisplay.text = `FPS: ${this.performanceMonitor.getFPS()}`;
     }
 
-    this.gameScene.update(this.app.ticker.deltaMS, this.sceneManager.isPlaying());
+    AnimationManager.getInstance().update(deltaMS);
+    this.gameScene.update(deltaMS, this.sceneManager.isPlaying());
   }
 
   getApp(): Application {

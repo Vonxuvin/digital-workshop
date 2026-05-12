@@ -47,15 +47,6 @@ export class RotateModifier extends ContainerModifier {
     for (const body of this.containerBodies) {
       this.originalPositions.set(body.id, { x: body.position.x, y: body.position.y });
     }
-    if (this.containerBodies.length > 0) {
-      let sumX = 0, sumY = 0;
-      for (const body of this.containerBodies) {
-        sumX += body.position.x;
-        sumY += body.position.y;
-      }
-      this.centerX = sumX / this.containerBodies.length;
-      this.centerY = sumY / this.containerBodies.length;
-    }
     this.targetAngle = this.maxAngle;
     this.direction = 1;
     this.createVisualWalls();
@@ -164,13 +155,13 @@ export class RotateModifier extends ContainerModifier {
 
   private updateGravity(): void {
     const angleRad = (this.currentAngle * Math.PI) / 180;
-    const gravityX = Math.sin(angleRad) * 2.0;
-    const gravityY = Math.cos(angleRad) * 2.0;
+    const gravityX = Math.sin(angleRad) * 1.0;
+    const gravityY = Math.cos(angleRad) * 1.0;
     this.physics.setGravity(gravityX, gravityY);
   }
 
   protected onDeactivate(): void {
-    this.physics.setGravity(0, 2.0);
+    this.physics.setGravity(0, 1.0);
     this.currentAngle = 0;
     this.direction = 1;
 

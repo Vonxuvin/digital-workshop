@@ -9,6 +9,9 @@ export class WarningLine extends Container {
   private flashTimer = 0;
   private warningDuration = 0;
   private readonly WARNING_THRESHOLD = 3000;
+  private readonly SPEED_THRESHOLD = 5;
+  private readonly GRACE_PERIOD = 500;
+  private graceTimer = 0;
 
   constructor(containerHeight: number, containerWidth: number = 800) {
     super();
@@ -37,10 +40,11 @@ export class WarningLine extends Container {
   update(blocks: { y: number; radius: number; speed: number }[], deltaMS: number): void {
     const warningY = this.y;
     const hasBlockAboveLine = blocks.some(block =>
-      block.y - block.radius < warningY && block.speed < 2
+      block.y - block.radius < warningY && block.speed < this.SPEED_THRESHOLD
     );
 
     if (hasBlockAboveLine) {
+      this.graceTimer = 0;
       if (!this.isWarning) {
         this.isWarning = true;
         this.warningDuration = 0;
@@ -58,9 +62,13 @@ export class WarningLine extends Container {
       }
     } else {
       if (this.isWarning) {
-        this.isWarning = false;
-        this.warningDuration = 0;
-        eventBus.emit('warning:ended');
+        this.graceTimer += deltaMS;
+        if (this.graceTimer >= this.GRACE_PERIOD) {
+          this.isWarning = false;
+          this.warningDuration = 0;
+          this.graceTimer = 0;
+          eventBus.emit('warning:ended');
+        }
       }
       this.graphics.alpha = 0.8;
     }
@@ -78,6 +86,7 @@ export class WarningLine extends Container {
     this.isWarning = false;
     this.warningDuration = 0;
     this.flashTimer = 0;
+    this.graceTimer = 0;
     this.graphics.alpha = 0.8;
   }
 }
