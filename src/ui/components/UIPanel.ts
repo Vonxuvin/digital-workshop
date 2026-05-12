@@ -1,4 +1,5 @@
-import { Container, Graphics, Text, Ticker } from 'pixi.js';
+import { Container, Graphics, Text } from 'pixi.js';
+import gsap from 'gsap';
 import { UIButton } from './UIButton';
 
 export class UIPanel extends Container {
@@ -9,9 +10,7 @@ export class UIPanel extends Container {
   private contentArea: Container;
   private panelWidth: number;
   private panelHeight: number;
-  private isShowing = false;
-  private isHiding = false;
-  private tickerCallback: ((ticker: any) => void) | null = null;
+  private panelTween: gsap.core.Tween | null = null;
 
   constructor(width: number = 400, height: number = 500) {
     super();
@@ -79,80 +78,48 @@ export class UIPanel extends Container {
   }
 
   show(): void {
-    this.detachTicker();
+    this.killPanelTween();
 
     this.visible = true;
-    this.isShowing = true;
-    this.isHiding = false;
 
     const targetY = this.y;
     this.y = targetY + this.panelHeight;
 
-    const startY = this.y;
-    const startTime = performance.now();
-    const duration = 300;
-
-    this.tickerCallback = () => {
-      if (this.isHiding) {
-        this.detachTicker();
-        return;
-      }
-
-      const now = performance.now();
-      const elapsed = now - startTime;
-      const t = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - t, 3);
-      this.y = startY + (targetY - startY) * eased;
-
-      if (t >= 1) {
-        this.isShowing = false;
-        this.detachTicker();
-      }
-    };
-    Ticker.shared.add(this.tickerCallback);
+    this.panelTween = gsap.to(this, {
+      y: targetY,
+      duration: 0.3,
+      ease: 'power3.out',
+      onComplete: () => {
+        this.panelTween = null;
+      },
+    });
   }
 
   hide(): void {
-    this.detachTicker();
+    this.killPanelTween();
 
-    this.isHiding = true;
-    this.isShowing = false;
+    const targetY = this.y + this.panelHeight;
 
-    const startY = this.y;
-    const targetY = startY + this.panelHeight;
-    const startTime = performance.now();
-    const duration = 250;
-
-    this.tickerCallback = () => {
-      if (this.isShowing) {
-        this.detachTicker();
-        return;
-      }
-
-      const now = performance.now();
-      const elapsed = now - startTime;
-      const t = Math.min(elapsed / duration, 1);
-      const eased = t * t;
-      this.y = startY + (targetY - startY) * eased;
-
-      if (t >= 1) {
+    this.panelTween = gsap.to(this, {
+      y: targetY,
+      duration: 0.25,
+      ease: 'power2.in',
+      onComplete: () => {
         this.visible = false;
-        this.isHiding = false;
-        this.detachTicker();
-      }
-    };
-    Ticker.shared.add(this.tickerCallback);
+        this.panelTween = null;
+      },
+    });
   }
 
-  private detachTicker(): void {
-    if (this.tickerCallback) {
-      Ticker.shared.remove(this.tickerCallback);
-      this.tickerCallback = null;
+  private killPanelTween(): void {
+    if (this.panelTween) {
+      this.panelTween.kill();
+      this.panelTween = null;
     }
   }
 
   destroy(): void {
-    this.detachTicker();
+    this.killPanelTween();
     super.destroy();
   }
 }

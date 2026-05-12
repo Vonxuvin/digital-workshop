@@ -1,11 +1,12 @@
-import { Container, Text, Ticker } from 'pixi.js';
+import { Container, Text } from 'pixi.js';
+import gsap from 'gsap';
 
 export class ComboDisplay extends Container {
   private comboText: Text;
   private currentCombo = 0;
   private displayTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly DISPLAY_DURATION = 2000;
-  private tickerCallback: ((ticker: any) => void) | null = null;
+  private scaleTween: gsap.core.Tween | null = null;
 
   constructor() {
     super();
@@ -44,23 +45,19 @@ export class ComboDisplay extends Container {
   }
 
   private animateScale(): void {
-    this.detachTicker();
-    const startScale = 1.5;
-    const endScale = 1.0;
-    const duration = 200;
-    const startTime = performance.now();
+    if (this.scaleTween) {
+      this.scaleTween.kill();
+    }
 
-    this.tickerCallback = () => {
-      const now = performance.now();
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      this.scale.set(startScale + (endScale - startScale) * eased);
-      if (progress >= 1) {
-        this.detachTicker();
-      }
-    };
-    Ticker.shared.add(this.tickerCallback);
+    this.scaleTween = gsap.to(this.scale, {
+      x: 1,
+      y: 1,
+      duration: 0.2,
+      ease: 'power3.out',
+      onComplete: () => {
+        this.scaleTween = null;
+      },
+    });
   }
 
   hide(): void {
@@ -76,15 +73,11 @@ export class ComboDisplay extends Container {
     return this.currentCombo;
   }
 
-  private detachTicker(): void {
-    if (this.tickerCallback) {
-      Ticker.shared.remove(this.tickerCallback);
-      this.tickerCallback = null;
-    }
-  }
-
   destroy(): void {
-    this.detachTicker();
+    if (this.scaleTween) {
+      this.scaleTween.kill();
+      this.scaleTween = null;
+    }
     if (this.displayTimer) clearTimeout(this.displayTimer);
     this.currentCombo = 0;
     super.destroy();

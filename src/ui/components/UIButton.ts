@@ -1,4 +1,5 @@
-import { Container, Graphics, Text, Ticker } from 'pixi.js';
+import { Container, Graphics, Text } from 'pixi.js';
+import gsap from 'gsap';
 
 export interface UIButtonOptions {
   width?: number;
@@ -19,7 +20,7 @@ export class UIButton extends Container {
   private _pressed = false;
   private clickCooldown = false;
   private readonly COOLDOWN_MS = 300;
-  private tickerCallback: ((ticker: any) => void) | null = null;
+  private scaleTween: gsap.core.Tween | null = null;
 
   constructor(options: UIButtonOptions) {
     super();
@@ -75,6 +76,7 @@ export class UIButton extends Container {
   private handlePointerDown(): void {
     if (this._disabled || this.clickCooldown) return;
     this._pressed = true;
+    this.killScaleTween();
     this.scale.set(0.95);
   }
 
@@ -93,24 +95,21 @@ export class UIButton extends Container {
 
   private handlePointerUpOutside(): void {
     this._pressed = false;
+    this.killScaleTween();
     this.scale.set(1);
   }
 
   private animateRelease(): void {
-    this.detachTicker();
-    const start = performance.now();
-    const duration = 100;
-
-    this.tickerCallback = () => {
-      const now = performance.now();
-      const elapsed = now - start;
-      const t = Math.min(elapsed / duration, 1);
-      this.scale.set(0.95 + 0.05 * t);
-      if (t >= 1) {
-        this.detachTicker();
-      }
-    };
-    Ticker.shared.add(this.tickerCallback);
+    this.killScaleTween();
+    this.scaleTween = gsap.to(this.scale, {
+      x: 1,
+      y: 1,
+      duration: 0.1,
+      ease: 'power2.out',
+      onComplete: () => {
+        this.scaleTween = null;
+      },
+    });
   }
 
   setDisabled(disabled: boolean): void {
@@ -123,15 +122,15 @@ export class UIButton extends Container {
     return this._disabled;
   }
 
-  private detachTicker(): void {
-    if (this.tickerCallback) {
-      Ticker.shared.remove(this.tickerCallback);
-      this.tickerCallback = null;
+  private killScaleTween(): void {
+    if (this.scaleTween) {
+      this.scaleTween.kill();
+      this.scaleTween = null;
     }
   }
 
   destroy(): void {
-    this.detachTicker();
+    this.killScaleTween();
     super.destroy();
   }
 }

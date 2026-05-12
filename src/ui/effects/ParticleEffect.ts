@@ -1,4 +1,5 @@
 import * as PIXI from 'pixi.js';
+import gsap from 'gsap';
 
 export type ParticleType = 'sparkle' | 'confetti' | 'smoke' | 'bubble';
 
@@ -25,9 +26,7 @@ interface AnimatedParticle {
 export class ParticleEffect extends PIXI.Container {
   private particles: AnimatedParticle[] = [];
   private onComplete: (() => void) | undefined;
-  private completedCount: number = 0;
-  private tickerCallback: ((ticker: any) => void) | null = null;
-  private startTime: number = 0;
+  private timeline: gsap.core.Timeline | null = null;
 
   constructor(config: ParticleConfig) {
     super();
@@ -86,7 +85,7 @@ export class ParticleEffect extends PIXI.Container {
   }
 
   private playAnimation(type: ParticleType): void {
-    this.particles.forEach((p, i) => {
+    this.particles.forEach((p) => {
       const startX = p.startX;
       const startY = p.startY;
 
@@ -115,63 +114,48 @@ export class ParticleEffect extends PIXI.Container {
       }
     });
 
-    this.startTime = performance.now();
-    this.tickerCallback = () => this.animate();
-    PIXI.Ticker.shared.add(this.tickerCallback);
-  }
-
-  private animate(): void {
-    const elapsed = (performance.now() - this.startTime) / 1000;
-    let allComplete = true;
-
-    this.particles.forEach(p => {
-      const particleElapsed = elapsed - p.delay;
-      if (particleElapsed < 0) {
-        allComplete = false;
-        return;
-      }
-
-      const progress = Math.min(particleElapsed / p.duration, 1);
-      const easeProgress = 1 - Math.pow(1 - progress, 2);
-
-      p.graphics.x = p.startX + (p.targetX - p.startX) * easeProgress;
-      p.graphics.y = p.startY + (p.targetY - p.startY) * easeProgress;
-      p.graphics.alpha = 1 - easeProgress;
-      const scale = 1 - 0.8 * easeProgress;
-      p.graphics.scale.set(scale);
-
-      if (p.rotationSpeed !== 0) {
-        p.graphics.rotation = p.rotationSpeed * easeProgress;
-      }
-
-      if (progress < 1) allComplete = false;
+    this.timeline = gsap.timeline({
+      onComplete: () => {
+        if (this.onComplete) {
+          this.onComplete();
+        }
+        this.destroy();
+      },
     });
 
-    if (allComplete) {
-      this.finishAnimation();
-    }
-  }
-
-  private finishAnimation(): void {
-    this.completedCount++;
-    if (this.completedCount >= this.particles.length) {
-      this.detachTicker();
-      if (this.onComplete) {
-        this.onComplete();
+    this.particles.forEach((p) => {
+      const g = p.graphics;
+      this.timeline!.to(g, {
+        x: p.targetX,
+        y: p.targetY,
+        alpha: 0,
+        duration: p.duration,
+        delay: p.delay,
+        ease: 'power2.out',
+      }, 0);
+      this.timeline!.to(g.scale, {
+        x: 0.2,
+        y: 0.2,
+        duration: p.duration,
+        delay: p.delay,
+        ease: 'power2.out',
+      }, 0);
+      if (p.rotationSpeed !== 0) {
+        this.timeline!.to(g, {
+          rotation: p.rotationSpeed,
+          duration: p.duration,
+          delay: p.delay,
+          ease: 'none',
+        }, 0);
       }
-      this.destroy();
-    }
-  }
-
-  private detachTicker(): void {
-    if (this.tickerCallback) {
-      PIXI.Ticker.shared.remove(this.tickerCallback);
-      this.tickerCallback = null;
-    }
+    });
   }
 
   destroy(): void {
-    this.detachTicker();
+    if (this.timeline) {
+      this.timeline.kill();
+      this.timeline = null;
+    }
     this.particles.forEach(p => p.graphics.destroy());
     this.particles = [];
     this.removeChildren();

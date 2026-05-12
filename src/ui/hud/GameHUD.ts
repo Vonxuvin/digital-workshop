@@ -5,6 +5,7 @@ import { UIProgressBar } from '../components/UIProgressBar';
 import { PropButton } from '../components/PropButton';
 import { PropSystem } from '../../gameplay/props/PropSystem';
 import { PropType } from '../../gameplay/props/Prop';
+import gsap from 'gsap';
 
 export class GameHUD extends Container {
   private scoreText!: Text;
@@ -15,6 +16,8 @@ export class GameHUD extends Container {
   private objectiveBar!: UIProgressBar;
   private currentScore = 0;
   private displayScore = 0;
+  private scoreProxy: { value: number };
+  private scoreTween: gsap.core.Tween | null = null;
   private onScoreUpdatedBound: (data: { totalScore: number; earnedScore: number; chainCount: number }) => void;
   private propSystem: PropSystem;
   private propButtons: Map<PropType, PropButton> = new Map();
@@ -26,6 +29,7 @@ export class GameHUD extends Container {
     super();
     this.eventMode = 'static';
     this.propSystem = propSystem;
+    this.scoreProxy = { value: 0 };
     this.onScoreUpdatedBound = this.handleScoreUpdated.bind(this);
     this.createScoreDisplay();
     this.createChainDisplay();
@@ -259,12 +263,31 @@ export class GameHUD extends Container {
 
   update(delta: number): void {
     if (this.displayScore < this.currentScore) {
-      const diff = this.currentScore - this.displayScore;
-      const clampedDelta = Math.min(delta, 3);
-      const increment = Math.max(1, Math.round(diff * 0.15 * clampedDelta));
-      this.displayScore = Math.min(this.displayScore + increment, this.currentScore);
-      this.scoreText.text = `Score: ${this.displayScore.toLocaleString()}`;
+      this.animateScore();
     }
+  }
+
+  private animateScore(): void {
+    if (this.scoreTween) {
+      this.scoreTween.kill();
+    }
+
+    this.scoreProxy.value = this.displayScore;
+
+    this.scoreTween = gsap.to(this.scoreProxy, {
+      value: this.currentScore,
+      duration: 0.6,
+      ease: 'power1.out',
+      onUpdate: () => {
+        this.displayScore = Math.round(this.scoreProxy.value);
+        this.scoreText.text = `Score: ${this.displayScore.toLocaleString()}`;
+      },
+      onComplete: () => {
+        this.displayScore = this.currentScore;
+        this.scoreText.text = `Score: ${this.displayScore.toLocaleString()}`;
+        this.scoreTween = null;
+      },
+    });
   }
 
   updateLevel(levelId: number, levelName: string): void {
@@ -284,6 +307,11 @@ export class GameHUD extends Container {
   reset(): void {
     this.currentScore = 0;
     this.displayScore = 0;
+    this.scoreProxy.value = 0;
+    if (this.scoreTween) {
+      this.scoreTween.kill();
+      this.scoreTween = null;
+    }
     this.scoreText.text = 'Score: 0';
     this.chainText.text = '';
     this.timerText.visible = false;
@@ -294,12 +322,21 @@ export class GameHUD extends Container {
   }
 
   skipAnimation(): void {
+    if (this.scoreTween) {
+      this.scoreTween.kill();
+      this.scoreTween = null;
+    }
     this.displayScore = this.currentScore;
+    this.scoreProxy.value = this.currentScore;
     this.scoreText.text = `Score: ${this.displayScore.toLocaleString()}`;
   }
 
   destroy(): void {
     eventBus.off('score:updated', this.onScoreUpdatedBound);
+    if (this.scoreTween) {
+      this.scoreTween.kill();
+      this.scoreTween = null;
+    }
     this.propButtons.clear();
     super.destroy();
   }

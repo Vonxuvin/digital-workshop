@@ -1,4 +1,5 @@
-import { Container, Graphics, Ticker } from 'pixi.js';
+import { Container, Graphics } from 'pixi.js';
+import gsap from 'gsap';
 
 export class UIProgressBar extends Container {
   private track: Graphics;
@@ -9,8 +10,8 @@ export class UIProgressBar extends Container {
   private displayProgress = 0;
   private trackColor: number;
   private fillColor: number;
-  private animating = false;
-  private tickerCallback: ((ticker: any) => void) | null = null;
+  private progressTween: gsap.core.Tween | null = null;
+  private progressProxy: { value: number };
 
   constructor(width: number = 200, height: number = 20, trackColor: number = 0x333333, fillColor: number = 0x4ECDC4) {
     super();
@@ -19,6 +20,8 @@ export class UIProgressBar extends Container {
     this.barHeight = height;
     this.trackColor = trackColor;
     this.fillColor = fillColor;
+
+    this.progressProxy = { value: 0 };
 
     this.track = new Graphics();
     this.drawTrack();
@@ -52,29 +55,25 @@ export class UIProgressBar extends Container {
   }
 
   private animateProgress(): void {
-    if (this.animating) return;
-    this.animating = true;
+    if (this.progressTween) {
+      this.progressTween.kill();
+    }
 
-    this.detachTicker();
-    const startProgress = this.displayProgress;
-    const targetProgress = this._progress;
-    const startTime = performance.now();
-    const duration = 200;
+    this.progressProxy.value = this.displayProgress;
 
-    this.tickerCallback = () => {
-      const now = performance.now();
-      const elapsed = now - startTime;
-      const t = Math.min(elapsed / duration, 1);
-      this.displayProgress = startProgress + (targetProgress - startProgress) * t;
-      this.drawFill(this.displayProgress);
-
-      if (t >= 1) {
-        this.displayProgress = targetProgress;
-        this.animating = false;
-        this.detachTicker();
-      }
-    };
-    Ticker.shared.add(this.tickerCallback);
+    this.progressTween = gsap.to(this.progressProxy, {
+      value: this._progress,
+      duration: 0.2,
+      ease: 'none',
+      onUpdate: () => {
+        this.displayProgress = this.progressProxy.value;
+        this.drawFill(this.displayProgress);
+      },
+      onComplete: () => {
+        this.displayProgress = this._progress;
+        this.progressTween = null;
+      },
+    });
   }
 
   setColors(trackColor: number, fillColor: number): void {
@@ -84,15 +83,11 @@ export class UIProgressBar extends Container {
     this.drawFill(this.displayProgress);
   }
 
-  private detachTicker(): void {
-    if (this.tickerCallback) {
-      Ticker.shared.remove(this.tickerCallback);
-      this.tickerCallback = null;
-    }
-  }
-
   destroy(): void {
-    this.detachTicker();
+    if (this.progressTween) {
+      this.progressTween.kill();
+      this.progressTween = null;
+    }
     super.destroy();
   }
 }

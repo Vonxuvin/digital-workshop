@@ -1,5 +1,5 @@
 import * as PIXI from 'pixi.js';
-
+import gsap from 'gsap';
 import { PropType } from '../../gameplay/props/Prop';
 
 export interface PropButtonOptions {
@@ -19,6 +19,7 @@ export class PropButton extends PIXI.Container {
   private onClick: (propType: PropType) => void;
   private isEnabled: boolean = true;
   private cooldownOverlay: PIXI.Graphics;
+  private scaleTween: gsap.core.Tween | null = null;
 
   constructor(options: PropButtonOptions) {
     super();
@@ -84,14 +85,35 @@ export class PropButton extends PIXI.Container {
     return icons[icon] || '❓';
   }
 
+  private killScaleTween(): void {
+    if (this.scaleTween) {
+      this.scaleTween.kill();
+      this.scaleTween = null;
+    }
+  }
+
   private handlePointerDown(): void {
     if (!this.isEnabled) return;
-    this.scale.set(0.95);
+    this.killScaleTween();
+    this.scaleTween = gsap.to(this.scale, {
+      x: 0.95,
+      y: 0.95,
+      duration: 0.08,
+      ease: 'power2.out',
+      onComplete: () => { this.scaleTween = null; },
+    });
   }
 
   private handlePointerUp(): void {
     if (!this.isEnabled) return;
-    this.scale.set(1);
+    this.killScaleTween();
+    this.scaleTween = gsap.to(this.scale, {
+      x: 1,
+      y: 1,
+      duration: 0.1,
+      ease: 'power2.out',
+      onComplete: () => { this.scaleTween = null; },
+    });
     this.onClick(this.propType);
   }
 
@@ -108,7 +130,14 @@ export class PropButton extends PIXI.Container {
     this.background.fill({ color: 0x2d3436 });
     this.background.setStrokeStyle({ width: 2, color: 0x636e72 });
     this.background.roundRect(0, 0, 60, 60, 8);
-    this.scale.set(1);
+    this.killScaleTween();
+    this.scaleTween = gsap.to(this.scale, {
+      x: 1,
+      y: 1,
+      duration: 0.1,
+      ease: 'power2.out',
+      onComplete: () => { this.scaleTween = null; },
+    });
   }
 
   updateCount(count: number): void {
@@ -140,6 +169,7 @@ export class PropButton extends PIXI.Container {
   }
 
   destroy(): void {
+    this.killScaleTween();
     this.removeAllListeners();
     super.destroy();
   }
