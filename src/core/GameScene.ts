@@ -141,6 +141,9 @@ export class GameScene {
     this.containerOffsetX = (screenW - this.containerWidth) / 2;
     this.groundY = this.containerHeight - 50;
 
+    this.rebuildPhysicsWalls();
+    this.drawContainerWalls();
+
     if (this.warningLine) {
       this.warningLine.y = this.groundY * 0.8;
     }
@@ -402,6 +405,8 @@ export class GameScene {
       { type: PropType.BOMB, count: 3 },
       { type: PropType.RAINBOW, count: 3 },
       { type: PropType.FREEZE, count: 3 },
+      { type: PropType.SHRINK, count: 2 },
+      { type: PropType.LUCKY, count: 2 },
     ]);
     const freezeProp = this.propSystem.getProp(PropType.FREEZE) as FreezeProp;
     if (freezeProp) {

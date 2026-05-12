@@ -72,8 +72,8 @@ export class LevelLoader {
       }
     }
 
-    const url = `/src/data/levels/level_${String(levelId).padStart(2, '0')}.json`;
-    const data = await this.loadJSON(url);
+    const fileName = `level_${String(levelId).padStart(2, '0')}.json`;
+    const data = await this.loadLevelFile(fileName);
     if (!data) {
       return null;
     }
@@ -90,6 +90,34 @@ export class LevelLoader {
     }
     this.levelConfigs.set(levelId, config);
     return config;
+  }
+
+  private async loadLevelFile(fileName: string): Promise<any | null> {
+    const url = `/src/data/levels/${fileName}`;
+    const fetched = await this.loadJSON(url);
+    if (fetched) return fetched;
+
+    try {
+      if (typeof (globalThis as any).require === 'function') {
+        const data = (globalThis as any).require(`../data/levels/${fileName}`);
+        return data?.default || data;
+      }
+    } catch {}
+
+    try {
+      const wxGlobal = (globalThis as any).wx;
+      if (wxGlobal && wxGlobal.getFileSystemManager) {
+        const fs = wxGlobal.getFileSystemManager();
+        const basePath = wxGlobal.env?.USER_DATA_PATH || '';
+        const filePath = `${basePath}/data/levels/${fileName}`;
+        try {
+          const content = fs.readFileSync(filePath, 'utf-8');
+          return JSON.parse(content);
+        } catch {}
+      }
+    } catch {}
+
+    return null;
   }
 
   loadFromData(levelId: number, data: any): LevelConfig | null {
@@ -331,9 +359,10 @@ export class LevelLoader {
   }
 
   enableHotReload(callback?: (levelId: number, config: LevelConfig) => void): void {
-    if (typeof window === 'undefined') return;
-    const isDev = window.location?.hostname === 'localhost' || window.location?.hostname === '127.0.0.1';
-    if (!isDev) return;
+    if (typeof globalThis === 'undefined') return;
+    const globalWindow = globalThis as any;
+    const hostname = globalWindow.location?.hostname;
+    if (!hostname || (hostname !== 'localhost' && hostname !== '127.0.0.1')) return;
 
     this.onConfigReload = callback;
     if (this.hotReloadTimer) return;

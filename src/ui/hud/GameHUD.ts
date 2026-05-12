@@ -88,6 +88,8 @@ export class GameHUD extends Container {
       { type: PropType.BOMB, icon: 'bomb', x: 0 },
       { type: PropType.RAINBOW, icon: 'rainbow', x: 70 },
       { type: PropType.FREEZE, icon: 'freeze', x: 140 },
+      { type: PropType.SHRINK, icon: 'shrink', x: 210 },
+      { type: PropType.LUCKY, icon: 'lucky', x: 280 },
     ];
 
     propsData.forEach(propData => {
@@ -269,7 +271,7 @@ export class GameHUD extends Container {
   }
 
   layout(screenWidth: number, screenHeight: number): void {
-    this.propsContainer.x = screenWidth - 230;
+    this.propsContainer.x = screenWidth - 360;
     this.propsContainer.y = 15;
     this.pauseButton.x = screenWidth - 50;
     this.pauseButton.y = 30;

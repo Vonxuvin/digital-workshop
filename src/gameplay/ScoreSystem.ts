@@ -52,7 +52,7 @@ export class ScoreSystem {
     if (this.chainTimer) {
       clearTimeout(this.chainTimer);
     }
-    this.chainTimer = window.setTimeout(() => {
+    this.chainTimer = globalThis.setTimeout(() => {
       this.chainCount = 0;
     }, this.chainTimeout);
 
