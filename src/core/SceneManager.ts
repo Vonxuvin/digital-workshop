@@ -92,7 +92,6 @@ export class SceneManager {
   }
 
   failGame(): void {
-    this.gameScene.getLevelSystem()?.forceComplete();
     if (!this.stateMachine.transition('gameover')) return;
     this.gameScene.stopPhysics();
     this.gameScene.clearEverything();

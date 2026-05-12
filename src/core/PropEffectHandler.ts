@@ -26,7 +26,7 @@ export class PropEffectHandler {
   private bombTargetMode = false;
   private shrinkActive = false;
   private shrinkFactor = 1;
-  private originalBodyData: Map<string, { position: Matter.Vector; scale: number }> = new Map();
+  private originalBodyData: Map<string, { position: Matter.Vector; scale: number; circleRadius: number | undefined }> = new Map();
 
   constructor(
     blockSpawner: BlockSpawner,
@@ -98,9 +98,13 @@ export class PropEffectHandler {
       this.originalBodyData.set(block.body.label, {
         position: { x: block.body.position.x, y: block.body.position.y },
         scale: data.factor,
+        circleRadius: block.body.circleRadius,
       });
       block.scale.set(data.factor);
       Matter.Body.scale(block.body, data.factor, data.factor);
+      if (block.body.circleRadius !== undefined) {
+        block.body.circleRadius *= data.factor;
+      }
     }
   }
 
@@ -113,6 +117,9 @@ export class PropEffectHandler {
       if (original) {
         const inverseScale = 1 / original.scale;
         Matter.Body.scale(block.body, inverseScale, inverseScale);
+        if (original.circleRadius !== undefined && block.body.circleRadius !== undefined) {
+          block.body.circleRadius = original.circleRadius;
+        }
         Matter.Body.setPosition(block.body, original.position);
       }
       block.scale.set(1);
