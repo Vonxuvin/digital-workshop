@@ -1,4 +1,4 @@
-import { Container, Sprite } from 'pixi.js';
+import { Container, Sprite, Graphics } from 'pixi.js';
 import Matter from 'matter-js';
 import { BlockTextureCache } from '../utils/BlockTextureCache';
 
@@ -54,12 +54,15 @@ export class Block extends Container {
   private sprite: Sprite;
   private _destroyed: boolean = false;
   public isRainbow: boolean = false;
+  public isObstacle: boolean = false;
+  private obstacleOverlay: Graphics | null = null;
 
-  constructor(body: Matter.Body, value: number, isRainbow: boolean = false) {
+  constructor(body: Matter.Body, value: number, isRainbow: boolean = false, isObstacle: boolean = false) {
     super();
     this.body = body;
     this.value = value;
     this.isRainbow = isRainbow;
+    this.isObstacle = isObstacle;
     this.config = getBlockConfig(value);
 
     const cache = BlockTextureCache.getInstance();
@@ -73,6 +76,26 @@ export class Block extends Container {
     this.sprite.height = textureSize;
 
     this.addChild(this.sprite);
+
+    if (isObstacle) {
+      this.obstacleOverlay = new Graphics();
+      this.obstacleOverlay.rect(
+        -this.config.radius - 2,
+        -this.config.radius - 2,
+        (this.config.radius + 2) * 2,
+        (this.config.radius + 2) * 2,
+      );
+      this.obstacleOverlay.stroke({ width: 2, color: 0x666666, alpha: 0.7 });
+
+      this.obstacleOverlay.moveTo(-this.config.radius * 0.6, -this.config.radius * 0.6);
+      this.obstacleOverlay.lineTo(this.config.radius * 0.6, this.config.radius * 0.6);
+      this.obstacleOverlay.moveTo(this.config.radius * 0.6, -this.config.radius * 0.6);
+      this.obstacleOverlay.lineTo(-this.config.radius * 0.6, this.config.radius * 0.6);
+      this.obstacleOverlay.stroke({ width: 1.5, color: 0x666666, alpha: 0.5 });
+
+      this.addChild(this.obstacleOverlay);
+      this.alpha = 0.7;
+    }
 
     this.syncFromBody();
   }

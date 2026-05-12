@@ -168,6 +168,36 @@ export class PropButton extends PIXI.Container {
     this.cooldownOverlay.visible = false;
   }
 
+  setSelected(): void {
+    this.background.clear();
+    this.background.fill({ color: 0x3d4446 });
+    this.background.setStrokeStyle({ width: 3, color: 0xffd700 });
+    this.background.roundRect(0, 0, 60, 60, 8);
+    this.killScaleTween();
+    this.scaleTween = gsap.to(this.scale, {
+      x: 1.08,
+      y: 1.08,
+      duration: 0.2,
+      ease: 'power2.out',
+      onComplete: () => { this.scaleTween = null; },
+    });
+  }
+
+  clearSelected(): void {
+    this.background.clear();
+    this.background.fill({ color: 0x2d3436 });
+    this.background.setStrokeStyle({ width: 2, color: 0x636e72 });
+    this.background.roundRect(0, 0, 60, 60, 8);
+    this.killScaleTween();
+    this.scaleTween = gsap.to(this.scale, {
+      x: 1,
+      y: 1,
+      duration: 0.15,
+      ease: 'power2.out',
+      onComplete: () => { this.scaleTween = null; },
+    });
+  }
+
   destroy(): void {
     this.killScaleTween();
     this.removeAllListeners();

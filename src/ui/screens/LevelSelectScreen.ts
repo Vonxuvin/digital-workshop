@@ -1,286 +1,365 @@
-import { Container, Text, Graphics } from 'pixi.js';
+import { Container, Graphics, Text } from 'pixi.js';
+import gsap from 'gsap';
 import { Screen } from '../UIManager';
-import { eventBus } from '../../utils/EventBus';
 import { SaveManager } from '../../core/SaveManager';
 import { LevelLoader } from '../../core/LevelLoader';
 
-interface LevelInfo {
+interface LevelCardData {
   id: number;
   name: string;
-  stars: number;
+  objectiveType: string;
+  objectiveTarget: number;
+  stars: number[];
   unlocked: boolean;
+  completed: boolean;
+  bestScore: number;
+  earnedStars: number;
 }
 
-export class LevelSelectScreen extends Screen {
-  private levels: LevelInfo[] = [];
-  private levelButtons: Container[] = [];
+export class LevelSelectScreen implements Screen {
+  public container: Container;
+  private title: Text;
+  private backButton: Container;
+  private levelCards: Container[] = [];
+  private levelData: LevelCardData[] = [];
+  private onBack: () => void;
+  private onSelectLevel: (levelId: number) => void;
   private saveManager: SaveManager;
   private levelLoader: LevelLoader;
-  private title!: Text;
-  private backButton!: Container;
-  private currentScreenWidth = 800;
-  private currentScreenHeight = 600;
-  private initialized = false;
-  private scrollContainer!: Container;
-  private scrollMask!: Graphics;
+  private scrollContainer: Container;
+  private scrollMask: Graphics;
   private scrollY: number = 0;
   private maxScrollY: number = 0;
   private isDragging: boolean = false;
   private dragStartY: number = 0;
-  private scrollStartY: number = 0;
-  private readonly contentTop: number = 130;
-  private readonly contentBottom: number = 490;
-  private readonly rowHeight: number = 150;
+  private dragStartScrollY: number = 0;
+  private scrollIndicator: Graphics;
+  private scrollIndicatorTrack: Graphics;
+  private screenWidth: number = 800;
+  private screenHeight: number = 600;
 
-  constructor(saveManager: SaveManager, levelLoader: LevelLoader) {
-    super();
+  constructor(
+    onBack: () => void,
+    onSelectLevel: (levelId: number) => void,
+    saveManager: SaveManager,
+    levelLoader: LevelLoader,
+  ) {
+    this.onBack = onBack;
+    this.onSelectLevel = onSelectLevel;
     this.saveManager = saveManager;
     this.levelLoader = levelLoader;
-  }
 
-  private async initialize(): Promise<void> {
-    if (this.initialized) return;
-    await this.loadLevelsFromConfig();
-    this.loadSavedProgress();
-    this.createTitle();
-    this.createScrollContainer();
-    this.createLevelButtons();
-    this.createBackButton();
-    this.setupScrollInput();
-    this.initialized = true;
-  }
+    this.container = new Container();
 
-  private async loadLevelsFromConfig(): Promise<void> {
-    const configs = await this.levelLoader.getAllLevelConfigs();
-    this.levels = configs.map(config => ({
-      id: config.id,
-      name: config.name,
-      stars: 0,
-      unlocked: config.id === 1,
-    }));
-  }
-
-  private async loadSavedProgress(): Promise<void> {
-    await this.saveManager.load();
-    for (const level of this.levels) {
-      const progress = this.saveManager.getLevelProgress(level.id);
-      level.stars = progress.stars;
-      level.unlocked = progress.unlocked;
-    }
-  }
-
-  updateLevelProgress(levelId: number, stars: number): void {
-    const level = this.levels.find(l => l.id === levelId);
-    if (level && stars > level.stars) {
-      level.stars = stars;
-    }
-    const nextLevel = this.levels.find(l => l.id === levelId + 1);
-    if (nextLevel) {
-      nextLevel.unlocked = true;
-    }
-    this.saveManager.updateLevelProgress(levelId, 0, 0, stars, stars > 0);
-    this.saveManager.save();
-    this.refreshLevelButtons();
-  }
-
-  private refreshLevelButtons(): void {
-    this.levelButtons.forEach(btn => {
-      this.scrollContainer.removeChild(btn);
-      btn.destroy();
-    });
-    this.levelButtons = [];
-    this.createLevelButtons();
-    this.updateMaxScrollY();
-  }
-
-  private createTitle(): void {
     this.title = new Text({
       text: '选择关卡',
       style: {
         fontFamily: 'Arial',
-        fontSize: 32,
+        fontSize: 36,
         fill: 0xffffff,
         fontWeight: 'bold',
       },
     });
     this.title.anchor.set(0.5);
-    this.title.x = this.currentScreenWidth / 2;
-    this.title.y = 80;
-    this.addChild(this.title);
-  }
+    this.container.addChild(this.title);
 
-  private createScrollContainer(): void {
-    this.scrollContainer = new Container();
-    this.scrollContainer.y = this.contentTop;
-    this.addChild(this.scrollContainer);
+    this.backButton = this.createBackButton();
+    this.container.addChild(this.backButton);
 
     this.scrollMask = new Graphics();
-    this.scrollMask.rect(0, this.contentTop, this.currentScreenWidth, this.contentBottom - this.contentTop);
-    this.scrollMask.fill({ color: 0xffffff });
-    this.addChild(this.scrollMask);
-    this.scrollContainer.mask = this.scrollMask;
+    this.container.addChild(this.scrollMask);
+
+    this.scrollContainer = new Container();
+    this.container.addChild(this.scrollContainer);
+
+    this.scrollIndicatorTrack = new Graphics();
+    this.container.addChild(this.scrollIndicatorTrack);
+
+    this.scrollIndicator = new Graphics();
+    this.container.addChild(this.scrollIndicator);
+
+    this.container.eventMode = 'static';
+    this.container.on('pointerdown', this.onPointerDown.bind(this));
+    this.container.on('pointermove', this.onPointerMove.bind(this));
+    this.container.on('pointerup', this.onPointerUp.bind(this));
+    this.container.on('pointerupoutside', this.onPointerUp.bind(this));
+
+    this.loadLevelData();
   }
 
-  private createLevelButtons(): void {
-    this.levels.forEach((level, index) => {
-      const button = this.createLevelButton(level, index);
-      this.scrollContainer.addChild(button);
-      this.levelButtons.push(button);
-    });
-    this.updateMaxScrollY();
-  }
-
-  private updateMaxScrollY(): void {
-    const totalRows = Math.ceil(this.levels.length / 3);
-    const totalContentHeight = totalRows * this.rowHeight;
-    const visibleHeight = this.contentBottom - this.contentTop;
-    this.maxScrollY = Math.max(0, totalContentHeight - visibleHeight);
-    this.scrollY = Math.min(this.scrollY, this.maxScrollY);
-    this.applyScrollPosition();
-  }
-
-  private createLevelButton(level: LevelInfo, index: number): Container {
-    const button = new Container();
-
-    const col = index % 3;
-    const row = Math.floor(index / 3);
-    button.x = this.currentScreenWidth / 2 - 200 + col * 200;
-    button.y = row * this.rowHeight;
-
+  private createBackButton(): Container {
+    const btn = new Container();
     const bg = new Graphics();
-    if (level.unlocked) {
-      bg.roundRect(-70, -50, 140, 100, 10);
-      bg.fill({ color: 0x333333 });
-    } else {
-      bg.roundRect(-70, -50, 140, 100, 10);
-      bg.fill({ color: 0x222222 });
-    }
-    button.addChild(bg);
-
-    const numberText = new Text({
-      text: String(level.id),
-      style: {
-        fontFamily: 'Arial',
-        fontSize: 24,
-        fill: level.unlocked ? 0xffffff : 0x666666,
-        fontWeight: 'bold',
-      },
-    });
-    numberText.anchor.set(0.5);
-    numberText.y = -15;
-    button.addChild(numberText);
-
-    const nameText = new Text({
-      text: level.name,
-      style: {
-        fontFamily: 'Arial',
-        fontSize: 14,
-        fill: level.unlocked ? 0xcccccc : 0x666666,
-      },
-    });
-    nameText.anchor.set(0.5);
-    nameText.y = 15;
-    button.addChild(nameText);
-
-    const starsText = new Text({
-      text: '★'.repeat(level.stars) + '☆'.repeat(3 - level.stars),
-      style: {
-        fontFamily: 'Arial',
-        fontSize: 12,
-        fill: 0xffd700,
-      },
-    });
-    starsText.anchor.set(0.5);
-    starsText.y = 35;
-    button.addChild(starsText);
-
-    if (level.unlocked) {
-      button.eventMode = 'static';
-      button.cursor = 'pointer';
-      button.on('pointerdown', () => {
-        eventBus.emit('ui:selectLevel', level.id);
-      });
-    }
-
-    return button;
-  }
-
-  private setupScrollInput(): void {
-    this.eventMode = 'static';
-    this.hitArea = {
-      contains: (x: number, y: number) => {
-        return x >= 0 && x <= this.currentScreenWidth &&
-               y >= this.contentTop && y <= this.contentBottom;
-      },
-    };
-
-    this.on('pointerdown', (e: any) => {
-      this.isDragging = true;
-      this.dragStartY = e.global.y;
-      this.scrollStartY = this.scrollY;
-    });
-
-    this.on('pointermove', (e: any) => {
-      if (!this.isDragging) return;
-      const deltaY = this.dragStartY - e.global.y;
-      this.scrollY = Math.max(0, Math.min(this.maxScrollY, this.scrollStartY + deltaY));
-      this.applyScrollPosition();
-    });
-
-    this.on('pointerup', () => {
-      this.isDragging = false;
-    });
-
-    this.on('pointerupoutside', () => {
-      this.isDragging = false;
-    });
-  }
-
-  private applyScrollPosition(): void {
-    this.scrollContainer.y = this.contentTop - this.scrollY;
-  }
-
-  private createBackButton(): void {
-    this.backButton = new Container();
-
-    const bg = new Graphics();
-    bg.roundRect(-50, -20, 100, 40, 8);
-    bg.fill({ color: 0x666666 });
-    this.backButton.addChild(bg);
+    bg.roundRect(0, 0, 100, 40, 8);
+    bg.fill({ color: 0x2d3436 });
+    bg.stroke({ width: 2, color: 0x636e72 });
+    btn.addChild(bg);
 
     const label = new Text({
-      text: '返回',
+      text: '← 返回',
       style: {
         fontFamily: 'Arial',
-        fontSize: 16,
+        fontSize: 18,
         fill: 0xffffff,
       },
     });
     label.anchor.set(0.5);
-    this.backButton.addChild(label);
+    label.x = 50;
+    label.y = 20;
+    btn.addChild(label);
 
-    this.backButton.x = this.currentScreenWidth / 2;
-    this.backButton.y = this.currentScreenHeight - 50;
-    this.backButton.eventMode = 'static';
-    this.backButton.cursor = 'pointer';
-    this.backButton.on('pointerdown', () => {
-      eventBus.emit('ui:backToMenu');
-    });
-
-    this.addChild(this.backButton);
+    btn.eventMode = 'static';
+    btn.cursor = 'pointer';
+    btn.on('pointerdown', () => this.onBack());
+    return btn;
   }
 
-  show(screenWidth?: number, screenHeight?: number): void {
-    this.currentScreenWidth = screenWidth || 800;
-    this.currentScreenHeight = screenHeight || 600;
-    this.initialize().then(() => {
-      this.loadSavedProgress();
-      this.refreshLevelButtons();
-      this.visible = true;
+  private loadLevelData(): void {
+    const allLevels = this.levelLoader.getAllLevelConfigsSync();
+    this.levelData = allLevels.map((config) => {
+      const progress = this.saveManager.getLevelProgress(config.id);
+      const objectiveType = config.objective?.type || 'score';
+      const objectiveTarget = config.objective?.target || 0;
+      const stars = config.rewards?.stars || [0, 0, 0];
+
+      return {
+        id: config.id,
+        name: config.name || `关卡 ${config.id}`,
+        objectiveType,
+        objectiveTarget,
+        stars,
+        unlocked: config.id === 1 || progress.unlocked || false,
+        completed: progress.completed || false,
+        bestScore: progress.bestScore || 0,
+        earnedStars: progress.stars || 0,
+      };
     });
   }
 
-  hide(): void {
-    this.visible = false;
+  private createLevelCard(data: LevelCardData, index: number): Container {
+    const card = new Container();
+    const cardWidth = 340;
+    const cardHeight = 110;
+    const x = (this.screenWidth - cardWidth) / 2;
+    const y = index * (cardHeight + 12);
+
+    const bg = new Graphics();
+    if (data.completed) {
+      bg.roundRect(0, 0, cardWidth, cardHeight, 12);
+      bg.fill({ color: 0x1a3a2a, alpha: 0.9 });
+      bg.roundRect(0, 0, cardWidth, cardHeight, 12);
+      bg.stroke({ width: 2, color: 0x4a9a5a, alpha: 0.6 });
+    } else if (data.unlocked) {
+      bg.roundRect(0, 0, cardWidth, cardHeight, 12);
+      bg.fill({ color: 0x1a1a3a, alpha: 0.9 });
+      bg.roundRect(0, 0, cardWidth, cardHeight, 12);
+      bg.stroke({ width: 2, color: 0x4a4a8a, alpha: 0.6 });
+    } else {
+      bg.roundRect(0, 0, cardWidth, cardHeight, 12);
+      bg.fill({ color: 0x1a1a1a, alpha: 0.8 });
+      bg.roundRect(0, 0, cardWidth, cardHeight, 12);
+      bg.stroke({ width: 2, color: 0x333333, alpha: 0.5 });
+    }
+    card.addChild(bg);
+
+    const levelNum = new Text({
+      text: `${data.id}`,
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 22,
+        fill: data.unlocked ? 0xffffff : 0x555555,
+        fontWeight: 'bold',
+      },
+    });
+    levelNum.x = 16;
+    levelNum.y = 12;
+    card.addChild(levelNum);
+
+    const nameText = new Text({
+      text: data.name,
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 18,
+        fill: data.unlocked ? 0xdddddd : 0x555555,
+        fontWeight: 'bold',
+      },
+    });
+    nameText.x = 50;
+    nameText.y = 12;
+    card.addChild(nameText);
+
+    const objectiveIcon = data.objectiveType === 'score' ? '🎯' : '⭐';
+    const objectiveText = new Text({
+      text: `${objectiveIcon} ${data.objectiveType === 'score' ? '得分' : '目标'}: ${data.objectiveTarget}`,
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 13,
+        fill: data.unlocked ? 0xaaaaaa : 0x444444,
+      },
+    });
+    objectiveText.x = 16;
+    objectiveText.y = 46;
+    card.addChild(objectiveText);
+
+    if (data.unlocked) {
+      const bestText = new Text({
+        text: `最佳: ${data.bestScore || '--'}`,
+        style: {
+          fontFamily: 'Arial',
+          fontSize: 13,
+          fill: 0xffd700,
+        },
+      });
+      bestText.x = 16;
+      bestText.y = 66;
+      card.addChild(bestText);
+    } else {
+      const unlockHint = new Text({
+        text: `🔒 通关关卡 ${data.id - 1} 解锁`,
+        style: {
+          fontFamily: 'Arial',
+          fontSize: 13,
+          fill: 0x666666,
+        },
+      });
+      unlockHint.x = 16;
+      unlockHint.y = 66;
+      card.addChild(unlockHint);
+    }
+
+    const starsContainer = new Container();
+    starsContainer.x = cardWidth - 100;
+    starsContainer.y = 20;
+    for (let i = 0; i < 3; i++) {
+      const star = new Text({
+        text: i < data.earnedStars ? '★' : '☆',
+        style: {
+          fontFamily: 'Arial',
+          fontSize: 22,
+          fill: i < data.earnedStars ? 0xffd700 : 0x444444,
+        },
+      });
+      star.x = i * 28;
+      starsContainer.addChild(star);
+    }
+    card.addChild(starsContainer);
+
+    if (data.unlocked) {
+      card.eventMode = 'static';
+      card.cursor = 'pointer';
+      card.on('pointerdown', () => this.onSelectLevel(data.id));
+    }
+
+    card.x = x;
+    card.y = y;
+
+    return card;
+  }
+
+  layout(screenWidth: number, screenHeight: number): void {
+    this.screenWidth = screenWidth;
+    this.screenHeight = screenHeight;
+
+    this.title.x = screenWidth / 2;
+    this.title.y = 30;
+
+    this.backButton.x = 20;
+    this.backButton.y = 10;
+
+    this.scrollContainer.removeChildren();
+    this.levelCards = [];
+
+    const scrollTop = 80;
+    const scrollBottom = screenHeight - 20;
+    const visibleHeight = scrollBottom - scrollTop;
+
+    this.scrollMask.clear();
+    this.scrollMask.rect(0, scrollTop, screenWidth, visibleHeight);
+    this.scrollMask.fill({ color: 0xffffff, alpha: 0.001 });
+
+    this.scrollContainer.mask = this.scrollMask;
+
+    this.levelData.forEach((data, index) => {
+      const card = this.createLevelCard(data, index);
+      this.scrollContainer.addChild(card);
+      this.levelCards.push(card);
+    });
+
+    const lastCard = this.levelCards[this.levelCards.length - 1];
+    if (lastCard) {
+      const totalContentHeight = lastCard.y + 110 + 12;
+      this.maxScrollY = Math.max(0, totalContentHeight - visibleHeight);
+    }
+
+    this.scrollIndicatorTrack.clear();
+    this.scrollIndicatorTrack.rect(screenWidth - 8, scrollTop, 6, visibleHeight);
+    this.scrollIndicatorTrack.fill({ color: 0x333333, alpha: 0.5 });
+
+    this.updateScrollIndicator();
+    this.scrollContainer.y = scrollTop - this.scrollY;
+  }
+
+  private updateScrollIndicator(): void {
+    const scrollTop = 80;
+    const visibleHeight = this.screenHeight - 100;
+    if (this.maxScrollY <= 0) {
+      this.scrollIndicator.visible = false;
+      return;
+    }
+
+    const trackHeight = visibleHeight;
+    const thumbHeight = Math.max(30, trackHeight * (visibleHeight / (visibleHeight + this.maxScrollY)));
+    const thumbY = scrollTop + (this.scrollY / this.maxScrollY) * (trackHeight - thumbHeight);
+
+    this.scrollIndicator.clear();
+    this.scrollIndicator.roundRect(this.screenWidth - 8, thumbY, 6, thumbHeight, 3);
+    this.scrollIndicator.fill({ color: 0x888888, alpha: 0.7 });
+    this.scrollIndicator.visible = true;
+  }
+
+  private onPointerDown(e: any): void {
+    this.isDragging = true;
+    this.dragStartY = e.global.y;
+    this.dragStartScrollY = this.scrollY;
+  }
+
+  private onPointerMove(e: any): void {
+    if (!this.isDragging) return;
+    const deltaY = this.dragStartY - e.global.y;
+    this.scrollY = Math.max(0, Math.min(this.maxScrollY, this.dragStartScrollY + deltaY));
+    this.scrollContainer.y = 80 - this.scrollY;
+    this.updateScrollIndicator();
+  }
+
+  private onPointerUp(): void {
+    this.isDragging = false;
+  }
+
+  onShow(): void {
+    this.loadLevelData();
+    this.layout(this.screenWidth, this.screenHeight);
+    this.container.alpha = 0;
+    gsap.to(this.container, { alpha: 1, duration: 0.3 });
+  }
+
+  updateLevelProgress(levelId: number, stars: number): void {
+    const data = this.levelData.find(d => d.id === levelId);
+    if (data) {
+      data.earnedStars = Math.max(data.earnedStars, stars);
+      data.completed = true;
+    }
+    this.layout(this.screenWidth, this.screenHeight);
+  }
+
+  onHide(): void {
+    this.scrollY = 0;
+    this.isDragging = false;
+  }
+
+  update(): void {}
+
+  destroy(): void {
+    this.container.removeAllListeners();
+    this.container.destroy({ children: true });
   }
 }

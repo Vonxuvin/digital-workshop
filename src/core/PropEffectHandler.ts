@@ -120,7 +120,6 @@ export class PropEffectHandler {
         if (original.circleRadius !== undefined && block.body.circleRadius !== undefined) {
           block.body.circleRadius = original.circleRadius;
         }
-        Matter.Body.setPosition(block.body, original.position);
       }
       block.scale.set(1);
     }

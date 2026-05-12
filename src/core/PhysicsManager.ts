@@ -1,20 +1,44 @@
 import Matter from 'matter-js';
 
+export interface PhysicsConfig {
+  gravityX: number;
+  gravityY: number;
+  friction: number;
+  restitution: number;
+  density: number;
+  slop: number;
+}
+
+const DEFAULT_PHYSICS_CONFIG: PhysicsConfig = {
+  gravityX: 0,
+  gravityY: 1.0,
+  friction: 0.3,
+  restitution: 0.2,
+  density: 0.001,
+  slop: 0.5,
+};
+
 export class PhysicsManager {
   private engine: Matter.Engine;
   private bodies: Map<number, Matter.Body> = new Map();
   private idCounter = 0;
   private running = false;
   private readonly fixedStep = 1000 / 60;
-
   private readonly maxVelocity = 20;
-  private readonly sleepSpeedThreshold = 0.5;
+  private physicsConfig: PhysicsConfig;
 
   constructor() {
+    this.physicsConfig = { ...DEFAULT_PHYSICS_CONFIG };
     this.engine = Matter.Engine.create({
       gravity: { x: 0, y: 1.0, scale: 0.001 },
       enableSleeping: true,
     });
+  }
+
+  applyPhysicsConfig(config: Partial<PhysicsConfig>): void {
+    this.physicsConfig = { ...this.physicsConfig, ...config };
+    this.engine.gravity.x = this.physicsConfig.gravityX;
+    this.engine.gravity.y = this.physicsConfig.gravityY;
   }
 
   start(): void {
@@ -87,11 +111,11 @@ export class PhysicsManager {
 
   createCircle(x: number, y: number, radius: number, options?: Matter.IBodyDefinition): Matter.Body {
     const body = Matter.Bodies.circle(x, y, radius, {
-      restitution: 0.3,
-      friction: 0.5,
+      restitution: this.physicsConfig.restitution,
+      friction: this.physicsConfig.friction,
       frictionAir: 0.01,
       frictionStatic: 0.6,
-      density: 0.001,
+      density: this.physicsConfig.density,
       sleepThreshold: 60,
       ...options,
     });

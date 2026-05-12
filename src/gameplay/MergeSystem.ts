@@ -1,11 +1,13 @@
 import Matter from 'matter-js';
 import { Block, getBlockConfig } from './Block';
 import { PhysicsManager } from '../core/PhysicsManager';
+import { ScoreSystem } from './ScoreSystem';
 import { eventBus } from '../utils/EventBus';
 import { AnimationManager } from '../utils/AnimationManager';
 
 export class MergeSystem {
   private physics: PhysicsManager;
+  private scoreSystem: ScoreSystem | null = null;
   private blocks: Map<string, Block> = new Map();
   private obstacles: Map<string, Block> = new Map();
   private mergingBodies: Set<string> = new Set();
@@ -17,6 +19,10 @@ export class MergeSystem {
   constructor(physics: PhysicsManager) {
     this.physics = physics;
     this.setupCollisionListener();
+  }
+
+  setScoreSystem(scoreSystem: ScoreSystem): void {
+    this.scoreSystem = scoreSystem;
   }
 
   registerBlock(block: Block): void {
@@ -142,6 +148,9 @@ export class MergeSystem {
       this.chainDepthMap.set(newBody.label, chainDepth);
     }
 
+    if (this.scoreSystem) {
+      this.scoreSystem.addMergeScore(mergedValue, chainDepth > 0);
+    }
     eventBus.emit('block:merged', {
       newValue: mergedValue,
       position: { x: posX, y: posY },

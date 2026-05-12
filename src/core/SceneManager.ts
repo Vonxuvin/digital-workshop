@@ -6,6 +6,7 @@ import { AudioManager } from './AudioManager';
 import { SaveManager } from './SaveManager';
 import { ResultScreen, ResultData } from '../ui/screens/ResultScreen';
 import { LevelSelectScreen } from '../ui/screens/LevelSelectScreen';
+import { LevelLoader } from './LevelLoader';
 
 export class SceneManager {
   private uiManager: UIManager;
@@ -15,6 +16,7 @@ export class SceneManager {
   private saveManager: SaveManager;
   private resultScreen: ResultScreen;
   private levelSelectScreen: LevelSelectScreen;
+  private levelLoader: LevelLoader;
 
   constructor(
     uiManager: UIManager,
@@ -24,6 +26,7 @@ export class SceneManager {
     saveManager: SaveManager,
     resultScreen: ResultScreen,
     levelSelectScreen: LevelSelectScreen,
+    levelLoader: LevelLoader,
   ) {
     this.uiManager = uiManager;
     this.stateMachine = stateMachine;
@@ -32,6 +35,7 @@ export class SceneManager {
     this.saveManager = saveManager;
     this.resultScreen = resultScreen;
     this.levelSelectScreen = levelSelectScreen;
+    this.levelLoader = levelLoader;
   }
 
   registerScreens(screens: { name: string; screen: Screen }[]): void {
@@ -69,6 +73,13 @@ export class SceneManager {
     this.stateMachine.transition('playing');
   }
 
+  startLevelById(levelId: number): void {
+    const config = this.levelLoader.getLevelConfig(levelId);
+    if (config) {
+      this.startLevel(config);
+    }
+  }
+
   pauseGame(): void {
     if (this.stateMachine.canTransition('paused')) {
       this.stateMachine.transition('paused');
@@ -101,10 +112,10 @@ export class SceneManager {
     this.audioManager.play('gameover');
     const levelId = this.gameScene.getLevelSystem()?.getConfig().id || 1;
     const playTime = Math.floor((Date.now() - this.gameScene.getGameStartTime()) / 1000);
-    this.saveManager.updateLevelProgress(levelId, this.gameScene.getScoreSystem().getCurrentScore(), playTime, 0, false);
+    this.saveManager.updateLevelProgress(levelId, this.gameScene.getScoreSystem().getScore(), playTime, 0, false);
     this.resultScreen.setResult({
       isWin: false,
-      score: this.gameScene.getScoreSystem().getCurrentScore(),
+      score: this.gameScene.getScoreSystem().getScore(),
       stars: 0,
       levelId,
     });
@@ -119,6 +130,7 @@ export class SceneManager {
     this.audioManager.play('levelComplete');
     const stars = this.gameScene.calculateStars(score, levelId);
     const playTime = Math.floor((Date.now() - this.gameScene.getGameStartTime()) / 1000);
+    const bestScore = this.saveManager.getLevelProgress(levelId).bestScore || 0;
     this.saveManager.updateLevelProgress(levelId, score, playTime, stars, true);
     this.saveManager.updateStatistics(0, 0, playTime);
     this.levelSelectScreen.updateLevelProgress(levelId, stars);
@@ -127,6 +139,8 @@ export class SceneManager {
       score,
       stars,
       levelId,
+      playTime,
+      bestScore: bestScore > score ? bestScore : undefined,
     });
     this.uiManager.showScreen('result');
   }
@@ -135,6 +149,17 @@ export class SceneManager {
     this.uiManager.hideCurrentScreen();
     this.gameScene.handleRevive();
     this.stateMachine.transition('playing');
+  }
+
+  nextLevel(): void {
+    const currentId = this.gameScene.getLevelSystem()?.getConfig().id || 1;
+    const nextId = currentId + 1;
+    const config = this.levelLoader.getLevelConfig(nextId);
+    if (config) {
+      this.startLevel(config);
+    } else {
+      this.showLevelSelect();
+    }
   }
 
   getCurrentState(): GameState {

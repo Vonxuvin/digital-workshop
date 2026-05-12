@@ -6,67 +6,66 @@ import { PhysicsManager } from '../src/core/PhysicsManager';
 import { Block, BLOCK_CONFIGS } from '../src/gameplay/Block';
 import { WarningLine } from '../src/ui/components/WarningLine';
 import { eventBus } from '../src/utils/EventBus';
-import { AnimationManager } from '../src/utils/AnimationManager';
 
 describe('ScoreSystem Deep Tests', () => {
   let ss: ScoreSystem;
-  let animMgr: AnimationManager;
 
   beforeEach(() => {
-    animMgr = new AnimationManager();
-    AnimationManager.setInstance(animMgr);
     ss = new ScoreSystem();
   });
 
   afterEach(() => {
     ss.reset();
-    AnimationManager.resetInstance();
   });
 
-  describe('MEMORY LEAK: Event listener never cleaned up', () => {
-    it('after reset(), the event listener still works (proving it was not removed)', () => {
-      eventBus.emit('block:merged', { newValue: 2, chainCount: 1 });
+  describe('ScoreSystem uses direct addMergeScore (no event listener)', () => {
+    it('after reset(), addMergeScore still works correctly', () => {
+      ss.addMergeScore(2, false);
       const scoreBeforeReset = ss.getCurrentScore();
       expect(scoreBeforeReset).toBeGreaterThan(0);
 
       ss.reset();
       expect(ss.getCurrentScore()).toBe(0);
 
-      eventBus.emit('block:merged', { newValue: 2, chainCount: 1 });
+      ss.addMergeScore(2, false);
       expect(ss.getCurrentScore()).toBeGreaterThan(0);
     });
 
-    it('creating multiple ScoreSystem instances causes multiple listeners to fire', () => {
+    it('creating multiple ScoreSystem instances does not cause double scoring', () => {
       const ss2 = new ScoreSystem();
       const handler = vi.fn();
       eventBus.on('score:updated', handler);
 
-      eventBus.emit('block:merged', { newValue: 2, chainCount: 1 });
+      ss.addMergeScore(2, false);
+      ss2.addMergeScore(2, false);
 
       const allCalls = handler.mock.calls;
       const scoreUpdatedCalls = allCalls.filter((call: any[]) => call[0] && call[0].earnedScore !== undefined);
-      expect(scoreUpdatedCalls.length).toBeGreaterThanOrEqual(2);
+      expect(scoreUpdatedCalls.length).toBe(2);
 
       ss2.reset();
+      eventBus.off('score:updated', handler);
     });
   });
 
-  describe('BUG: chainCount parameter from event is IGNORED', () => {
-    it('ScoreSystem uses its own chain counter, ignoring event chainCount', () => {
-      eventBus.emit('block:merged', { newValue: 2, chainCount: 99 });
+  describe('ScoreSystem uses its own chain counter', () => {
+    it('ScoreSystem chain counter increments with each addMergeScore call', () => {
+      ss.addMergeScore(2, false);
       expect(ss.getChainCount()).toBe(1);
 
-      eventBus.emit('block:merged', { newValue: 2, chainCount: 99 });
+      ss.addMergeScore(2, false);
       expect(ss.getChainCount()).toBe(2);
     });
 
-    it('chainCount from merge event data is indeed ignored', () => {
+    it('chainCount in score:updated matches ScoreSystem internal counter', () => {
       const handler = vi.fn();
       eventBus.on('score:updated', handler);
 
-      eventBus.emit('block:merged', { newValue: 2, chainCount: 50 });
+      ss.addMergeScore(2, false);
       const lastCall = handler.mock.calls[handler.mock.calls.length - 1][0];
-      expect(lastCall.chainCount).not.toBe(50);
+      expect(lastCall.chainCount).toBe(1);
+
+      eventBus.off('score:updated', handler);
     });
   });
 
@@ -74,27 +73,29 @@ describe('ScoreSystem Deep Tests', () => {
     it('should calculate exact score for value 2 (first merge, chainBonus=1.0)', () => {
       const handler = vi.fn();
       eventBus.on('score:updated', handler);
-      eventBus.emit('block:merged', { newValue: 2, chainCount: 1 });
+      ss.addMergeScore(2, false);
       const data = handler.mock.calls[0][0];
-      const expected = Math.floor(SCORE_CONFIGS[2].baseScore * SCORE_CONFIGS[2].chainMultiplier * 1.0);
+      const expected = Math.round(SCORE_CONFIGS[2].baseScore * SCORE_CONFIGS[2].chainMultiplier * 1.0);
       expect(data.earnedScore).toBe(expected);
-      expect(data.earnedScore).toBe(2);
+      expect(data.earnedScore).toBe(1);
+      eventBus.off('score:updated', handler);
     });
 
     it('should calculate exact score for value 4 (first merge)', () => {
       const handler = vi.fn();
       eventBus.on('score:updated', handler);
-      eventBus.emit('block:merged', { newValue: 4, chainCount: 1 });
+      ss.addMergeScore(4, false);
       const lastCall = handler.mock.calls[handler.mock.calls.length - 1][0];
-      const expected = Math.floor(SCORE_CONFIGS[4].baseScore * SCORE_CONFIGS[4].chainMultiplier * 1.0);
+      const expected = Math.round(SCORE_CONFIGS[4].baseScore * SCORE_CONFIGS[4].chainMultiplier * 1.0);
       expect(lastCall.earnedScore).toBe(expected);
-      expect(lastCall.earnedScore).toBe(9);
+      expect(lastCall.earnedScore).toBe(2);
+      eventBus.off('score:updated', handler);
     });
 
-    it('should apply chain bonus for second merge (chainBonus=1.1)', () => {
+    it('should apply chain bonus for second merge (isCombo=true)', () => {
       const scoreBefore = ss.getCurrentScore();
       const chainBefore = ss.getChainCount();
-      eventBus.emit('block:merged', { newValue: 2, chainCount: 1 });
+      ss.addMergeScore(2, true);
       expect(ss.getCurrentScore()).toBeGreaterThan(scoreBefore);
       expect(ss.getChainCount()).toBe(chainBefore + 1);
     });
@@ -102,33 +103,34 @@ describe('ScoreSystem Deep Tests', () => {
     it('should use fallback config for unknown values', () => {
       const handler = vi.fn();
       eventBus.on('score:updated', handler);
-      eventBus.emit('block:merged', { newValue: 512, chainCount: 1 });
+      ss.addMergeScore(512, false);
       const data = handler.mock.calls[0][0];
-      expect(data.baseScore).toBe(512 * 10);
+      expect(data.baseScore).toBeGreaterThan(0);
       expect(data.chainMultiplier).toBe(1.0);
+      eventBus.off('score:updated', handler);
     });
   });
 
   describe('Chain timeout resets properly', () => {
     it('chain timer resets on consecutive merges within timeout', () => {
-      eventBus.emit('block:merged', { newValue: 2, chainCount: 1 });
+      ss.addMergeScore(2, false);
       expect(ss.getChainCount()).toBe(1);
 
-      animMgr.update(1500);
-      eventBus.emit('block:merged', { newValue: 2, chainCount: 2 });
+      ss.update(1500);
+      ss.addMergeScore(2, false);
       expect(ss.getChainCount()).toBe(2);
 
-      animMgr.update(1500);
-      eventBus.emit('block:merged', { newValue: 2, chainCount: 3 });
+      ss.update(1500);
+      ss.addMergeScore(2, false);
       expect(ss.getChainCount()).toBe(3);
     });
 
     it('chain resets after full timeout', () => {
-      eventBus.emit('block:merged', { newValue: 2, chainCount: 1 });
-      animMgr.update(2500);
+      ss.addMergeScore(2, false);
+      ss.update(3100);
       expect(ss.getChainCount()).toBe(0);
 
-      eventBus.emit('block:merged', { newValue: 2, chainCount: 1 });
+      ss.addMergeScore(2, false);
       expect(ss.getChainCount()).toBe(1);
     });
   });

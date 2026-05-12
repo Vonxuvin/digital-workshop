@@ -56,6 +56,54 @@ export class RotateModifier extends ContainerModifier {
     console.log(`[RotateModifier] 激活旋转容器, maxAngle=${this.maxAngle}, oscillate=${this.oscillate}, bodies=${this.containerBodies.length}, center=(${this.centerX.toFixed(0)}, ${this.centerY.toFixed(0)})`);
   }
 
+  protected showWarning(): void {
+    if (!this.stageContainer) return;
+
+    this.warningContainer = new Container();
+
+    const ring = new Graphics();
+    ring.circle(0, 0, 50);
+    ring.stroke({ width: 2, color: 0xFFD93D, alpha: 0.4 });
+
+    const arrow = new Graphics();
+    arrow.moveTo(0, -55);
+    arrow.lineTo(-12, -40);
+    arrow.moveTo(0, -55);
+    arrow.lineTo(12, -40);
+    arrow.moveTo(0, -55);
+    arrow.lineTo(0, 55);
+    arrow.stroke({ width: 3, color: 0xFFD93D, alpha: 0.5 });
+
+    ring.x = this.centerX;
+    ring.y = this.centerY;
+    arrow.x = this.centerX;
+    arrow.y = this.centerY;
+
+    const warningText = new PIXI.Text({
+      text: '容器即将旋转',
+      style: {
+        fontSize: 14,
+        fill: 0xFFD93D,
+        fontFamily: 'Arial',
+      },
+    });
+    warningText.anchor.set(0.5);
+    warningText.x = this.centerX;
+    warningText.y = this.centerY - 65;
+
+    this.warningContainer.addChild(ring);
+    this.warningContainer.addChild(arrow);
+    this.warningContainer.addChild(warningText);
+    this.stageContainer.addChild(this.warningContainer);
+  }
+
+  protected updateWarning(_deltaMS: number): void {
+    if (!this.warningContainer || this.warningContainer.children.length < 2) return;
+    const ring = this.warningContainer.children[0] as Graphics;
+    const pulse = 0.2 + 0.3 * Math.sin(Date.now() * 0.005);
+    ring.alpha = pulse;
+  }
+
   private createVisualWalls(): void {
     this.wallGraphics = new Graphics();
 

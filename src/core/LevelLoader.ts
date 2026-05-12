@@ -364,6 +364,13 @@ export class LevelLoader {
     return this.levelConfigs.get(levelId) || null;
   }
 
+  getAllLevelConfigsSync(): LevelConfig[] {
+    const configs: LevelConfig[] = [];
+    this.levelConfigs.forEach((config) => configs.push(config));
+    configs.sort((a, b) => a.id - b.id);
+    return configs;
+  }
+
   clearCache(): void {
     this.levelConfigs.clear();
   }

@@ -2,74 +2,90 @@ import { eventBus } from '../utils/EventBus';
 import { AnimationManager } from '../utils/AnimationManager';
 
 export interface ScoreConfig {
-  baseScore: number;
-  chainMultiplier: number;
+  baseMultiplier: number;
+  chainBonusPerLevel: number;
+  maxChainBonus: number;
 }
 
-export const SCORE_CONFIGS: Record<number, ScoreConfig> = {
-  2: { baseScore: 2, chainMultiplier: 1.0 },
-  4: { baseScore: 8, chainMultiplier: 1.2 },
-  8: { baseScore: 32, chainMultiplier: 1.5 },
-  16: { baseScore: 128, chainMultiplier: 2.0 },
-  32: { baseScore: 512, chainMultiplier: 2.5 },
-  64: { baseScore: 2048, chainMultiplier: 3.0 },
-  128: { baseScore: 8192, chainMultiplier: 4.0 },
-  256: { baseScore: 32768, chainMultiplier: 5.0 },
+const DEFAULT_SCORE_CONFIG: ScoreConfig = {
+  baseMultiplier: 1.0,
+  chainBonusPerLevel: 0.5,
+  maxChainBonus: 5.0,
 };
 
-export interface ScoreResult {
-  totalScore: number;
-  chainCount: number;
-  chainMultiplier: number;
-  baseScore: number;
-}
+export const SCORE_CONFIGS: Record<number, { baseScore: number; chainMultiplier: number }> = {
+  2: { baseScore: 1, chainMultiplier: 1.0 },
+  4: { baseScore: 2, chainMultiplier: 1.0 },
+  8: { baseScore: 4, chainMultiplier: 1.0 },
+  16: { baseScore: 8, chainMultiplier: 1.1 },
+  32: { baseScore: 16, chainMultiplier: 1.2 },
+  64: { baseScore: 32, chainMultiplier: 1.3 },
+  128: { baseScore: 64, chainMultiplier: 1.4 },
+  256: { baseScore: 128, chainMultiplier: 1.5 },
+  512: { baseScore: 256, chainMultiplier: 1.6 },
+  1024: { baseScore: 512, chainMultiplier: 1.7 },
+  2048: { baseScore: 1024, chainMultiplier: 1.8 },
+  4096: { baseScore: 2048, chainMultiplier: 1.9 },
+};
 
 export class ScoreSystem {
-  private currentScore = 0;
-  private chainCount = 0;
-  private chainTimer: string | null = null;
-  private readonly chainTimeout = 2000;
-  private onMergeBound: (data: { newValue: number; chainCount: number }) => void;
+  private score: number = 0;
+  private chainCount: number = 0;
+  private chainTimer: number = 0;
+  private readonly CHAIN_TIMEOUT = 3000;
+  private config: ScoreConfig;
 
-  constructor() {
-    this.onMergeBound = this.handleMerge.bind(this);
-    this.setupEventListeners();
+  constructor(config?: Partial<ScoreConfig>) {
+    this.config = { ...DEFAULT_SCORE_CONFIG, ...config };
   }
 
-  private setupEventListeners(): void {
-    eventBus.on('block:merged', this.onMergeBound);
-  }
+  addMergeScore(value: number, isCombo: boolean = false): void {
+    const baseScore = this.calculateScore(value);
+    let chainMultiplier = isCombo ? 1 + Math.min(this.chainCount * this.config.chainBonusPerLevel, this.config.maxChainBonus) : 1;
+    chainMultiplier *= this.config.baseMultiplier;
+    const finalScore = Math.round(baseScore * chainMultiplier);
 
-  private handleMerge(data: { newValue: number; chainCount: number }): void {
-    const config = SCORE_CONFIGS[data.newValue] || { baseScore: data.newValue * 10, chainMultiplier: 1.0 };
-
+    this.score += finalScore;
     this.chainCount++;
-
-    const chainBonus = 1 + (this.chainCount - 1) * 0.1;
-    const earnedScore = Math.floor(config.baseScore * config.chainMultiplier * chainBonus);
-
-    this.currentScore += earnedScore;
-
-    if (this.chainTimer) {
-      AnimationManager.getInstance().clearTimeout(this.chainTimer);
-    }
-    this.chainTimer = AnimationManager.getInstance().setTimeout(() => {
-      this.chainCount = 0;
-    }, this.chainTimeout);
+    this.chainTimer = this.CHAIN_TIMEOUT;
 
     eventBus.emit('score:updated', {
-      totalScore: this.currentScore,
-      earnedScore,
+      totalScore: this.score,
+      earnedScore: finalScore,
       chainCount: this.chainCount,
-      chainMultiplier: config.chainMultiplier,
-      baseScore: config.baseScore,
+      baseScore,
+      chainMultiplier,
     });
+  }
 
-    console.log(`[ScoreSystem] 合成 ${data.newValue}，获得 ${earnedScore} 分，连锁 x${this.chainCount}`);
+  update(deltaMS: number): void {
+    if (this.chainTimer > 0) {
+      this.chainTimer -= deltaMS;
+      if (this.chainTimer <= 0) {
+        this.chainTimer = 0;
+        this.chainCount = 0;
+        eventBus.emit('score:chainEnded');
+      }
+    }
+  }
+
+  private calculateScore(value: number): number {
+    if (value <= 2) return 1;
+    const tier = Math.log2(value);
+    if (!Number.isFinite(tier)) return 1;
+    return Math.round(Math.pow(2, tier - 1));
+  }
+
+  getScore(): number {
+    return this.score;
   }
 
   getCurrentScore(): number {
-    return this.currentScore;
+    return this.score;
+  }
+
+  getTotalScore(): number {
+    return this.score;
   }
 
   getChainCount(): number {
@@ -77,16 +93,22 @@ export class ScoreSystem {
   }
 
   reset(): void {
-    this.currentScore = 0;
+    this.score = 0;
     this.chainCount = 0;
-    if (this.chainTimer) {
-      AnimationManager.getInstance().clearTimeout(this.chainTimer);
-      this.chainTimer = null;
-    }
+    this.chainTimer = 0;
   }
 
   destroy(): void {
-    eventBus.off('block:merged', this.onMergeBound);
-    this.reset();
+    this.chainTimer = 0;
+  }
+
+  getStarsForLevel(score: number, levelStars: number[]): number {
+    let stars = 0;
+    for (let i = 0; i < levelStars.length; i++) {
+      if (score >= levelStars[i]) {
+        stars = i + 1;
+      }
+    }
+    return stars;
   }
 }

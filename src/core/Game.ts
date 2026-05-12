@@ -74,12 +74,24 @@ export class Game {
     this.input = new InputManager(canvas);
     this.mergeSystem = new MergeSystem(this.physics);
     this.scoreSystem = new ScoreSystem();
+    this.mergeSystem.setScoreSystem(this.scoreSystem);
     this.stateMachine = new GameStateMachine('boot');
     this.audioManager = new AudioManager();
     this.propSystem = new PropSystem();
     this.performanceMonitor = new PerformanceMonitor();
     this.resultScreen = new ResultScreen();
-    this.levelSelectScreen = new LevelSelectScreen(this.saveManager, this.levelLoader);
+    this.resultScreen.setCallbacks(
+      () => this.sceneManager.nextLevel(),
+      () => this.sceneManager.restartGame(),
+      () => this.sceneManager.showMainMenu(),
+      () => this.sceneManager.reviveGame(),
+    );
+    this.levelSelectScreen = new LevelSelectScreen(
+      () => this.sceneManager.showMainMenu(),
+      (levelId) => this.sceneManager.startLevelById(levelId),
+      this.saveManager,
+      this.levelLoader,
+    );
     this.pauseScreen = new PauseScreen();
     this.gameHUD = new GameHUD(this.propSystem);
   }
@@ -213,6 +225,7 @@ export class Game {
       this.saveManager,
       this.resultScreen,
       this.levelSelectScreen,
+      this.levelLoader,
     );
     this.sceneManager.registerScreens([
       { name: 'mainMenu', screen: mainMenu },
@@ -227,12 +240,19 @@ export class Game {
 
     this.input.onDown((state) => {
       if (!this.gameScene.getBlockSpawner().getCanDrop() || !this.sceneManager.isPlaying()) return;
-      if (this.gameScene.getBombTargetMode()) return;
+      if (this.gameScene.getBombTargetMode()) {
+        this.gameHUD.showCrosshair(state.position.x, state.position.y);
+        return;
+      }
       const dropY = this.calculateDropY(state.position.y);
       this.gameScene.getPreview().show(this.gameScene.getBlockSpawner().getCurrentValue(), state.position.x, dropY);
     });
 
     this.input.onMove((state) => {
+      if (state.isDown && this.gameScene.getBombTargetMode() && this.sceneManager.isPlaying()) {
+        this.gameHUD.updateCrosshair(state.position.x, state.position.y);
+        return;
+      }
       if (state.isDown && this.gameScene.getPreview().visible && this.sceneManager.isPlaying() && !this.gameScene.getBombTargetMode()) {
         this.gameScene.getPreview().updatePosition(state.position.x);
       }
@@ -242,6 +262,7 @@ export class Game {
       if (this.gameScene.getBombTargetMode() && this.sceneManager.isPlaying()) {
         const pos = this.input.getState().position;
         this.gameScene.usePropAtPosition(pos.x, pos.y);
+        this.gameHUD.hideCrosshair();
         return;
       }
       if (this.gameScene.getPreview().visible && this.gameScene.getBlockSpawner().getCanDrop() && this.sceneManager.isPlaying()) {
@@ -348,6 +369,7 @@ export class Game {
     }
 
     AnimationManager.getInstance().update(deltaMS);
+    this.scoreSystem.update(deltaMS);
     this.gameScene.update(deltaMS, this.sceneManager.isPlaying());
   }
 

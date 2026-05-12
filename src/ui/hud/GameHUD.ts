@@ -6,6 +6,7 @@ import { PropButton } from '../components/PropButton';
 import { PropSystem } from '../../gameplay/props/PropSystem';
 import { PropType } from '../../gameplay/props/Prop';
 import gsap from 'gsap';
+import { ComboDisplay } from '../components/ComboDisplay';
 
 export class GameHUD extends Container {
   private scoreText!: Text;
@@ -21,6 +22,8 @@ export class GameHUD extends Container {
   private onScoreUpdatedBound: (data: { totalScore: number; earnedScore: number; chainCount: number }) => void;
   private propSystem: PropSystem;
   private propButtons: Map<PropType, PropButton> = new Map();
+  private crosshair: Graphics | null = null;
+  private comboDisplay: ComboDisplay | null = null;
   private propsContainer!: Container;
   private selectedProp: PropType | null = null;
   private propTargetMode = false;
@@ -112,6 +115,14 @@ export class GameHUD extends Container {
     });
 
     this.addChild(this.propsContainer);
+
+    this.crosshair = new Graphics();
+    this.crosshair.visible = false;
+    this.addChild(this.crosshair);
+
+    this.comboDisplay = new ComboDisplay();
+    this.comboDisplay.visible = false;
+    this.addChild(this.comboDisplay);
   }
 
   private onPropClick(type: PropType): void {
@@ -119,7 +130,13 @@ export class GameHUD extends Container {
     if (count <= 0) return;
 
     if (type === PropType.BOMB) {
-      this.enterBombTargetMode();
+      if (this.selectedProp === PropType.BOMB) {
+        this.exitBombTargetMode();
+        this.setPropSelected(null);
+      } else {
+        this.enterBombTargetMode();
+        this.setPropSelected(PropType.BOMB);
+      }
     } else {
       const success = this.propSystem.useProp(type);
       if (success) {
@@ -150,7 +167,13 @@ export class GameHUD extends Container {
   exitPropTargetMode(): void {
     this.selectedProp = null;
     this.propTargetMode = false;
+    this.setPropSelected(null);
+    this.hideCrosshair();
     eventBus.emit('ui:propTargetMode', { enabled: false });
+  }
+
+  private exitBombTargetMode(): void {
+    this.exitPropTargetMode();
   }
 
   updatePropButtons(): void {
@@ -158,6 +181,57 @@ export class GameHUD extends Container {
       const count = this.propSystem.getPropCount(type);
       button.updateCount(count);
     });
+  }
+
+  showCombo(count: number): void {
+    if (this.comboDisplay) {
+      this.comboDisplay.showCombo(count, this.screenWidth, this.screenHeight);
+    }
+    if (this.comboLabel) {
+      this.comboLabel.text = count > 1 ? `连击 x${count}!` : '';
+      this.comboLabel.alpha = 1;
+      this.comboLabel.scale.set(1);
+      gsap.killTweensOf(this.comboLabel);
+      gsap.fromTo(this.comboLabel, { alpha: 1, scaleX: 1.2, scaleY: 1.2 }, {
+        alpha: 0, scaleX: 1, scaleY: 1, duration: 1.5, ease: 'power2.out',
+      });
+    }
+  }
+
+  showCrosshair(x: number, y: number): void {
+    if (!this.crosshair) return;
+    this.crosshair.visible = true;
+    this.crosshair.clear();
+    this.crosshair.moveTo(x - 20, y);
+    this.crosshair.lineTo(x + 20, y);
+    this.crosshair.moveTo(x, y - 20);
+    this.crosshair.lineTo(x, y + 20);
+    this.crosshair.stroke({ width: 2, color: 0xff4444, alpha: 0.8 });
+    this.crosshair.circle(x, y, 10);
+    this.crosshair.stroke({ width: 2, color: 0xff4444, alpha: 0.5 });
+  }
+
+  updateCrosshair(x: number, y: number): void {
+    if (!this.crosshair || !this.crosshair.visible) return;
+    this.showCrosshair(x, y);
+  }
+
+  hideCrosshair(): void {
+    if (this.crosshair) {
+      this.crosshair.visible = false;
+    }
+  }
+
+  setPropSelected(propType: PropType | null): void {
+    if (this.selectedProp && this.selectedProp !== propType) {
+      const prev = this.propButtons.get(this.selectedProp);
+      if (prev) prev.clearSelected();
+    }
+    this.selectedProp = propType;
+    if (propType) {
+      const btn = this.propButtons.get(propType);
+      if (btn) btn.setSelected();
+    }
   }
 
   private createPauseButton(): void {

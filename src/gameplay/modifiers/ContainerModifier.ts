@@ -28,8 +28,10 @@ export abstract class ContainerModifier {
   protected animationId: string | null = null;
   protected stageContainer: Container | null = null;
   protected containerBodies: Matter.Body[] = [];
+  protected warningContainer: Container | null = null;
   private startDelayRemaining: number = 0;
   private startDelayAnimationId: string | null = null;
+  private warningAnimId: string | null = null;
 
   protected collectContainerBodies(): void {
     this.containerBodies = this.physics.getContainerBodies();
@@ -52,6 +54,11 @@ export abstract class ContainerModifier {
   start(): void {
     if (this.config.startDelay && this.config.startDelay > 0) {
       this.startDelayRemaining = this.config.startDelay * 1000;
+      this.showWarning();
+      this.warningAnimId = AnimationManager.getInstance().register(
+        (_deltaMS) => this.updateWarning(_deltaMS),
+        `modifier_warning_${this.config.type}_${Date.now()}`
+      );
       this.startDelayAnimationId = AnimationManager.getInstance().register(
         (deltaMS) => this.tickStartDelay(deltaMS),
         `modifier_delay_${this.config.type}_${Date.now()}`
@@ -68,6 +75,7 @@ export abstract class ContainerModifier {
         AnimationManager.getInstance().unregister(this.startDelayAnimationId);
         this.startDelayAnimationId = null;
       }
+      this.hideWarning();
       this.activate();
     }
   }
@@ -109,6 +117,26 @@ export abstract class ContainerModifier {
 
   protected abstract onTick(deltaMS: number): void;
 
+  protected showWarning(): void {
+  }
+
+  protected updateWarning(_deltaMS: number): void {
+  }
+
+  protected hideWarning(): void {
+    if (this.warningAnimId) {
+      AnimationManager.getInstance().unregister(this.warningAnimId);
+      this.warningAnimId = null;
+    }
+    if (this.warningContainer) {
+      if (this.stageContainer && this.warningContainer.parent) {
+        this.stageContainer.removeChild(this.warningContainer);
+      }
+      this.warningContainer.destroy({ children: true });
+      this.warningContainer = null;
+    }
+  }
+
   deactivate(): void {
     if (!this.state.isActive) return;
     this.state.isActive = false;
@@ -148,9 +176,14 @@ export abstract class ContainerModifier {
       AnimationManager.getInstance().unregister(this.startDelayAnimationId);
       this.startDelayAnimationId = null;
     }
+    if (this.warningAnimId) {
+      AnimationManager.getInstance().unregister(this.warningAnimId);
+      this.warningAnimId = null;
+    }
   }
 
   destroy(): void {
+    this.hideWarning();
     this.deactivate();
     this.clearTimers();
   }

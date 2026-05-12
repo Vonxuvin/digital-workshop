@@ -73,6 +73,45 @@ export class PaddleModifier extends ContainerModifier {
     this.startCycle();
   }
 
+  protected showWarning(): void {
+    if (!this.stageContainer) return;
+
+    this.warningContainer = new Container();
+    const ghostGraphics = new Graphics();
+    const paddleWidth = this.extendLength;
+    const paddleHeight = 20;
+
+    ghostGraphics.roundRect(-paddleWidth / 2, -paddleHeight / 2, paddleWidth, paddleHeight, 5);
+    const color = this.side === 'left' ? 0xFF6B6B : (this.side === 'right' ? 0x4ECDC4 : 0xFFD93D);
+    ghostGraphics.fill({ color, alpha: 0.3 });
+    ghostGraphics.stroke({ width: 2, color: 0xFFFFFF, alpha: 0.5 });
+    ghostGraphics.x = this.xPosition;
+    ghostGraphics.y = this.yPosition;
+
+    const warningText = new PIXI.Text({
+      text: this.mode === 'slide' ? '移动挡板即将激活' : '伸缩挡板即将激活',
+      style: {
+        fontSize: 14,
+        fill: 0xFFD93D,
+        fontFamily: 'Arial',
+      },
+    });
+    warningText.anchor.set(0.5);
+    warningText.x = this.xPosition;
+    warningText.y = this.yPosition - paddleHeight;
+
+    this.warningContainer.addChild(ghostGraphics);
+    this.warningContainer.addChild(warningText);
+    this.stageContainer.addChild(this.warningContainer);
+  }
+
+  protected updateWarning(_deltaMS: number): void {
+    if (!this.warningContainer || this.warningContainer.children.length === 0) return;
+    const ghost = this.warningContainer.children[0];
+    const pulse = 0.3 + 0.2 * Math.sin(Date.now() * 0.005);
+    ghost.alpha = pulse;
+  }
+
   private startCycle(): void {
     this.phase = 'extending';
     this.phaseElapsed = 0;

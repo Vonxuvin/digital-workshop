@@ -1,61 +1,105 @@
-import { Container, Text } from 'pixi.js';
+import { Container, Graphics, Text } from 'pixi.js';
 import gsap from 'gsap';
 
 export class ComboDisplay extends Container {
   private comboText: Text;
+  private comboBg: Graphics;
+  private comboGlow: Graphics;
   private currentCombo = 0;
   private displayTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly DISPLAY_DURATION = 2000;
   private scaleTween: gsap.core.Tween | null = null;
+  private fadeTween: gsap.core.Tween | null = null;
 
   constructor() {
     super();
+    this.visible = false;
+
+    this.comboBg = new Graphics();
+    this.addChild(this.comboBg);
+
+    this.comboGlow = new Graphics();
+    this.addChild(this.comboGlow);
+
     this.comboText = new Text({
       text: '',
       style: {
         fontFamily: 'Arial',
-        fontSize: 36,
+        fontSize: 48,
         fill: 0xffd700,
         fontWeight: 'bold',
-        dropShadow: { color: 0x000000, blur: 4, angle: Math.PI / 4, distance: 3 },
+        stroke: { color: 0x000000, width: 4 },
       },
     });
     this.comboText.anchor.set(0.5);
     this.addChild(this.comboText);
-    this.visible = false;
   }
 
-  showCombo(comboCount: number): void {
+  showCombo(comboCount: number, screenWidth?: number, screenHeight?: number): void {
     this.currentCombo = comboCount;
     if (comboCount < 2) {
       this.hide();
       return;
     }
+
+    const scale = 0.8 + Math.min(comboCount * 0.1, 0.8);
+    const glowRadius = 60 + comboCount * 8;
+
     this.comboText.text = `x${comboCount} COMBO!`;
+
+    this.comboBg.clear();
+    this.comboBg.circle(0, 0, glowRadius);
+    this.comboBg.fill({ color: 0x000000, alpha: 0.4 });
+
+    this.comboGlow.clear();
+    this.comboGlow.circle(0, 0, glowRadius + 10);
+    this.comboGlow.stroke({ width: 3, color: 0xffd700, alpha: 0.6 });
+
+    if (screenWidth && screenHeight) {
+      this.x = screenWidth / 2;
+      this.y = screenHeight / 2;
+    }
+
     this.visible = true;
     this.alpha = 1;
-    this.scale.set(1.5);
+    this.scale.set(scale * 1.3);
 
-    this.animateScale();
+    this.animateScale(scale);
 
     if (this.displayTimer) clearTimeout(this.displayTimer);
     this.displayTimer = setTimeout(() => {
-      this.hide();
+      this.fadeOut();
     }, this.DISPLAY_DURATION);
   }
 
-  private animateScale(): void {
+  private animateScale(targetScale: number = 1): void {
     if (this.scaleTween) {
       this.scaleTween.kill();
     }
 
     this.scaleTween = gsap.to(this.scale, {
-      x: 1,
-      y: 1,
-      duration: 0.2,
-      ease: 'power3.out',
+      x: targetScale,
+      y: targetScale,
+      duration: 0.4,
+      ease: 'back.out(1.7)',
       onComplete: () => {
         this.scaleTween = null;
+      },
+    });
+  }
+
+  private fadeOut(): void {
+    if (this.fadeTween) {
+      this.fadeTween.kill();
+    }
+    this.fadeTween = gsap.to(this, {
+      alpha: 0,
+      duration: 0.6,
+      ease: 'power2.out',
+      onComplete: () => {
+        this.visible = false;
+        this.currentCombo = 0;
+        this.fadeTween = null;
       },
     });
   }
@@ -77,6 +121,10 @@ export class ComboDisplay extends Container {
     if (this.scaleTween) {
       this.scaleTween.kill();
       this.scaleTween = null;
+    }
+    if (this.fadeTween) {
+      this.fadeTween.kill();
+      this.fadeTween = null;
     }
     if (this.displayTimer) clearTimeout(this.displayTimer);
     this.currentCombo = 0;

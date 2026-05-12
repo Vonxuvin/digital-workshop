@@ -31,6 +31,7 @@ export class GameEventRouter {
 
   setup(): void {
     this.ns.on('block:merged', this.handleBlockMerged.bind(this));
+    this.ns.on('block:dropped', this.handleBlockDropped.bind(this));
     this.ns.on('game:over', this.handleGameOver.bind(this));
     this.ns.on('game:timeout', this.handleTimeout.bind(this));
     this.ns.on('level:completed', this.handleLevelCompleted.bind(this));
@@ -54,6 +55,7 @@ export class GameEventRouter {
     this.ns.on('props:lucky:activate', this.handleLuckyActivate.bind(this));
     this.ns.on('props:lucky:deactivate', this.handleLuckyDeactivate.bind(this));
     this.ns.on('level:timeUpdate', this.handleLevelTimeUpdate.bind(this));
+    this.ns.on('score:updated', this.handleScoreUpdated.bind(this));
   }
 
   private handleBlockMerged(data: BlockMergedData): void {
@@ -61,7 +63,12 @@ export class GameEventRouter {
     this.gameScene.handleBlockMerged(data);
   }
 
+  private handleBlockDropped(): void {
+    this.audioManager.play('drop');
+  }
+
   private handleGameOver(): void {
+    this.audioManager.play('gameOver');
     this.sceneManager.failGame();
   }
 
@@ -70,6 +77,7 @@ export class GameEventRouter {
   }
 
   private handleLevelCompleted(data: { score: number; levelId: number }): void {
+    this.audioManager.play('levelComplete');
     this.sceneManager.completeLevel(data.score, data.levelId);
   }
 
@@ -164,6 +172,12 @@ export class GameEventRouter {
 
   private handleLevelTimeUpdate(seconds: number): void {
     this.gameScene.getGameHUD().updateTimer(seconds);
+  }
+
+  private handleScoreUpdated(data: { score: number; delta: number; chain: number }): void {
+    if (data.chain >= 5) {
+      this.audioManager.play('merge');
+    }
   }
 
   destroy(): void {

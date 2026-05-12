@@ -1,21 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ScoreSystem, SCORE_CONFIGS } from '../src/gameplay/ScoreSystem';
 import { eventBus } from '../src/utils/EventBus';
-import { AnimationManager } from '../src/utils/AnimationManager';
 
 describe('ScoreSystem', () => {
   let ss: ScoreSystem;
-  let animMgr: AnimationManager;
 
   beforeEach(() => {
-    animMgr = new AnimationManager();
-    AnimationManager.setInstance(animMgr);
     ss = new ScoreSystem();
   });
 
   afterEach(() => {
     ss.reset();
-    AnimationManager.resetInstance();
   });
 
   it('should initialize with zero score', () => {
@@ -24,38 +19,40 @@ describe('ScoreSystem', () => {
   });
 
   it('should calculate score for merge value 2', () => {
-    eventBus.emit('block:merged', { newValue: 2, chainCount: 1 });
+    ss.addMergeScore(2);
     expect(ss.getCurrentScore()).toBeGreaterThan(0);
   });
 
   it('should calculate score for merge value 4', () => {
-    eventBus.emit('block:merged', { newValue: 4, chainCount: 1 });
+    ss.addMergeScore(4);
     expect(ss.getCurrentScore()).toBeGreaterThan(0);
   });
 
   it('should calculate score for unknown value', () => {
-    eventBus.emit('block:merged', { newValue: 512, chainCount: 1 });
+    ss.addMergeScore(512);
     expect(ss.getCurrentScore()).toBeGreaterThan(0);
   });
 
   it('should increase chain count on consecutive merges', () => {
-    eventBus.emit('block:merged', { newValue: 2, chainCount: 1 });
+    ss.addMergeScore(2);
     expect(ss.getChainCount()).toBe(1);
-    eventBus.emit('block:merged', { newValue: 2, chainCount: 2 });
+    ss.addMergeScore(2, true);
     expect(ss.getChainCount()).toBe(2);
   });
 
   it('should reset chain after timeout', () => {
-    eventBus.emit('block:merged', { newValue: 2, chainCount: 1 });
+    ss.addMergeScore(2);
     expect(ss.getChainCount()).toBe(1);
-    animMgr.update(2500);
+    ss.update(2500);
+    expect(ss.getChainCount()).toBe(1);
+    ss.update(600);
     expect(ss.getChainCount()).toBe(0);
   });
 
   it('should emit score:updated event', () => {
     const handler = vi.fn();
     eventBus.on('score:updated', handler);
-    eventBus.emit('block:merged', { newValue: 4, chainCount: 1 });
+    ss.addMergeScore(4, false);
     expect(handler).toHaveBeenCalled();
     const data = handler.mock.calls[0][0];
     expect(data.totalScore).toBeGreaterThan(0);
@@ -64,25 +61,25 @@ describe('ScoreSystem', () => {
   });
 
   it('should chain bonus increase score', () => {
-    eventBus.emit('block:merged', { newValue: 2, chainCount: 1 });
+    ss.addMergeScore(2);
     const score1 = ss.getCurrentScore();
-    eventBus.emit('block:merged', { newValue: 4, chainCount: 2 });
+    ss.addMergeScore(4, true);
     const score2 = ss.getCurrentScore();
     expect(score2).toBeGreaterThan(score1);
   });
 
   it('should reset correctly', () => {
-    eventBus.emit('block:merged', { newValue: 4, chainCount: 1 });
+    ss.addMergeScore(4, false);
     ss.reset();
     expect(ss.getCurrentScore()).toBe(0);
     expect(ss.getChainCount()).toBe(0);
   });
 
   it('should accumulate scores across multiple merges', () => {
-    eventBus.emit('block:merged', { newValue: 2, chainCount: 1 });
+    ss.addMergeScore(2);
     const score1 = ss.getCurrentScore();
-    animMgr.update(2500);
-    eventBus.emit('block:merged', { newValue: 4, chainCount: 1 });
+    ss.update(2500);
+    ss.addMergeScore(4);
     const score2 = ss.getCurrentScore();
     expect(score2).toBeGreaterThan(score1);
   });

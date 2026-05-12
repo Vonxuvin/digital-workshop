@@ -53,8 +53,8 @@ describe('ResultScreen', () => {
   });
 
   it('should show and hide without error', () => {
-    screen.show();
-    screen.hide();
+    screen.onShow();
+    screen.onHide();
   });
 });
 
@@ -64,7 +64,12 @@ describe('LevelSelectScreen', () => {
   beforeEach(() => {
     const saveManager = new SaveManager();
     const levelLoader = new LevelLoader();
-    screen = new LevelSelectScreen(saveManager, levelLoader);
+    screen = new LevelSelectScreen(
+      () => {},
+      () => {},
+      saveManager,
+      levelLoader,
+    );
   });
 
   it('should create without error', () => {
@@ -72,11 +77,12 @@ describe('LevelSelectScreen', () => {
   });
 
   it('should show and hide without error', () => {
-    screen.show();
-    screen.hide();
+    screen.onShow();
+    screen.onHide();
   });
 
-  it('should have 5 levels', () => {
-    screen.show();
+  it('should have container defined', () => {
+    screen.onShow();
+    expect(screen.container).toBeDefined();
   });
 });

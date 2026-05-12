@@ -159,7 +159,7 @@ export class BlockSpawner {
         isStatic: true,
       });
       body.label = `obstacle_${posX}_${posY}`;
-      const block = new Block(body, obs.value);
+      const block = new Block(body, obs.value, false, true);
       this.stage.addChild(block);
       this.obstacleBlocks.push(block);
       this.mergeSystem.registerObstacle(block);
