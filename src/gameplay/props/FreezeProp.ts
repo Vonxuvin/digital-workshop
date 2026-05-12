@@ -39,6 +39,7 @@ export class FreezeProp extends Prop {
 
     this.eventBus.emit('props:freeze:activated', {
       duration: this.freezeDuration,
+      endTime: Date.now() + this.freezeDuration,
     });
 
     this.startFreezeTimer();

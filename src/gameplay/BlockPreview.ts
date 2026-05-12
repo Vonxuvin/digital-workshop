@@ -7,6 +7,8 @@ export class BlockPreview extends Container {
   private targetX: number = 0;
   private trajectoryLength: number = 500;
   private groundY: number = 600;
+  private minX: number = -Infinity;
+  private maxX: number = Infinity;
 
   constructor() {
     super();
@@ -19,10 +21,16 @@ export class BlockPreview extends Container {
     this.groundY = y;
   }
 
+  setBounds(minX: number, maxX: number): void {
+    this.minX = minX;
+    this.maxX = maxX;
+  }
+
   show(value: number, x: number, y: number): void {
     this.currentValue = value;
-    this.targetX = x;
-    this.x = x;
+    const config = BLOCK_CONFIGS[this.currentValue] || BLOCK_CONFIGS[1];
+    this.targetX = Math.max(this.minX + config.radius, Math.min(this.maxX - config.radius, x));
+    this.x = this.targetX;
     this.y = y;
     this.trajectoryLength = Math.max(0, this.groundY - y);
     this.visible = true;
@@ -34,8 +42,9 @@ export class BlockPreview extends Container {
   }
 
   updatePosition(x: number): void {
-    this.targetX = x;
-    this.x = x;
+    const config = BLOCK_CONFIGS[this.currentValue] || BLOCK_CONFIGS[1];
+    this.targetX = Math.max(this.minX + config.radius, Math.min(this.maxX - config.radius, x));
+    this.x = this.targetX;
   }
 
   setNextValue(value: number): void {

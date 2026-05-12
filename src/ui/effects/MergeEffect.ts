@@ -73,7 +73,7 @@ export class MergeEffect extends PIXI.Container {
     flash.scale.set(0);
     this.addChild(flash);
 
-    const numParticles = 16;
+    const numParticles = 8;
     const colors = [0xffd93d, 0xff6b6b, 0x4ecdc4, 0xffffff];
     const particles: PIXI.Graphics[] = [];
     for (let i = 0; i < numParticles; i++) {
@@ -113,9 +113,9 @@ export class MergeEffect extends PIXI.Container {
     particles.forEach((particle, i) => {
       const targetX = (particle as any)._targetX;
       const targetY = (particle as any)._targetY;
-      this.timeline!.to(particle, { x: targetX, y: targetY, duration: 0.6, ease: 'power2.out' }, i * 0.02);
-      this.timeline!.to(particle, { alpha: 0, duration: 0.6, ease: 'power2.out' }, i * 0.02);
-      this.timeline!.to(particle.scale, { x: 0.3, y: 0.3, duration: 0.6, ease: 'power2.out' }, i * 0.02);
+      this.timeline!.to(particle, { x: targetX, y: targetY, duration: 0.5, ease: 'power2.out' }, i * 0.03);
+      this.timeline!.to(particle, { alpha: 0, duration: 0.5, ease: 'power2.out' }, i * 0.03);
+      this.timeline!.to(particle.scale, { x: 0.3, y: 0.3, duration: 0.5, ease: 'power2.out' }, i * 0.03);
     });
 
     stars.forEach((star, i) => {

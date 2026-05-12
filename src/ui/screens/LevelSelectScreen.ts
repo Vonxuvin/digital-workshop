@@ -21,6 +21,16 @@ export class LevelSelectScreen extends Screen {
   private currentScreenWidth = 800;
   private currentScreenHeight = 600;
   private initialized = false;
+  private scrollContainer!: Container;
+  private scrollMask!: Graphics;
+  private scrollY: number = 0;
+  private maxScrollY: number = 0;
+  private isDragging: boolean = false;
+  private dragStartY: number = 0;
+  private scrollStartY: number = 0;
+  private readonly contentTop: number = 130;
+  private readonly contentBottom: number = 490;
+  private readonly rowHeight: number = 150;
 
   constructor(saveManager: SaveManager, levelLoader: LevelLoader) {
     super();
@@ -33,8 +43,10 @@ export class LevelSelectScreen extends Screen {
     await this.loadLevelsFromConfig();
     this.loadSavedProgress();
     this.createTitle();
+    this.createScrollContainer();
     this.createLevelButtons();
     this.createBackButton();
+    this.setupScrollInput();
     this.initialized = true;
   }
 
@@ -73,11 +85,12 @@ export class LevelSelectScreen extends Screen {
 
   private refreshLevelButtons(): void {
     this.levelButtons.forEach(btn => {
-      this.removeChild(btn);
+      this.scrollContainer.removeChild(btn);
       btn.destroy();
     });
     this.levelButtons = [];
     this.createLevelButtons();
+    this.updateMaxScrollY();
   }
 
   private createTitle(): void {
@@ -96,12 +109,34 @@ export class LevelSelectScreen extends Screen {
     this.addChild(this.title);
   }
 
+  private createScrollContainer(): void {
+    this.scrollContainer = new Container();
+    this.scrollContainer.y = this.contentTop;
+    this.addChild(this.scrollContainer);
+
+    this.scrollMask = new Graphics();
+    this.scrollMask.rect(0, this.contentTop, this.currentScreenWidth, this.contentBottom - this.contentTop);
+    this.scrollMask.fill({ color: 0xffffff });
+    this.addChild(this.scrollMask);
+    this.scrollContainer.mask = this.scrollMask;
+  }
+
   private createLevelButtons(): void {
     this.levels.forEach((level, index) => {
       const button = this.createLevelButton(level, index);
-      this.addChild(button);
+      this.scrollContainer.addChild(button);
       this.levelButtons.push(button);
     });
+    this.updateMaxScrollY();
+  }
+
+  private updateMaxScrollY(): void {
+    const totalRows = Math.ceil(this.levels.length / 3);
+    const totalContentHeight = totalRows * this.rowHeight;
+    const visibleHeight = this.contentBottom - this.contentTop;
+    this.maxScrollY = Math.max(0, totalContentHeight - visibleHeight);
+    this.scrollY = Math.min(this.scrollY, this.maxScrollY);
+    this.applyScrollPosition();
   }
 
   private createLevelButton(level: LevelInfo, index: number): Container {
@@ -110,7 +145,7 @@ export class LevelSelectScreen extends Screen {
     const col = index % 3;
     const row = Math.floor(index / 3);
     button.x = this.currentScreenWidth / 2 - 200 + col * 200;
-    button.y = 200 + row * 150;
+    button.y = row * this.rowHeight;
 
     const bg = new Graphics();
     if (level.unlocked) {
@@ -170,6 +205,41 @@ export class LevelSelectScreen extends Screen {
     return button;
   }
 
+  private setupScrollInput(): void {
+    this.eventMode = 'static';
+    this.hitArea = {
+      contains: (x: number, y: number) => {
+        return x >= 0 && x <= this.currentScreenWidth &&
+               y >= this.contentTop && y <= this.contentBottom;
+      },
+    };
+
+    this.on('pointerdown', (e: any) => {
+      this.isDragging = true;
+      this.dragStartY = e.global.y;
+      this.scrollStartY = this.scrollY;
+    });
+
+    this.on('pointermove', (e: any) => {
+      if (!this.isDragging) return;
+      const deltaY = this.dragStartY - e.global.y;
+      this.scrollY = Math.max(0, Math.min(this.maxScrollY, this.scrollStartY + deltaY));
+      this.applyScrollPosition();
+    });
+
+    this.on('pointerup', () => {
+      this.isDragging = false;
+    });
+
+    this.on('pointerupoutside', () => {
+      this.isDragging = false;
+    });
+  }
+
+  private applyScrollPosition(): void {
+    this.scrollContainer.y = this.contentTop - this.scrollY;
+  }
+
   private createBackButton(): void {
     this.backButton = new Container();
 
@@ -190,7 +260,7 @@ export class LevelSelectScreen extends Screen {
     this.backButton.addChild(label);
 
     this.backButton.x = this.currentScreenWidth / 2;
-    this.backButton.y = 520;
+    this.backButton.y = this.currentScreenHeight - 50;
     this.backButton.eventMode = 'static';
     this.backButton.cursor = 'pointer';
     this.backButton.on('pointerdown', () => {

@@ -55,6 +55,8 @@ export class Game {
   private fpsDisplay: Text | null = null;
   private boundHandleResize: (() => void) | null = null;
   private boundUpdate: (() => void) | null = null;
+  private lastActionTime: number = 0;
+  private readonly actionDebounceMs: number = 200;
 
   constructor(canvas: HTMLCanvasElement) {
     Game.instance = this;
@@ -87,85 +89,106 @@ export class Game {
   }
 
   async init(): Promise<void> {
-    const platform = createPlatformAdapter();
-    await platform.init();
-    const systemInfo = await platform.getSystemInfo();
+    try {
+      const platform = createPlatformAdapter();
+      await platform.init();
+      const systemInfo = await platform.getSystemInfo();
 
-    await this.saveManager.init();
-    this.saveManager.startAutoSave();
+      await this.saveManager.init();
+      this.saveManager.startAutoSave();
 
-    const dpr = systemInfo.pixelRatio || window.devicePixelRatio || 1;
+      const dpr = systemInfo.pixelRatio || window.devicePixelRatio || 1;
 
-    await this.app.init({
-      canvas: this.canvas,
-      resizeTo: window,
-      backgroundColor: 0x1a1a2e,
-      antialias: true,
-      resolution: dpr,
-      autoDensity: true,
-    });
+      await this.app.init({
+        canvas: this.canvas,
+        resizeTo: window,
+        backgroundColor: 0x1a1a2e,
+        antialias: true,
+        resolution: dpr,
+        autoDensity: true,
+      });
 
-    this.gameScene = new GameScene(
-      this.app,
-      this.physics,
-      this.mergeSystem,
-      this.scoreSystem,
-      this.preview,
-      this.gameHUD,
-      this.modifierManager,
-      this.propSystem,
-      this.performanceMonitor,
-    );
-    this.gameScene.init();
+      this.gameScene = new GameScene(
+        this.app,
+        this.physics,
+        this.mergeSystem,
+        this.scoreSystem,
+        this.preview,
+        this.gameHUD,
+        this.modifierManager,
+        this.propSystem,
+        this.performanceMonitor,
+      );
+      this.gameScene.init();
 
-    this.uiManager = new UIManager(this.app);
+      this.uiManager = new UIManager(this.app);
 
-    const textureCache = BlockTextureCache.getInstance();
-    textureCache.setApp(this.app);
-    textureCache.preload([1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]);
-    this.gameHUD.layout(this.app.screen.width, this.app.screen.height);
+      const textureCache = BlockTextureCache.getInstance();
+      textureCache.setApp(this.app);
+      textureCache.preload([1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]);
+      this.gameHUD.layout(this.app.screen.width, this.app.screen.height);
 
-    this.stateMachine.transition('loading');
+      this.stateMachine.transition('loading');
 
-    await this.audioManager.init();
-    await this.loadLevelConfig();
-    this.gameScene.initializeProps();
-    this.gameScene.setupContainer();
-    this.setupUI();
-    this.setupInput();
-    this.gameScene.addPreviewToStage();
-    this.gameScene.addHUDToStage();
+      try {
+        await this.audioManager.init();
+      } catch (audioErr) {
+        console.warn('[Game] 音频初始化失败，游戏将以静音模式运行:', audioErr);
+      }
 
-    this.eventRouter = new GameEventRouter(
-      this.gameScene,
-      this.sceneManager,
-      this.audioManager,
-      this.saveManager,
-      this.levelLoader,
-    );
-    this.eventRouter.setup();
+      try {
+        await this.loadLevelConfig();
+      } catch (configErr) {
+        console.warn('[Game] 关卡配置加载失败，使用默认配置:', configErr);
+      }
 
-    this.setupFPSDisplay();
+      this.gameScene.initializeProps();
+      this.gameScene.setupContainer();
+      this.setupUI();
+      this.setupInput();
+      this.gameScene.addPreviewToStage();
+      this.gameScene.addHUDToStage();
 
-    this.stateMachine.onAnyChange((from, to) => {
-      console.log(`[Game] 状态变化: ${from} -> ${to}`);
-      const isPlaying = to === 'playing';
-      this.gameScene.setHUDVisible(isPlaying);
-      this.gameScene.setWarningLineVisible(isPlaying);
-    });
+      this.eventRouter = new GameEventRouter(
+        this.gameScene,
+        this.sceneManager,
+        this.audioManager,
+        this.saveManager,
+        this.levelLoader,
+      );
+      this.eventRouter.setup();
 
-    this.boundUpdate = this.update.bind(this);
-    this.app.ticker.add(this.boundUpdate);
+      this.setupFPSDisplay();
 
-    this.performanceMonitor.start();
+      this.stateMachine.onAnyChange((from, to) => {
+        console.log(`[Game] 状态变化: ${from} -> ${to}`);
+        const isPlaying = to === 'playing';
+        this.gameScene.setHUDVisible(isPlaying);
+        this.gameScene.setWarningLineVisible(isPlaying);
+      });
 
-    this.boundHandleResize = this.handleResize.bind(this);
-    window.addEventListener('resize', this.boundHandleResize);
+      this.boundUpdate = this.update.bind(this);
+      this.app.ticker.add(this.boundUpdate);
 
-    this.stateMachine.transition('menu');
-    this.uiManager.showScreen('mainMenu');
+      this.performanceMonitor.start();
 
-    console.log('[Game] 初始化完成');
+      this.boundHandleResize = this.handleResize.bind(this);
+      window.addEventListener('resize', this.boundHandleResize);
+
+      this.stateMachine.transition('menu');
+      this.uiManager.showScreen('mainMenu');
+
+      console.log('[Game] 初始化完成');
+    } catch (err) {
+      console.error('[Game] 初始化失败:', err);
+      this.stateMachine.transition('menu');
+      try {
+        if (!this.uiManager) {
+          this.uiManager = new UIManager(this.app);
+        }
+        this.uiManager.showScreen('mainMenu');
+      } catch (_) {}
+    }
   }
 
   private setupUI(): void {
@@ -190,9 +213,13 @@ export class Game {
   private setupInput(): void {
     const dropY = 80;
 
+    this.syncInputScale();
+
     this.input.onDown((state) => {
       if (!this.gameScene.getBlockSpawner().getCanDrop() || !this.sceneManager.isPlaying()) return;
       if (this.gameScene.getBombTargetMode()) return;
+      const now = Date.now();
+      if (now - this.lastActionTime < this.actionDebounceMs) return;
       this.gameScene.getPreview().show(this.gameScene.getBlockSpawner().getCurrentValue(), state.position.x, dropY);
     });
 
@@ -203,17 +230,29 @@ export class Game {
     });
 
     this.input.onUp(() => {
+      const now = Date.now();
+      if (now - this.lastActionTime < this.actionDebounceMs) return;
       if (this.gameScene.getBombTargetMode() && this.sceneManager.isPlaying()) {
         const pos = this.input.getState().position;
         this.gameScene.usePropAtPosition(pos.x, pos.y);
+        this.lastActionTime = now;
         return;
       }
       if (this.gameScene.getPreview().visible && this.gameScene.getBlockSpawner().getCanDrop() && this.sceneManager.isPlaying()) {
         this.gameScene.getBlockSpawner().dropBlock(this.gameScene.getPreview().getTargetX(), dropY, this.gameScene.getBlockSpawner().getCurrentValue());
         this.gameScene.getPreview().hide();
         this.gameScene.getBlockSpawner().startCooldown();
+        this.lastActionTime = now;
       }
     });
+  }
+
+  private syncInputScale(): void {
+    const rect = this.canvas.getBoundingClientRect();
+    const rendererWidth = this.app.screen.width;
+    if (rect.width > 0) {
+      this.input.setScale(rendererWidth / rect.width);
+    }
   }
 
   private async loadLevelConfig(): Promise<void> {
@@ -251,6 +290,7 @@ export class Game {
       this.app.renderer.resize(window.innerWidth, window.innerHeight);
       this.gameScene.handleResize();
       this.uiManager.handleResize(this.app.screen.width, this.app.screen.height);
+      this.syncInputScale();
     }, 300);
   }
 

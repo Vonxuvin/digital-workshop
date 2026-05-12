@@ -22,6 +22,7 @@ export class InputManager {
   private boundHandleMove: (e: MouseEvent) => void;
   private boundHandleUp: () => void;
   private boundHandleTouch: (e: TouchEvent) => void;
+  private scaleX: number = 1;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -30,6 +31,10 @@ export class InputManager {
     this.boundHandleUp = this.handleUp.bind(this);
     this.boundHandleTouch = this.handleTouch.bind(this);
     this.setupEvents();
+  }
+
+  setScale(scaleX: number): void {
+    this.scaleX = scaleX;
   }
 
   private setupEvents(): void {
@@ -81,7 +86,9 @@ export class InputManager {
 
   private updatePosition(x: number, y: number): void {
     const rect = this.canvas.getBoundingClientRect();
-    this.state.position.set(x - rect.left, y - rect.top);
+    const cssX = (x - rect.left) * this.scaleX;
+    const cssY = (y - rect.top) * this.scaleX;
+    this.state.position.set(cssX, cssY);
   }
 
   onMove(callback: InputCallback): void {

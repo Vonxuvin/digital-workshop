@@ -14,6 +14,7 @@ import { PropSystem } from '../gameplay/props/PropSystem';
 import { PropEffectHandler } from './PropEffectHandler';
 import { PerformanceMonitor } from '../utils/PerformanceMonitor';
 import Matter from 'matter-js';
+import gsap from 'gsap';
 
 export interface BlockMergedData {
   newValue: number;
@@ -113,6 +114,7 @@ export class GameScene {
     this.app.stage.addChild(this.warningLine);
     this.propEffectHandler.setWarningLine(this.warningLine);
     this.preview.setGroundY(this.groundY);
+    this.preview.setBounds(this.containerOffsetX, this.containerOffsetX + this.containerWidth);
   }
 
   rebuildPhysicsWalls(): void {
@@ -234,12 +236,14 @@ export class GameScene {
     this.modifierManager.pauseAll();
     this.propEffectHandler.pause();
     this.preview.hide();
+    gsap.globalTimeline.pause();
   }
 
   resume(): void {
     this.propEffectHandler.resume();
     this.levelSystem?.resume();
     this.modifierManager.resumeAll();
+    gsap.globalTimeline.resume();
   }
 
   stopPhysics(): void {
@@ -432,6 +436,8 @@ export class GameScene {
     this.blockSpawner.startAutoSpawn(interval * 1000, 80);
   }
 
+  getContainerOffsetX(): number { return this.containerOffsetX; }
+  getContainerWidth(): number { return this.containerWidth; }
   getApp(): Application { return this.app; }
   getPhysics(): PhysicsManager { return this.physics; }
   getBlockSpawner(): BlockSpawner { return this.blockSpawner; }
