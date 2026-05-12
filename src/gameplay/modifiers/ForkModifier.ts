@@ -4,10 +4,10 @@ import { ContainerModifier, ModifierConfig } from './ContainerModifier';
 import { PhysicsManager } from '../../core/PhysicsManager';
 
 export interface ForkConfig extends ModifierConfig {
-  forkY: number;               // 分叉点Y坐标
-  leftAngle: number;           // 左通道角度（度）
-  rightAngle: number;          // 右通道角度（度）
-  channelWidth: number;        // 通道宽度
+  forkY: number;
+  leftAngle: number;
+  rightAngle: number;
+  channelWidth: number;
 }
 
 export class ForkModifier extends ContainerModifier {
@@ -18,9 +18,13 @@ export class ForkModifier extends ContainerModifier {
   private divider: Matter.Body | null = null;
   private leftWall: Matter.Body | null = null;
   private rightWall: Matter.Body | null = null;
+  private leftChannelWall: Matter.Body | null = null;
+  private rightChannelWall: Matter.Body | null = null;
   private dividerGraphic: Graphics | null = null;
   private leftWallGraphic: Graphics | null = null;
   private rightWallGraphic: Graphics | null = null;
+  private leftChannelWallGraphic: Graphics | null = null;
+  private rightChannelWallGraphic: Graphics | null = null;
   private containerWidth: number;
   private containerHeight: number;
 
@@ -46,85 +50,155 @@ export class ForkModifier extends ContainerModifier {
 
   protected onActivate(): void {
     this.createForkStructure();
-    console.log(`[ForkModifier] 激活分叉通道, forkY=${this.forkY}, leftAngle=${this.leftAngle}, rightAngle=${this.rightAngle}`);
+    console.log(`[ForkModifier] 激活分叉通道, forkY=${this.forkY}, leftAngle=${this.leftAngle}, rightAngle=${this.rightAngle}, channelWidth=${this.channelWidth}`);
   }
 
   private createForkStructure(): void {
-    const dividerHeight = 20;
-    const dividerLength = this.containerHeight - this.forkY;
+    const wallThickness = 10;
+    const halfWidth = this.containerWidth / 2;
 
+    const dividerHeight = this.containerHeight - this.forkY;
     this.divider = this.physics.createRectangle(
-      this.containerWidth / 2,
-      this.forkY + dividerLength / 2,
-      10,
-      dividerLength,
-      {
-        isStatic: true,
-        friction: 0.5,
-        label: 'fork_divider',
-      }
+      halfWidth,
+      this.forkY + dividerHeight / 2,
+      wallThickness,
+      dividerHeight,
+      { isStatic: true, friction: 0.5, label: 'fork_divider' }
     );
 
-    const leftWallLength = dividerLength / Math.cos((this.leftAngle * Math.PI) / 180);
-    this.leftWall = this.physics.createRectangle(
-      this.channelWidth / 2,
-      this.forkY + dividerLength / 2,
-      10,
-      leftWallLength,
-      {
-        isStatic: true,
-        friction: 0.5,
-        label: 'fork_left_wall',
-        angle: (this.leftAngle * Math.PI) / 180,
-      }
-    );
+    const leftAngleRad = (this.leftAngle * Math.PI) / 180;
+    const rightAngleRad = (this.rightAngle * Math.PI) / 180;
+    const leftDisplacement = halfWidth - this.channelWidth;
+    const rightDisplacement = halfWidth - this.channelWidth;
 
-    const rightWallLength = dividerLength / Math.cos((this.rightAngle * Math.PI) / 180);
-    this.rightWall = this.physics.createRectangle(
-      this.containerWidth - this.channelWidth / 2,
-      this.forkY + dividerLength / 2,
-      10,
-      rightWallLength,
-      {
-        isStatic: true,
-        friction: 0.5,
-        label: 'fork_right_wall',
-        angle: (-this.rightAngle * Math.PI) / 180,
+    if (this.leftAngle > 0 && leftDisplacement > 0) {
+      const leftFunnelHeight = leftDisplacement / Math.tan(leftAngleRad);
+      const leftWallLength = leftDisplacement / Math.sin(leftAngleRad);
+
+      this.leftWall = this.physics.createRectangle(
+        leftDisplacement / 2,
+        this.forkY + leftFunnelHeight / 2,
+        wallThickness,
+        leftWallLength,
+        {
+          isStatic: true,
+          friction: 0.5,
+          label: 'fork_left_wall',
+          angle: -leftAngleRad,
+        }
+      );
+
+      const leftChannelHeight = this.containerHeight - this.forkY - leftFunnelHeight;
+      if (leftChannelHeight > 5) {
+        this.leftChannelWall = this.physics.createRectangle(
+          halfWidth - this.channelWidth,
+          this.forkY + leftFunnelHeight + leftChannelHeight / 2,
+          wallThickness,
+          leftChannelHeight,
+          { isStatic: true, friction: 0.5, label: 'fork_left_channel_wall' }
+        );
       }
-    );
+    }
+
+    if (this.rightAngle > 0 && rightDisplacement > 0) {
+      const rightFunnelHeight = rightDisplacement / Math.tan(rightAngleRad);
+      const rightWallLength = rightDisplacement / Math.sin(rightAngleRad);
+
+      this.rightWall = this.physics.createRectangle(
+        this.containerWidth - rightDisplacement / 2,
+        this.forkY + rightFunnelHeight / 2,
+        wallThickness,
+        rightWallLength,
+        {
+          isStatic: true,
+          friction: 0.5,
+          label: 'fork_right_wall',
+          angle: rightAngleRad,
+        }
+      );
+
+      const rightChannelHeight = this.containerHeight - this.forkY - rightFunnelHeight;
+      if (rightChannelHeight > 5) {
+        this.rightChannelWall = this.physics.createRectangle(
+          halfWidth + this.channelWidth,
+          this.forkY + rightFunnelHeight + rightChannelHeight / 2,
+          wallThickness,
+          rightChannelHeight,
+          { isStatic: true, friction: 0.5, label: 'fork_right_channel_wall' }
+        );
+      }
+    }
 
     this.createForkGraphics();
   }
 
   private createForkGraphics(): void {
-    const dividerLength = this.containerHeight - this.forkY;
+    const wallThickness = 10;
+    const halfWidth = this.containerWidth / 2;
+    const leftAngleRad = (this.leftAngle * Math.PI) / 180;
+    const rightAngleRad = (this.rightAngle * Math.PI) / 180;
+    const leftDisplacement = halfWidth - this.channelWidth;
+    const rightDisplacement = halfWidth - this.channelWidth;
 
+    const dividerHeight = this.containerHeight - this.forkY;
     this.dividerGraphic = new Graphics();
-    this.dividerGraphic.rect(-5, 0, 10, dividerLength);
+    this.dividerGraphic.rect(-wallThickness / 2, -dividerHeight / 2, wallThickness, dividerHeight);
     this.dividerGraphic.fill({ color: 0xE74C3C });
-    this.dividerGraphic.x = this.containerWidth / 2;
-    this.dividerGraphic.y = this.forkY;
+    this.dividerGraphic.x = halfWidth;
+    this.dividerGraphic.y = this.forkY + dividerHeight / 2;
 
-    const leftWallLength = dividerLength / Math.cos((this.leftAngle * Math.PI) / 180);
-    this.leftWallGraphic = new Graphics();
-    this.leftWallGraphic.rect(-5, 0, 10, leftWallLength);
-    this.leftWallGraphic.fill({ color: 0x3498DB });
-    this.leftWallGraphic.x = this.channelWidth / 2;
-    this.leftWallGraphic.y = this.forkY;
-    this.leftWallGraphic.rotation = (this.leftAngle * Math.PI) / 180;
+    if (this.leftWall) {
+      const leftFunnelHeight = leftDisplacement / Math.tan(leftAngleRad);
+      const leftWallLength = leftDisplacement / Math.sin(leftAngleRad);
 
-    const rightWallLength = dividerLength / Math.cos((this.rightAngle * Math.PI) / 180);
-    this.rightWallGraphic = new Graphics();
-    this.rightWallGraphic.rect(-5, 0, 10, rightWallLength);
-    this.rightWallGraphic.fill({ color: 0x3498DB });
-    this.rightWallGraphic.x = this.containerWidth - this.channelWidth / 2;
-    this.rightWallGraphic.y = this.forkY;
-    this.rightWallGraphic.rotation = (-this.rightAngle * Math.PI) / 180;
+      this.leftWallGraphic = new Graphics();
+      this.leftWallGraphic.rect(-wallThickness / 2, -leftWallLength / 2, wallThickness, leftWallLength);
+      this.leftWallGraphic.fill({ color: 0x3498DB });
+      this.leftWallGraphic.x = leftDisplacement / 2;
+      this.leftWallGraphic.y = this.forkY + leftFunnelHeight / 2;
+      this.leftWallGraphic.rotation = -leftAngleRad;
+    }
+
+    if (this.rightWall) {
+      const rightFunnelHeight = rightDisplacement / Math.tan(rightAngleRad);
+      const rightWallLength = rightDisplacement / Math.sin(rightAngleRad);
+
+      this.rightWallGraphic = new Graphics();
+      this.rightWallGraphic.rect(-wallThickness / 2, -rightWallLength / 2, wallThickness, rightWallLength);
+      this.rightWallGraphic.fill({ color: 0x3498DB });
+      this.rightWallGraphic.x = this.containerWidth - rightDisplacement / 2;
+      this.rightWallGraphic.y = this.forkY + rightFunnelHeight / 2;
+      this.rightWallGraphic.rotation = rightAngleRad;
+    }
+
+    if (this.leftChannelWall) {
+      const leftFunnelHeight = leftDisplacement / Math.tan(leftAngleRad);
+      const leftChannelHeight = this.containerHeight - this.forkY - leftFunnelHeight;
+
+      this.leftChannelWallGraphic = new Graphics();
+      this.leftChannelWallGraphic.rect(-wallThickness / 2, -leftChannelHeight / 2, wallThickness, leftChannelHeight);
+      this.leftChannelWallGraphic.fill({ color: 0x27AE60 });
+      this.leftChannelWallGraphic.x = halfWidth - this.channelWidth;
+      this.leftChannelWallGraphic.y = this.forkY + leftFunnelHeight + leftChannelHeight / 2;
+    }
+
+    if (this.rightChannelWall) {
+      const rightFunnelHeight = rightDisplacement / Math.tan(rightAngleRad);
+      const rightChannelHeight = this.containerHeight - this.forkY - rightFunnelHeight;
+
+      this.rightChannelWallGraphic = new Graphics();
+      this.rightChannelWallGraphic.rect(-wallThickness / 2, -rightChannelHeight / 2, wallThickness, rightChannelHeight);
+      this.rightChannelWallGraphic.fill({ color: 0x27AE60 });
+      this.rightChannelWallGraphic.x = halfWidth + this.channelWidth;
+      this.rightChannelWallGraphic.y = this.forkY + rightFunnelHeight + rightChannelHeight / 2;
+    }
 
     if (this.stageContainer) {
-      this.stageContainer.addChild(this.dividerGraphic);
-      this.stageContainer.addChild(this.leftWallGraphic);
-      this.stageContainer.addChild(this.rightWallGraphic);
+      if (this.dividerGraphic) this.stageContainer.addChild(this.dividerGraphic);
+      if (this.leftWallGraphic) this.stageContainer.addChild(this.leftWallGraphic);
+      if (this.rightWallGraphic) this.stageContainer.addChild(this.rightWallGraphic);
+      if (this.leftChannelWallGraphic) this.stageContainer.addChild(this.leftChannelWallGraphic);
+      if (this.rightChannelWallGraphic) this.stageContainer.addChild(this.rightChannelWallGraphic);
     }
   }
 
@@ -148,6 +222,14 @@ export class ForkModifier extends ContainerModifier {
       this.physics.removeBody(this.rightWall);
       this.rightWall = null;
     }
+    if (this.leftChannelWall) {
+      this.physics.removeBody(this.leftChannelWall);
+      this.leftChannelWall = null;
+    }
+    if (this.rightChannelWall) {
+      this.physics.removeBody(this.rightChannelWall);
+      this.rightChannelWall = null;
+    }
 
     if (this.dividerGraphic) {
       if (this.stageContainer && this.dividerGraphic.parent) {
@@ -169,6 +251,20 @@ export class ForkModifier extends ContainerModifier {
       }
       this.rightWallGraphic.destroy();
       this.rightWallGraphic = null;
+    }
+    if (this.leftChannelWallGraphic) {
+      if (this.stageContainer && this.leftChannelWallGraphic.parent) {
+        this.stageContainer.removeChild(this.leftChannelWallGraphic);
+      }
+      this.leftChannelWallGraphic.destroy();
+      this.leftChannelWallGraphic = null;
+    }
+    if (this.rightChannelWallGraphic) {
+      if (this.stageContainer && this.rightChannelWallGraphic.parent) {
+        this.stageContainer.removeChild(this.rightChannelWallGraphic);
+      }
+      this.rightChannelWallGraphic.destroy();
+      this.rightChannelWallGraphic = null;
     }
   }
 

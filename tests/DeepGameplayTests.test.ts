@@ -181,7 +181,7 @@ describe('LevelSystem Deep Tests', () => {
       expect(ls.getProgress()).toBe(0);
 
       eventBus.emit('block:merged', { newValue: 8, chainCount: 1 });
-      expect(ls.getProgress()).toBeCloseTo(8 / 16);
+      expect(ls.getProgress()).toBeCloseTo(Math.log2(8) / Math.log2(16));
 
       eventBus.emit('block:merged', { newValue: 16, chainCount: 1 });
       expect(ls.isLevelCompleted()).toBe(true);

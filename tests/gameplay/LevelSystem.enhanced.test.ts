@@ -49,10 +49,10 @@ describe('LevelSystem Enhanced', () => {
       expect(spy).toHaveBeenCalledWith('level:completed', expect.any(Object));
     });
 
-    it('应正确计算合成进度', () => {
+    it('应正确计算合成进度（对数进度）', () => {
       levelSystem = new LevelSystem(createConfig({ objective: { type: 'target_merge', target: 64 } }));
       eventBus.emit('block:merged', { newValue: 32 });
-      expect(levelSystem.getProgress()).toBe(0.5);
+      expect(levelSystem.getProgress()).toBeCloseTo(Math.log2(32) / Math.log2(64));
     });
 
     it('应记录最高合成值', () => {
@@ -60,7 +60,7 @@ describe('LevelSystem Enhanced', () => {
       eventBus.emit('block:merged', { newValue: 16 });
       eventBus.emit('block:merged', { newValue: 32 });
       eventBus.emit('block:merged', { newValue: 8 });
-      expect(levelSystem.getProgress()).toBe(0.5);
+      expect(levelSystem.getProgress()).toBeCloseTo(Math.log2(32) / Math.log2(64));
     });
   });
 

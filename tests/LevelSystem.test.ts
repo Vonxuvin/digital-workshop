@@ -249,12 +249,12 @@ describe('MergeObjectiveChecker', () => {
     expect(checker.check(ctx)).toBe(false);
   });
 
-  it('should return progress as ratio', () => {
+  it('should return progress as logarithmic ratio', () => {
     const ctx: ObjectiveContext = {
       currentScore: 0, highestMergeValue: 8, obstaclesCleared: 0,
       survivalTime: 0, targetValue: 16,
     };
-    expect(checker.getProgress(ctx)).toBe(0.5);
+    expect(checker.getProgress(ctx)).toBeCloseTo(Math.log2(8) / Math.log2(16));
   });
 
   it('should cap progress at 1', () => {

@@ -7,6 +7,7 @@ export class MergeObjectiveChecker extends ObjectiveChecker {
 
   getProgress(context: ObjectiveContext): number {
     if (context.targetValue <= 0) return 1;
-    return Math.min(context.highestMergeValue / context.targetValue, 1);
+    if (context.highestMergeValue <= 1) return 0;
+    return Math.min(Math.log2(context.highestMergeValue) / Math.log2(context.targetValue), 1);
   }
 }

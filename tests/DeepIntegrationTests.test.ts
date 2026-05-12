@@ -618,7 +618,7 @@ describe('Deep Integration Tests', () => {
         ls = new LevelSystem(config);
         expect(ls.getProgress()).toBe(0);
         eventBus.emit('block:merged', { newValue: 16, chainCount: 1 });
-        expect(ls.getProgress()).toBeCloseTo(16 / 32);
+        expect(ls.getProgress()).toBeCloseTo(Math.log2(16) / Math.log2(32));
       });
 
       it('should handle score objective with extremely large target', () => {

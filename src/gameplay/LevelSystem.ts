@@ -194,7 +194,8 @@ export class LevelSystem {
         return objective.target > 0 ? Math.min(this.currentScore / objective.target, 1) : 1;
       case 'target_merge':
         if (objective.target <= 0) return 1;
-        return Math.min(this.highestMergeValue / objective.target, 1);
+        if (this.highestMergeValue <= 1) return 0;
+        return Math.min(Math.log2(this.highestMergeValue) / Math.log2(objective.target), 1);
       case 'clear_obstacle': {
         const maxObs = this.config.obstacles?.length ?? objective.target;
         return maxObs > 0 ? Math.min(this.obstaclesCleared / maxObs, 1) : 1;
