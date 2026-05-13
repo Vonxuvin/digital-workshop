@@ -7,6 +7,7 @@ import { PropSystem } from '../../gameplay/props/PropSystem';
 import { PropType } from '../../gameplay/props/Prop';
 import gsap from 'gsap';
 import { ComboDisplay } from '../components/ComboDisplay';
+import { TimeManager } from '../../utils/TimeManager';
 
 export class GameHUD extends Container {
   private scoreText!: Text;
@@ -340,6 +341,7 @@ export class GameHUD extends Container {
 
     this.scoreProxy.value = this.displayScore;
 
+    const timeline = TimeManager.getInstance().getGameTimeline();
     this.scoreTween = gsap.to(this.scoreProxy, {
       value: this.currentScore,
       duration: 0.6,
@@ -354,6 +356,7 @@ export class GameHUD extends Container {
         this.scoreTween = null;
       },
     });
+    timeline.add(this.scoreTween, timeline.time());
   }
 
   updateLevel(levelId: number, levelName: string): void {

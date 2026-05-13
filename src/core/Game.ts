@@ -27,6 +27,7 @@ import { GameEventRouter } from './GameEventRouter';
 import { SceneManager } from './SceneManager';
 import { TutorialOverlay } from '../ui/TutorialOverlay';
 import { TutorialManager } from './TutorialManager';
+import { TimeManager } from '../utils/TimeManager';
 import propsData from '../data/props/props.json';
 
 export class Game {
@@ -80,6 +81,7 @@ export class Game {
     this.audioManager = new AudioManager();
     this.propSystem = new PropSystem();
     this.performanceMonitor = new PerformanceMonitor();
+    TimeManager.setInstance(new TimeManager());
     this.resultScreen = new ResultScreen();
     this.resultScreen.setCallbacks(
       () => this.sceneManager.nextLevel(),
@@ -296,7 +298,7 @@ export class Game {
       if (this.gameScene.getPreview().visible && this.gameScene.getBlockSpawner().getCanDrop() && this.sceneManager.isPlaying()) {
         const targetX = this.gameScene.getPreview().getTargetX();
         const dropY = this.gameScene.getPreview().y;
-        this.gameScene.getBlockSpawner().dropBlock(targetX, dropY, this.gameScene.getBlockSpawner().getCurrentValue());
+        this.gameScene.dropBlockWithShrinkCheck(targetX, dropY, this.gameScene.getBlockSpawner().getCurrentValue());
         this.gameScene.getPreview().hide();
         this.gameScene.getBlockSpawner().startCooldown();
       }
@@ -459,6 +461,7 @@ export class Game {
     }
     BlockTextureCache.resetInstance();
     AnimationManager.resetInstance();
+    TimeManager.resetInstance();
     Game.instance = null;
   }
 }

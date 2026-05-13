@@ -58,18 +58,18 @@ export class WarningLine extends Container {
     this.drawLine();
   }
 
-  private drawLine(): void {
+  private drawLine(color: number = 0xff4444, alpha: number = 0.8): void {
     this.graphics.clear();
 
     this.graphics.moveTo(0, 0);
     this.graphics.lineTo(this.containerWidth, 0);
-    this.graphics.stroke({ width: 2, color: 0xff4444, alpha: 0.8 });
+    this.graphics.stroke({ width: 2, color, alpha });
 
     for (let i = 0; i < this.containerWidth; i += 20) {
       this.graphics.moveTo(i, -5);
       this.graphics.lineTo(i + 10, -5);
     }
-    this.graphics.stroke({ width: 2, color: 0xff4444, alpha: 0.5 });
+    this.graphics.stroke({ width: 2, color, alpha: alpha * 0.6 });
   }
 
   update(blocks: { y: number; radius: number; speed: number }[], deltaMS: number): void {
@@ -109,7 +109,7 @@ export class WarningLine extends Container {
           eventBus.emit('warning:ended');
         }
       }
-      this.graphics.alpha = 0.8;
+      this.drawLine(0xff4444, 0.8);
     }
   }
 
@@ -117,15 +117,15 @@ export class WarningLine extends Container {
     const progress = this.warningDuration / this.WARNING_THRESHOLD;
 
     if (progress < 0.3) {
-      this.graphics.alpha = 0.5 + Math.sin(this.flashTimer * 2) * 0.2;
-      this.graphics.tint = 0xffff44;
+      const alpha = 0.5 + Math.sin(this.flashTimer * 2) * 0.2;
+      this.drawLine(0xffff44, alpha);
     } else if (progress < 0.7) {
-      this.graphics.alpha = 0.4 + Math.sin(this.flashTimer * 4) * 0.4;
-      this.graphics.tint = 0xff8844;
+      const alpha = 0.4 + Math.sin(this.flashTimer * 4) * 0.4;
+      this.drawLine(0xff8844, alpha);
       this.showCountdown();
     } else {
-      this.graphics.alpha = 0.3 + Math.sin(this.flashTimer * 8) * 0.5;
-      this.graphics.tint = 0xff2222;
+      const alpha = 0.3 + Math.sin(this.flashTimer * 8) * 0.5;
+      this.drawLine(0xff2222, alpha);
       this.showCountdown();
     }
   }
@@ -153,8 +153,7 @@ export class WarningLine extends Container {
     this.warningDuration = 0;
     this.flashTimer = 0;
     this.graceTimer = 0;
-    this.graphics.alpha = 0.8;
-    this.graphics.tint = 0xffffff;
+    this.drawLine(0xff4444, 0.8);
     this.countdownText.visible = false;
   }
 
@@ -163,8 +162,7 @@ export class WarningLine extends Container {
     if (disabled) {
       this.isWarning = false;
       this.warningDuration = 0;
-      this.graphics.alpha = 0.8;
-      this.graphics.tint = 0xffffff;
+      this.drawLine(0xff4444, 0.8);
       this.countdownText.visible = false;
     }
   }

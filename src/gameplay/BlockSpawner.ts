@@ -13,6 +13,7 @@ export class BlockSpawner {
   private mergeSystem: MergeSystem;
   private propSystem: PropSystem;
   private stage: Container;
+  private onBlockDropped: ((block: Block) => void) | null = null;
 
   private blocks: Block[] = [];
   private obstacleBlocks: Block[] = [];
@@ -48,6 +49,10 @@ export class BlockSpawner {
     this.containerOffsetX = offsetX;
   }
 
+  setOnBlockDropped(callback: (block: Block) => void): void {
+    this.onBlockDropped = callback;
+  }
+
   dropBlock(x: number, y: number, value: number): void {
     const config = getBlockConfig(value);
     const body = this.physics.createCircle(x, y, config.radius, {
@@ -78,6 +83,10 @@ export class BlockSpawner {
 
     console.log(`[BlockSpawner] 投放方块 ${value}${isRainbowBlock ? '(彩虹)' : ''}, 下一个: ${this.currentValue}`);
     eventBus.emit('block:dropped');
+
+    if (this.onBlockDropped) {
+      this.onBlockDropped(block);
+    }
   }
 
   getRandomValue(): number {

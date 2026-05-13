@@ -14,6 +14,7 @@ export class ModifierManager {
   private eventBus: EventBus;
   private containerWidth: number = 0;
   private containerHeight: number = 0;
+  private containerOffsetX: number = 0;
   private isPaused: boolean = false;
   private stageContainer: Container | null = null;
 
@@ -45,9 +46,10 @@ export class ModifierManager {
     ModifierManager.instance = null;
   }
 
-  setContainerSize(width: number, height: number): void {
+  setContainerSize(width: number, height: number, offsetX: number = 0): void {
     this.containerWidth = width;
     this.containerHeight = height;
+    this.containerOffsetX = offsetX;
   }
 
   setStageContainer(container: Container): void {
@@ -94,7 +96,8 @@ export class ModifierManager {
           this.containerWidth,
           this.containerHeight,
           this.containerHeight - 50,
-          this.stageContainer
+          this.stageContainer,
+          this.containerOffsetX
         );
         break;
       case 'fork':

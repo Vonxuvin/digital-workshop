@@ -132,7 +132,9 @@ export class SceneManager {
     const playTime = Math.floor((Date.now() - this.gameScene.getGameStartTime()) / 1000);
     const bestScore = this.saveManager.getLevelProgress(levelId).highScore || 0;
     this.saveManager.updateLevelProgress(levelId, score, playTime, stars, true);
-    this.saveManager.updateStatistics(0, 0, playTime);
+    const highestMerge = this.gameScene.getLevelSystem()?.getHighestMergeValue() ?? 0;
+    const longestCombo = this.gameScene.getScoreSystem().getMaxChainCount();
+    this.saveManager.updateStatistics(highestMerge, longestCombo, playTime);
     this.levelSelectScreen.updateLevelProgress(levelId, stars);
     this.resultScreen.setResult({
       isWin: true,

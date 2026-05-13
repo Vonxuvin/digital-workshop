@@ -14,8 +14,8 @@ import { PropSystem } from '../gameplay/props/PropSystem';
 import { PropEffectHandler } from './PropEffectHandler';
 import { PerformanceMonitor } from '../utils/PerformanceMonitor';
 import Matter from 'matter-js';
-import gsap from 'gsap';
 import { TutorialManager } from './TutorialManager';
+import { TimeManager } from '../utils/TimeManager';
 
 export interface BlockMergedData {
   newValue: number;
@@ -51,6 +51,7 @@ export class GameScene {
   private containerOffsetX: number = 0;
   private warningLineData: Array<{ y: number; radius: number; speed: number }> = [];
   private tutorialManager: TutorialManager | null = null;
+  private timeManager: TimeManager;
 
   constructor(
     app: Application,
@@ -75,10 +76,16 @@ export class GameScene {
     this.performanceMonitor = performanceMonitor;
     this.groundY = 550;
     this.tutorialManager = tutorialManager || null;
+    this.timeManager = TimeManager.getInstance();
   }
 
   init(): void {
     this.blockSpawner = new BlockSpawner(this.physics, this.mergeSystem, this.propSystem, this.app.stage);
+    this.blockSpawner.setOnBlockDropped((block) => {
+      if (this.propEffectHandler.isShrinkActive()) {
+        this.propEffectHandler.applyShrinkToBlock(block);
+      }
+    });
     this.effectManager = new GameEffectManager(this.app.stage);
     this.propEffectHandler = new PropEffectHandler(
       this.blockSpawner,
@@ -182,7 +189,7 @@ export class GameScene {
     this.resetGame();
     this.gameStartTime = Date.now();
 
-    this.modifierManager.setContainerSize(this.containerWidth, this.containerHeight);
+    this.modifierManager.setContainerSize(this.containerWidth, this.containerHeight, this.containerOffsetX);
     this.modifierManager.setStageContainer(this.app.stage);
     if (config.modifiers && config.modifiers.length > 0) {
       console.log(`[GameScene] 加载 ${config.modifiers.length} 个变形器`);
@@ -231,7 +238,7 @@ export class GameScene {
     this.blockSpawner.spawnObstacles(this.currentLevelConfig!.obstacles, this.containerWidth, this.groundY, this.containerOffsetX);
     this.startAutoSpawn();
     if (this.currentLevelConfig?.modifiers) {
-      this.modifierManager.setContainerSize(this.containerWidth, this.containerHeight);
+      this.modifierManager.setContainerSize(this.containerWidth, this.containerHeight, this.containerOffsetX);
       this.modifierManager.setStageContainer(this.app.stage);
       this.modifierManager.loadFromLevelConfig(this.currentLevelConfig.modifiers);
       this.modifierManager.startAll();
@@ -249,7 +256,7 @@ export class GameScene {
     this.blockSpawner.pause();
     this.preview.hide();
     this.propEffectHandler.clearBombTargetMode();
-    gsap.globalTimeline.pause();
+    this.timeManager.pause();
   }
 
   resume(): void {
@@ -257,7 +264,7 @@ export class GameScene {
     this.levelSystem?.resume();
     this.modifierManager.resumeAll();
     this.blockSpawner.resume();
-    gsap.globalTimeline.resume();
+    this.timeManager.resume();
   }
 
   stopPhysics(): void {
@@ -448,6 +455,17 @@ export class GameScene {
     const interval = this.currentLevelConfig?.spawn.spawnInterval;
     if (!interval || interval <= 0) return;
     this.blockSpawner.startAutoSpawn(interval * 1000, 80);
+  }
+
+  dropBlockWithShrinkCheck(x: number, y: number, value: number): void {
+    this.blockSpawner.dropBlock(x, y, value);
+    if (this.propEffectHandler.isShrinkActive()) {
+      const blocks = this.blockSpawner.getBlocks();
+      const lastBlock = blocks[blocks.length - 1];
+      if (lastBlock) {
+        this.propEffectHandler.applyShrinkToBlock(lastBlock);
+      }
+    }
   }
 
   getContainerOffsetX(): number { return this.containerOffsetX; }

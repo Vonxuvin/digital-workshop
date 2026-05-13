@@ -213,6 +213,10 @@ export class LevelSystem {
     return this.isCompleted;
   }
 
+  getHighestMergeValue(): number {
+    return this.highestMergeValue;
+  }
+
   reset(): void {
     this.currentScore = 0;
     this.obstaclesCleared = 0;

@@ -1,4 +1,5 @@
 import { BlockSpawner } from '../gameplay/BlockSpawner';
+import { Block } from '../gameplay/Block';
 import { MergeSystem } from '../gameplay/MergeSystem';
 import { PhysicsManager } from './PhysicsManager';
 import { GameEffectManager } from './GameEffectManager';
@@ -196,6 +197,29 @@ export class PropEffectHandler {
 
   getBombTargetMode(): boolean {
     return this.bombTargetMode;
+  }
+
+  isShrinkActive(): boolean {
+    return this.shrinkActive;
+  }
+
+  getShrinkFactor(): number {
+    return this.shrinkFactor;
+  }
+
+  applyShrinkToBlock(block: Block): void {
+    if (!this.shrinkActive) return;
+    const factor = this.shrinkFactor;
+    this.originalBodyData.set(block.body.label, {
+      position: { x: block.body.position.x, y: block.body.position.y },
+      scale: factor,
+      circleRadius: block.body.circleRadius,
+    });
+    block.scale.set(factor);
+    Matter.Body.scale(block.body, factor, factor);
+    if (block.body.circleRadius !== undefined) {
+      block.body.circleRadius *= factor;
+    }
   }
 
   clearBombTargetMode(): void {

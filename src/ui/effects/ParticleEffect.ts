@@ -1,5 +1,6 @@
 import * as PIXI from 'pixi.js';
 import gsap from 'gsap';
+import { TimeManager } from '../../utils/TimeManager';
 
 export type ParticleType = 'sparkle' | 'confetti' | 'smoke' | 'bubble';
 
@@ -122,6 +123,8 @@ export class ParticleEffect extends PIXI.Container {
         this.destroy();
       },
     });
+
+    TimeManager.getInstance().getGameTimeline().add(this.timeline, TimeManager.getInstance().getGameTimeline().time());
 
     this.particles.forEach((p) => {
       const g = p.graphics;

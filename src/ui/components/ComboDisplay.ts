@@ -1,5 +1,6 @@
 import { Container, Graphics, Text } from 'pixi.js';
 import gsap from 'gsap';
+import { TimeManager } from '../../utils/TimeManager';
 
 export class ComboDisplay extends Container {
   private comboText: Text;
@@ -77,6 +78,7 @@ export class ComboDisplay extends Container {
       this.scaleTween.kill();
     }
 
+    const timeline = TimeManager.getInstance().getGameTimeline();
     this.scaleTween = gsap.to(this.scale, {
       x: targetScale,
       y: targetScale,
@@ -86,12 +88,14 @@ export class ComboDisplay extends Container {
         this.scaleTween = null;
       },
     });
+    timeline.add(this.scaleTween, timeline.time());
   }
 
   private fadeOut(): void {
     if (this.fadeTween) {
       this.fadeTween.kill();
     }
+    const timeline = TimeManager.getInstance().getGameTimeline();
     this.fadeTween = gsap.to(this, {
       alpha: 0,
       duration: 0.6,
@@ -102,6 +106,7 @@ export class ComboDisplay extends Container {
         this.fadeTween = null;
       },
     });
+    timeline.add(this.fadeTween, timeline.time());
   }
 
   hide(): void {

@@ -23,6 +23,7 @@ export class ShrinkModifier extends ContainerModifier {
   private containerWidth: number;
   private containerHeight: number;
   private groundY: number;
+  private containerOffsetX: number;
 
   constructor(
     config: ShrinkConfig,
@@ -30,7 +31,8 @@ export class ShrinkModifier extends ContainerModifier {
     containerWidth: number,
     containerHeight: number,
     groundY: number,
-    stageContainer?: Container | null
+    stageContainer?: Container | null,
+    containerOffsetX: number = 0
   ) {
     super(config, physics, stageContainer);
     this.targetWidth = config.targetWidth;
@@ -41,6 +43,7 @@ export class ShrinkModifier extends ContainerModifier {
     this.containerWidth = containerWidth;
     this.containerHeight = containerHeight;
     this.groundY = groundY;
+    this.containerOffsetX = containerOffsetX;
   }
 
   getType(): 'shrink' {
@@ -57,7 +60,7 @@ export class ShrinkModifier extends ContainerModifier {
     if (!this.stageContainer) return;
 
     this.warningContainer = new Container();
-    const centerX = this.originalWidth / 2;
+    const centerX = this.containerOffsetX + this.originalWidth / 2;
     const halfTargetWidth = this.targetWidth / 2;
     const leftTargetX = centerX - halfTargetWidth;
     const rightTargetX = centerX + halfTargetWidth;
@@ -169,7 +172,7 @@ export class ShrinkModifier extends ContainerModifier {
   }
 
   private updateWallPositions(): void {
-    const centerX = this.originalWidth / 2;
+    const centerX = this.containerOffsetX + this.originalWidth / 2;
     const halfWidth = this.currentWidth / 2;
     const leftX = centerX - halfWidth;
     const rightX = centerX + halfWidth;

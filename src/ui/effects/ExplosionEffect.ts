@@ -1,6 +1,7 @@
 import * as PIXI from 'pixi.js';
 import gsap from 'gsap';
 import { GraphicsPool } from '../../utils/GraphicsPool';
+import { TimeManager } from '../../utils/TimeManager';
 
 export class ExplosionEffect extends PIXI.Container {
   public allComplete: boolean = false;
@@ -74,6 +75,8 @@ export class ExplosionEffect extends PIXI.Container {
         this.destroy();
       },
     });
+
+    TimeManager.getInstance().getGameTimeline().add(this.timeline, TimeManager.getInstance().getGameTimeline().time());
 
     this.timeline!.to(flash, { alpha: 0, duration: 0.3, ease: 'power2.out' }, 0);
     this.timeline!.to(flash.scale, { x: 3, y: 3, duration: 0.3, ease: 'power2.out' }, 0);

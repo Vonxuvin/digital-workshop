@@ -1,5 +1,6 @@
 import * as PIXI from 'pixi.js';
 import gsap from 'gsap';
+import { TimeManager } from '../../utils/TimeManager';
 
 interface SnowflakeData {
   text: PIXI.Text;
@@ -50,6 +51,7 @@ export class FreezeEffect extends PIXI.Container {
   }
 
   public playEntrance(): void {
+    const timeline = TimeManager.getInstance().getGameTimeline();
     this.entranceTween = gsap.to(this.overlay, {
       alpha: 1,
       duration: 0.3,
@@ -58,6 +60,7 @@ export class FreezeEffect extends PIXI.Container {
         this.startSnowflakes();
       },
     });
+    timeline.add(this.entranceTween, timeline.time());
   }
 
   private startSnowflakes(): void {
@@ -73,6 +76,7 @@ export class FreezeEffect extends PIXI.Container {
     sf.text.y = -20;
     sf.text.alpha = 0.7 + Math.random() * 0.3;
 
+    const timeline = TimeManager.getInstance().getGameTimeline();
     const tween = gsap.to(sf.text, {
       y: this.containerHeight + 20,
       duration: sf.speed,
@@ -83,6 +87,7 @@ export class FreezeEffect extends PIXI.Container {
         }
       },
     });
+    timeline.add(tween, timeline.time());
     this.snowflakeTweens.push(tween);
   }
 

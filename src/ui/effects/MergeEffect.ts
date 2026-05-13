@@ -1,6 +1,7 @@
 import * as PIXI from 'pixi.js';
 import gsap from 'gsap';
 import { GraphicsPool } from '../../utils/GraphicsPool';
+import { TimeManager } from '../../utils/TimeManager';
 
 export interface MergeEffectOptions {
   x: number;
@@ -100,6 +101,8 @@ export class MergeEffect extends PIXI.Container {
         this.destroy();
       },
     });
+
+    TimeManager.getInstance().getGameTimeline().add(this.timeline, TimeManager.getInstance().getGameTimeline().time());
 
     this.timeline!.fromTo(flash.scale, { x: 0, y: 0 }, { x: 2, y: 2, duration: 0.3, ease: 'power2.out' }, 0);
     this.timeline!.to(flash, { alpha: 0, duration: 0.3, ease: 'power2.out' }, 0);

@@ -31,6 +31,7 @@ export const SCORE_CONFIGS: Record<number, { baseScore: number; chainMultiplier:
 export class ScoreSystem {
   private score: number = 0;
   private chainCount: number = 0;
+  private maxChainCount: number = 0;
   private chainTimer: number = 0;
   private readonly CHAIN_TIMEOUT = 3000;
   private config: ScoreConfig;
@@ -52,6 +53,9 @@ export class ScoreSystem {
 
     this.score += finalScore;
     this.chainCount++;
+    if (this.chainCount > this.maxChainCount) {
+      this.maxChainCount = this.chainCount;
+    }
     this.chainTimer = this.CHAIN_TIMEOUT;
 
     eventBus.emit('score:updated', {
@@ -97,9 +101,14 @@ export class ScoreSystem {
     return this.chainCount;
   }
 
+  getMaxChainCount(): number {
+    return this.maxChainCount;
+  }
+
   reset(): void {
     this.score = 0;
     this.chainCount = 0;
+    this.maxChainCount = 0;
     this.chainTimer = 0;
     this.luckyMultiplier = 1;
   }
