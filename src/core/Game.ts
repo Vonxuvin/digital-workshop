@@ -186,6 +186,12 @@ export class Game {
         console.warn('[Game] 关卡配置加载失败，使用默认配置:', configErr);
       }
 
+      try {
+        await this.levelLoader.discoverAndLoadAllLevels();
+      } catch (levelErr) {
+        console.warn('[Game] 关卡数据预加载失败:', levelErr);
+      }
+
       this.gameScene.initializeProps();
       this.gameScene.setupContainer();
       this.setupUI();
