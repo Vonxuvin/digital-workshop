@@ -9,7 +9,7 @@ export interface WarningConfig {
 
 const DEFAULT_WARNING_CONFIG: WarningConfig = {
   warningThreshold: 5000,
-  speedThreshold: 2,
+  speedThreshold: 3,
   gracePeriod: 1000,
 };
 

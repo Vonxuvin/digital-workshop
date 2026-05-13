@@ -107,10 +107,11 @@ export class BlockPreview extends Container {
   }
 
   updatePosition(x: number): void {
-    this.targetX = x;
-    this.x = x;
-    this.drawTrail(x, this.previewY);
-    this.drawLandingMarker(x, this.previewY);
+    const boundedX = Math.max(this.minX + this.radius, Math.min(this.maxX - this.radius, x));
+    this.targetX = boundedX;
+    this.x = boundedX;
+    this.drawTrail(boundedX, this.previewY);
+    this.drawLandingMarker(boundedX, this.previewY);
   }
 
   getTargetX(): number {

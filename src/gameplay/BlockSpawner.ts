@@ -7,6 +7,7 @@ import { RainbowProp } from '../gameplay/props/RainbowProp';
 import { LevelConfig } from '../gameplay/LevelSystem';
 import { Container } from 'pixi.js';
 import { eventBus } from '../utils/EventBus';
+import gsap from 'gsap';
 
 export class BlockSpawner {
   private physics: PhysicsManager;
@@ -19,7 +20,7 @@ export class BlockSpawner {
   private obstacleBlocks: Block[] = [];
   private currentValue: number = 1;
   private canDrop = true;
-  private dropCooldown = 500;
+  private dropCooldown = 300;
   private cooldownRemaining: number = 0;
   private autoSpawnInterval: number = 0;
   private autoSpawnElapsed: number = 0;
@@ -67,6 +68,11 @@ export class BlockSpawner {
     this.stage.addChild(block);
     this.blocks.push(block);
     this.mergeSystem.registerBlock(block);
+
+    block.scale.set(0.3);
+    block.alpha = 0.5;
+    gsap.to(block.scale, { x: 1, y: 1, duration: 0.2, ease: 'back.out(1.5)' });
+    gsap.to(block, { alpha: 1, duration: 0.15 });
 
     this.currentValue = this.getRandomValue();
 

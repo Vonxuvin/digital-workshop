@@ -118,7 +118,8 @@ export class GameScene {
       this.app.stage.removeChild(this.warningLine);
       this.warningLine.destroy();
     }
-    this.warningLine = new WarningLine(this.containerHeight, this.containerWidth);
+    const warningConfig = this.currentLevelConfig?.warning;
+    this.warningLine = new WarningLine(this.containerHeight, this.containerWidth, warningConfig);
     this.warningLine.x = this.containerOffsetX;
     this.warningLine.y = this.groundY * 0.8;
     this.warningLine.visible = false;
@@ -470,6 +471,7 @@ export class GameScene {
 
   getContainerOffsetX(): number { return this.containerOffsetX; }
   getContainerWidth(): number { return this.containerWidth; }
+  getContainerHeight(): number { return this.containerHeight; }
   getApp(): Application { return this.app; }
   getPhysics(): PhysicsManager { return this.physics; }
   getBlockSpawner(): BlockSpawner { return this.blockSpawner; }

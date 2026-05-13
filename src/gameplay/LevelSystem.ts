@@ -9,6 +9,12 @@ export interface LevelObjective {
   timeLimit?: number;
 }
 
+export interface WarningLevelConfig {
+  warningThreshold?: number;
+  speedThreshold?: number;
+  gracePeriod?: number;
+}
+
 export interface LevelConfig {
   id: number;
   name: string;
@@ -27,6 +33,7 @@ export interface LevelConfig {
   rewards: {
     stars: [number, number, number];
   };
+  warning?: WarningLevelConfig;
 }
 
 export interface LevelCompletedData {

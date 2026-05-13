@@ -119,7 +119,6 @@ export class Block extends Container {
   destroy(): void {
     if (this._destroyed) return;
     this._destroyed = true;
-    this.sprite.destroy();
-    super.destroy();
+    super.destroy({ children: true });
   }
 }

@@ -118,6 +118,7 @@ export class SceneManager {
       score: this.gameScene.getScoreSystem().getScore(),
       stars: 0,
       levelId,
+      playTime,
     });
     this.uiManager.showScreen('result');
   }
@@ -143,6 +144,8 @@ export class SceneManager {
       levelId,
       playTime,
       bestScore: bestScore > score ? bestScore : undefined,
+      maxCombo: longestCombo,
+      mergedCount: highestMerge,
     });
     this.uiManager.showScreen('result');
   }

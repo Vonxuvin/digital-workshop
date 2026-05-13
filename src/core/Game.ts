@@ -301,13 +301,17 @@ export class Game {
         this.gameScene.dropBlockWithShrinkCheck(targetX, dropY, this.gameScene.getBlockSpawner().getCurrentValue());
         this.gameScene.getPreview().hide();
         this.gameScene.getBlockSpawner().startCooldown();
+        this.gameScene.getPreview().setNextValue(this.gameScene.getBlockSpawner().getCurrentValue());
       }
     });
   }
 
   private calculateDropY(touchY: number): number {
     const offset = this.gameScene.getContainerOffsetX() > 0 ? 80 : 60;
-    return Math.max(60, touchY - Game.TOUCH_OFFSET_Y);
+    const maxDropY = this.gameScene.getContainerHeight() > 0
+      ? this.gameScene.getContainerHeight() * 0.5
+      : 300;
+    return Math.max(60, Math.min(touchY - Game.TOUCH_OFFSET_Y, maxDropY));
   }
 
   private syncInputScale(): void {
