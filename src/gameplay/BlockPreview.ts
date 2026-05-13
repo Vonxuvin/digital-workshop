@@ -16,6 +16,9 @@ export class BlockPreview extends Container {
   private radius: number = 20;
   private static readonly DASH_GAP = 6;
   private static readonly DASH_LENGTH = 6;
+  private minX: number = 0;
+  private maxX: number = 0;
+  private groundY: number = 0;
 
   constructor() {
     super();
@@ -116,6 +119,16 @@ export class BlockPreview extends Container {
 
   hide(): void {
     this.visible = false;
+  }
+
+  setGroundY(groundY: number): void {
+    this.groundY = groundY;
+    this.previewY = Math.max(60, groundY - 30);
+  }
+
+  setBounds(minX: number, maxX: number): void {
+    this.minX = minX;
+    this.maxX = maxX;
   }
 
   setNextValue(value: number): void {

@@ -14,7 +14,7 @@ export interface ResultData {
   mergedCount?: number;
 }
 
-export class ResultScreen implements Screen {
+export class ResultScreen extends Screen {
   public container: Container;
   private resultText: Text;
   private scoreText: Text;
@@ -34,6 +34,7 @@ export class ResultScreen implements Screen {
   private screenHeight: number = 600;
 
   constructor() {
+    super();
     this.container = new Container();
     this.container.visible = false;
 
@@ -285,14 +286,23 @@ export class ResultScreen implements Screen {
 
   onShow(): void {}
 
+  show(screenWidth?: number, screenHeight?: number): void {
+    if (screenWidth !== undefined) this.screenWidth = screenWidth;
+    if (screenHeight !== undefined) this.screenHeight = screenHeight;
+    this.onShow();
+  }
+
   onHide(): void {
     if (this.starTimeline) {
       this.starTimeline.kill();
       this.starTimeline = null;
     }
+    this.container.visible = false;
   }
 
-  update(): void {}
+  hide(): void {
+    this.onHide();
+  }update(): void {}
 
   destroy(): void {
     if (this.starTimeline) {

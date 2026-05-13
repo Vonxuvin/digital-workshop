@@ -16,7 +16,7 @@ interface LevelCardData {
   earnedStars: number;
 }
 
-export class LevelSelectScreen implements Screen {
+export class LevelSelectScreen extends Screen {
   public container: Container;
   private title: Text;
   private backButton: Container;
@@ -44,6 +44,7 @@ export class LevelSelectScreen implements Screen {
     saveManager: SaveManager,
     levelLoader: LevelLoader,
   ) {
+    super();
     this.onBack = onBack;
     this.onSelectLevel = onSelectLevel;
     this.saveManager = saveManager;
@@ -130,7 +131,7 @@ export class LevelSelectScreen implements Screen {
         stars,
         unlocked: config.id === 1 || progress.unlocked || false,
         completed: progress.completed || false,
-        bestScore: progress.bestScore || 0,
+        bestScore: progress.highScore || 0,
         earnedStars: progress.stars || 0,
       };
     });
@@ -342,6 +343,12 @@ export class LevelSelectScreen implements Screen {
     gsap.to(this.container, { alpha: 1, duration: 0.3 });
   }
 
+  show(screenWidth?: number, screenHeight?: number): void {
+    if (screenWidth !== undefined) this.screenWidth = screenWidth;
+    if (screenHeight !== undefined) this.screenHeight = screenHeight;
+    this.onShow();
+  }
+
   updateLevelProgress(levelId: number, stars: number): void {
     const data = this.levelData.find(d => d.id === levelId);
     if (data) {
@@ -354,6 +361,10 @@ export class LevelSelectScreen implements Screen {
   onHide(): void {
     this.scrollY = 0;
     this.isDragging = false;
+  }
+
+  hide(): void {
+    this.onHide();
   }
 
   update(): void {}

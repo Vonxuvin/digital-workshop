@@ -185,16 +185,7 @@ export class GameHUD extends Container {
 
   showCombo(count: number): void {
     if (this.comboDisplay) {
-      this.comboDisplay.showCombo(count, this.screenWidth, this.screenHeight);
-    }
-    if (this.comboLabel) {
-      this.comboLabel.text = count > 1 ? `连击 x${count}!` : '';
-      this.comboLabel.alpha = 1;
-      this.comboLabel.scale.set(1);
-      gsap.killTweensOf(this.comboLabel);
-      gsap.fromTo(this.comboLabel, { alpha: 1, scaleX: 1.2, scaleY: 1.2 }, {
-        alpha: 0, scaleX: 1, scaleY: 1, duration: 1.5, ease: 'power2.out',
-      });
+      this.comboDisplay.showCombo(count);
     }
   }
 

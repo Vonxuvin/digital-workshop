@@ -130,7 +130,7 @@ export class SceneManager {
     this.audioManager.play('levelComplete');
     const stars = this.gameScene.calculateStars(score, levelId);
     const playTime = Math.floor((Date.now() - this.gameScene.getGameStartTime()) / 1000);
-    const bestScore = this.saveManager.getLevelProgress(levelId).bestScore || 0;
+    const bestScore = this.saveManager.getLevelProgress(levelId).highScore || 0;
     this.saveManager.updateLevelProgress(levelId, score, playTime, stars, true);
     this.saveManager.updateStatistics(0, 0, playTime);
     this.levelSelectScreen.updateLevelProgress(levelId, stars);

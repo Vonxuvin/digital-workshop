@@ -1,4 +1,5 @@
 import Matter from 'matter-js';
+import * as PIXI from 'pixi.js';
 import { Container, Graphics } from 'pixi.js';
 import { ContainerModifier, ModifierConfig } from './ContainerModifier';
 import { PhysicsManager } from '../../core/PhysicsManager';
