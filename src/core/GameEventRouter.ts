@@ -157,7 +157,7 @@ export class GameEventRouter {
 
   private handleShrinkActivate(data: { factor: number; duration: number }): void {
     this.gameScene.handleShrinkActivate(data);
-    this.audioManager.play('freeze');
+    this.audioManager.play('shrink');
   }
 
   private handleShrinkDeactivate(): void {

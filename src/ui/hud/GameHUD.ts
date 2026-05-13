@@ -321,6 +321,7 @@ export class GameHUD extends Container {
     this.currentScore = data.totalScore;
     if (data.chainCount > 1) {
       this.chainText.text = `连锁 x${data.chainCount}!`;
+      this.showCombo(data.chainCount);
     } else {
       this.chainText.text = '';
     }

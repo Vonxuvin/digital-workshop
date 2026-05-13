@@ -36,11 +36,11 @@ export class AudioManager {
   }
 
   private setupEventListeners(): void {
-    eventBus.on('gameplay:blockSpawn', () => this.playSfx('spawn'));
-    eventBus.on('gameplay:merge', (data: any) => this.playMergeSound(data.level));
-    eventBus.on('gameplay:combo', (data: any) => this.playComboSound(data.count));
-    eventBus.on('gameplay:gameOver', () => this.playSfx('gameOver'));
-    eventBus.on('gameplay:levelComplete', () => this.playSfx('levelComplete'));
+    eventBus.on('block:dropped', () => this.playSfx('spawn'));
+    eventBus.on('block:merged', (data: any) => this.playMergeSound(data.newValue));
+    eventBus.on('score:updated', (data: any) => this.playComboSound(data.chainCount));
+    eventBus.on('game:over', () => this.playSfx('gameOver'));
+    eventBus.on('level:completed', () => this.playSfx('levelComplete'));
     eventBus.on('props:used', (data: any) => this.playPropSound(data.type));
     eventBus.on('ui:buttonClick', () => this.playSfx('click'));
   }

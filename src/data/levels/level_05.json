@@ -3,8 +3,7 @@
   "name": "综合考验",
   "objective": {
     "type": "score",
-    "target": 2000,
-    "timeLimit": 120
+    "target": 2000
   },
   "container": {
     "width": 350,

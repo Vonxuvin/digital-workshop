@@ -20,7 +20,7 @@ export class InputManager {
   private canvas: HTMLCanvasElement;
   private boundHandleDown: (e: MouseEvent) => void;
   private boundHandleMove: (e: MouseEvent) => void;
-  private boundHandleUp: () => void;
+  private boundHandleUp: (e?: MouseEvent | TouchEvent) => void;
   private boundHandleTouch: (e: TouchEvent) => void;
   private scaleX: number = 1;
   private scaleY: number = 1;
@@ -64,7 +64,15 @@ export class InputManager {
     this.onMoveCallbacks.forEach(cb => cb({ ...this.state }));
   }
 
-  private handleUp(): void {
+  private handleUp(e?: MouseEvent | TouchEvent): void {
+    if (e && e.type === 'touchend') {
+      const touch = (e as TouchEvent).changedTouches[0];
+      if (touch) {
+        this.updatePosition(touch.clientX, touch.clientY);
+      }
+    } else if (e && e.type === 'mouseup') {
+      this.updatePosition((e as MouseEvent).clientX, (e as MouseEvent).clientY);
+    }
     this.state.isDown = false;
     this.state.isMoving = false;
     this.onUpCallbacks.forEach(cb => cb({ ...this.state }));
