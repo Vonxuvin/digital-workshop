@@ -1,3 +1,4 @@
+import 'pixi.js/browser';
 import { Application, Text } from 'pixi.js';
 import { PhysicsManager } from './PhysicsManager';
 import { InputManager } from './InputManager';
@@ -120,12 +121,35 @@ export class Game {
         antialias: true,
         resolution: dpr,
         autoDensity: true,
+        preference: 'webgl',
+        failIfMajorPerformanceCaveat: false,
       };
       if (typeof window !== 'undefined') {
         initOptions.resizeTo = window;
       }
 
-      await this.app.init(initOptions);
+      try {
+        await this.app.init(initOptions);
+      } catch (initErr: any) {
+        if (initErr?.message?.includes('CanvasRenderer is not yet implemented') ||
+            initErr?.message?.includes('No available renderer')) {
+          console.warn('[Game] WebGL/WebGPU 渲染器初始化失败，这是沙盒环境的已知限制');
+          console.warn('[Game] 游戏将在降级模式下运行');
+          this.stateMachine.transition('menu');
+          try {
+            if (!this.uiManager) {
+              this.uiManager = new UIManager(this.app);
+            }
+            this.uiManager.showScreen('mainMenu');
+          } catch (_) {}
+          return;
+        }
+        throw initErr;
+      }
+
+      this.tutorialOverlay = new TutorialOverlay();
+      this.tutorialManager = new TutorialManager(this.tutorialOverlay, this.saveManager);
+      this.app.stage.addChild(this.tutorialOverlay);
 
       this.gameScene = new GameScene(
         this.app,
@@ -142,10 +166,6 @@ export class Game {
       this.gameScene.init();
 
       this.uiManager = new UIManager(this.app);
-
-      this.tutorialOverlay = new TutorialOverlay();
-      this.tutorialManager = new TutorialManager(this.tutorialOverlay, this.saveManager);
-      this.app.stage.addChild(this.tutorialOverlay);
 
       const textureCache = BlockTextureCache.getInstance();
       textureCache.setApp(this.app);
@@ -205,6 +225,8 @@ export class Game {
       console.log('[Game] 初始化完成');
     } catch (err) {
       console.error('[Game] 初始化失败:', err);
+      console.error('[Game] 错误详情:', JSON.stringify(err, null, 2));
+      console.error('[Game] 错误堆栈:', (err as Error)?.stack);
       this.stateMachine.transition('menu');
       try {
         if (!this.uiManager) {

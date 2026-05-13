@@ -8,15 +8,8 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: isWechat ? 'dist-wechat' : 'dist',
       target: 'es2020',
-      minify: 'terser',
-      terserOptions: {
-        compress: {
-          drop_console: isWechat,
-          drop_debugger: true,
-          pure_funcs: isWechat ? ['console.log', 'console.warn'] : [],
-        },
-      },
-      sourcemap: false,
+      minify: false,
+      sourcemap: true,
       lib: isWechat
         ? {
             entry: './src/main.ts',
