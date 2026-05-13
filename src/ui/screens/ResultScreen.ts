@@ -86,6 +86,8 @@ export class ResultScreen extends Screen {
 
     this.detailsContainer = new Container();
     this.container.addChild(this.detailsContainer);
+
+    this.addChild(this.container);
   }
 
   setCallbacks(

@@ -85,6 +85,8 @@ export class LevelSelectScreen extends Screen {
     this.container.on('pointerup', this.onPointerUp.bind(this));
     this.container.on('pointerupoutside', this.onPointerUp.bind(this));
 
+    this.addChild(this.container);
+
     this.loadLevelData();
   }
 
