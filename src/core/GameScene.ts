@@ -117,6 +117,7 @@ export class GameScene {
     this.warningLine.visible = false;
     this.app.stage.addChild(this.warningLine);
     this.propEffectHandler.setWarningLine(this.warningLine);
+    this.propEffectHandler.setScoreSystem(this.scoreSystem);
     this.preview.setGroundY(this.groundY);
     this.preview.setBounds(this.containerOffsetX, this.containerOffsetX + this.containerWidth);
     this.blockSpawner.setContainerBounds(this.containerWidth, this.containerOffsetX);

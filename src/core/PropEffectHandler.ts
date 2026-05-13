@@ -7,6 +7,7 @@ import { PropType } from '../gameplay/props/Prop';
 import { FreezeProp } from '../gameplay/props/FreezeProp';
 import { ShrinkProp } from '../gameplay/props/ShrinkProp';
 import { BombProp } from '../gameplay/props/BombProp';
+import { ScoreSystem } from '../gameplay/ScoreSystem';
 import { WarningLine } from '../ui/components/WarningLine';
 import { LevelSystem } from '../gameplay/LevelSystem';
 import { GameHUD } from '../ui/hud/GameHUD';
@@ -21,6 +22,7 @@ export class PropEffectHandler {
   private propSystem: PropSystem;
   private gameHUD: GameHUD;
   private preview: BlockPreview;
+  private scoreSystem: ScoreSystem | null = null;
   private warningLine: WarningLine | null = null;
   private levelSystem: LevelSystem | null = null;
   private bombTargetMode = false;
@@ -52,6 +54,10 @@ export class PropEffectHandler {
 
   setLevelSystem(levelSystem: LevelSystem | null): void {
     this.levelSystem = levelSystem;
+  }
+
+  setScoreSystem(scoreSystem: ScoreSystem | null): void {
+    this.scoreSystem = scoreSystem;
   }
 
   handleBombExplode(data: { x: number; y: number; radius: number }): void {
@@ -129,10 +135,16 @@ export class PropEffectHandler {
 
   handleLuckyActivate(data: { multiplier: number; remainingDrops: number }): void {
     this.blockSpawner.setLuckyMode(true, data.multiplier);
+    if (this.scoreSystem) {
+      this.scoreSystem.setLuckyMultiplier(data.multiplier);
+    }
   }
 
   handleLuckyDeactivate(): void {
     this.blockSpawner.setLuckyMode(false, 1);
+    if (this.scoreSystem) {
+      this.scoreSystem.setLuckyMultiplier(1);
+    }
   }
 
   handlePropTargetMode(data: { type?: PropType; enabled: boolean }): void {

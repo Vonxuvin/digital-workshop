@@ -116,7 +116,7 @@ export class PhysicsManager {
       frictionAir: 0.01,
       frictionStatic: 0.6,
       density: this.physicsConfig.density,
-      sleepThreshold: 60,
+      sleepThreshold: 30,
       ...options,
     });
     body.label = `block_${++this.idCounter}`;

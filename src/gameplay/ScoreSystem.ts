@@ -34,16 +34,21 @@ export class ScoreSystem {
   private chainTimer: number = 0;
   private readonly CHAIN_TIMEOUT = 3000;
   private config: ScoreConfig;
+  private luckyMultiplier: number = 1;
 
   constructor(config?: Partial<ScoreConfig>) {
     this.config = { ...DEFAULT_SCORE_CONFIG, ...config };
+  }
+
+  setLuckyMultiplier(multiplier: number): void {
+    this.luckyMultiplier = multiplier;
   }
 
   addMergeScore(value: number, isCombo: boolean = false): void {
     const baseScore = this.calculateScore(value);
     let chainMultiplier = isCombo ? 1 + Math.min(this.chainCount * this.config.chainBonusPerLevel, this.config.maxChainBonus) : 1;
     chainMultiplier *= this.config.baseMultiplier;
-    const finalScore = Math.round(baseScore * chainMultiplier);
+    const finalScore = Math.round(baseScore * chainMultiplier * this.luckyMultiplier);
 
     this.score += finalScore;
     this.chainCount++;
@@ -96,6 +101,7 @@ export class ScoreSystem {
     this.score = 0;
     this.chainCount = 0;
     this.chainTimer = 0;
+    this.luckyMultiplier = 1;
   }
 
   destroy(): void {

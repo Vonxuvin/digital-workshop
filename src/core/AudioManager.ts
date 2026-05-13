@@ -130,6 +130,7 @@ export class AudioManager {
   private getProceduralFrequency(key: string): number {
     const freqMap: Record<string, number> = {
       spawn: 440,
+      drop: 330,
       click: 600,
       merge1: 523,
       merge2: 587,
@@ -139,6 +140,7 @@ export class AudioManager {
       combo: 880,
       comboGreat: 988,
       comboSuper: 1047,
+      warning: 400,
       gameOver: 220,
       levelComplete: 784,
       bomb: 150,
@@ -147,6 +149,7 @@ export class AudioManager {
       shrink: 330,
       lucky: 880,
       propDefault: 500,
+      score: 660,
     };
     return freqMap[key] || 0;
   }

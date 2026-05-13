@@ -56,6 +56,8 @@ export class GameEventRouter {
     this.ns.on('props:lucky:deactivate', this.handleLuckyDeactivate.bind(this));
     this.ns.on('level:timeUpdate', this.handleLevelTimeUpdate.bind(this));
     this.ns.on('score:updated', this.handleScoreUpdated.bind(this));
+    this.ns.on('warning:started', this.handleWarningStarted.bind(this));
+    this.ns.on('warning:ended', this.handleWarningEnded.bind(this));
   }
 
   private handleBlockMerged(data: BlockMergedData): void {
@@ -174,10 +176,17 @@ export class GameEventRouter {
     this.gameScene.getGameHUD().updateTimer(seconds);
   }
 
-  private handleScoreUpdated(data: { score: number; delta: number; chain: number }): void {
-    if (data.chain >= 5) {
+  private handleScoreUpdated(data: { totalScore: number; earnedScore: number; chainCount: number }): void {
+    if (data.chainCount >= 5) {
       this.audioManager.play('merge');
     }
+  }
+
+  private handleWarningStarted(): void {
+    this.audioManager.play('warning');
+  }
+
+  private handleWarningEnded(): void {
   }
 
   destroy(): void {
