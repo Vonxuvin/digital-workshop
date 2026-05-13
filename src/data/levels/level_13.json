@@ -3,7 +3,7 @@
   "name": "旋转收缩",
   "objective": {
     "type": "score",
-    "target": 12000
+    "target": 8000
   },
   "container": {
     "width": 400,
@@ -11,28 +11,28 @@
     "shape": "rectangle"
   },
   "spawn": {
-    "availableNumbers": [1, 2, 4, 8, 16, 32],
+    "availableNumbers": [1, 2, 4, 8, 16],
     "spawnInterval": 0
   },
   "modifiers": [
     {
       "type": "rotate",
       "enabled": true,
-      "rotationSpeed": 12,
-      "maxAngle": 12,
+      "rotationSpeed": 8,
+      "maxAngle": 8,
       "oscillate": true,
       "duration": 120
     },
     {
       "type": "shrink",
       "enabled": true,
-      "targetWidth": 160,
-      "shrinkSpeed": 12,
-      "minWidth": 140,
-      "triggerInterval": 35
+      "targetWidth": 200,
+      "shrinkSpeed": 8,
+      "minWidth": 170,
+      "triggerInterval": 45
     }
   ],
   "rewards": {
-    "stars": [4000, 8000, 12000]
+    "stars": [4800, 6400, 8000]
   }
 }

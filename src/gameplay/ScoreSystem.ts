@@ -1,5 +1,4 @@
 import { eventBus } from '../utils/EventBus';
-import { AnimationManager } from '../utils/AnimationManager';
 
 export interface ScoreConfig {
   baseMultiplier: number;
@@ -46,9 +45,20 @@ export class ScoreSystem {
   }
 
   addMergeScore(value: number, isCombo: boolean = false): void {
-    const baseScore = this.calculateScore(value);
+    const configEntry = SCORE_CONFIGS[value];
+    let baseScore: number;
+    let chainMultiplierFromTable: number;
+
+    if (configEntry) {
+      baseScore = configEntry.baseScore;
+      chainMultiplierFromTable = configEntry.chainMultiplier;
+    } else {
+      baseScore = this.calculateScore(value);
+      chainMultiplierFromTable = 1.0;
+    }
+
     let chainMultiplier = isCombo ? 1 + Math.min(this.chainCount * this.config.chainBonusPerLevel, this.config.maxChainBonus) : 1;
-    chainMultiplier *= this.config.baseMultiplier;
+    chainMultiplier *= this.config.baseMultiplier * chainMultiplierFromTable;
     const finalScore = Math.round(baseScore * chainMultiplier * this.luckyMultiplier);
 
     this.score += finalScore;

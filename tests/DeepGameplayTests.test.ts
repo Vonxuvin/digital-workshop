@@ -100,13 +100,13 @@ describe('ScoreSystem Deep Tests', () => {
       expect(ss.getChainCount()).toBe(chainBefore + 1);
     });
 
-    it('should use fallback config for unknown values', () => {
+    it('should use SCORE_CONFIGS for known values', () => {
       const handler = vi.fn();
       eventBus.on('score:updated', handler);
       ss.addMergeScore(512, false);
       const data = handler.mock.calls[0][0];
       expect(data.baseScore).toBeGreaterThan(0);
-      expect(data.chainMultiplier).toBe(1.0);
+      expect(data.chainMultiplier).toBeCloseTo(SCORE_CONFIGS[512].chainMultiplier, 5);
       eventBus.off('score:updated', handler);
     });
   });

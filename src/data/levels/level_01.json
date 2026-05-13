@@ -3,7 +3,7 @@
   "name": "新手入门",
   "objective": {
     "type": "score",
-    "target": 500
+    "target": 300
   },
   "container": {
     "width": 400,

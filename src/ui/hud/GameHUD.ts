@@ -91,25 +91,30 @@ export class GameHUD extends Container {
   private createPropsBar(): void {
     this.propsContainer = new Container();
     this.propsContainer.eventMode = 'static';
-    this.propsContainer.x = -360;
 
     const propsData = [
-      { type: PropType.BOMB, icon: 'bomb', x: 0 },
-      { type: PropType.RAINBOW, icon: 'rainbow', x: 70 },
-      { type: PropType.FREEZE, icon: 'freeze', x: 140 },
-      { type: PropType.SHRINK, icon: 'shrink', x: 210 },
-      { type: PropType.LUCKY, icon: 'lucky', x: 280 },
+      { type: PropType.BOMB, icon: 'bomb', row: 0, col: 0 },
+      { type: PropType.RAINBOW, icon: 'rainbow', row: 0, col: 1 },
+      { type: PropType.FREEZE, icon: 'freeze', row: 0, col: 2 },
+      { type: PropType.SHRINK, icon: 'shrink', row: 1, col: 0 },
+      { type: PropType.LUCKY, icon: 'lucky', row: 1, col: 1 },
     ];
+
+    const buttonSize = 60;
+    const buttonGap = 8;
+    const rowGap = 6;
 
     propsData.forEach(propData => {
       const count = this.propSystem.getPropCount(propData.type);
+      const x = propData.col * (buttonSize + buttonGap);
+      const y = propData.row * (buttonSize + rowGap);
       const button = new PropButton({
         propType: propData.type,
         icon: propData.icon,
         count: count,
         onClick: (type) => this.onPropClick(type),
-        x: propData.x,
-        y: 0,
+        x,
+        y,
       });
       this.propsContainer.addChild(button);
       this.propButtons.set(propData.type, button);
@@ -364,7 +369,11 @@ export class GameHUD extends Container {
   }
 
   layout(screenWidth: number, screenHeight: number): void {
-    this.propsContainer.x = screenWidth - 360;
+    const buttonSize = 60;
+    const buttonGap = 8;
+    const rowGap = 6;
+    const propsBarWidth = 3 * buttonSize + 2 * buttonGap;
+    this.propsContainer.x = screenWidth - propsBarWidth - 10;
     this.propsContainer.y = 15;
     this.pauseButton.x = screenWidth - 50;
     this.pauseButton.y = 30;
