@@ -7,7 +7,14 @@ export async function navigateToGame(page: Page, startPlaying = true) {
   await page.goto(GAME_URL);
   await page.waitForLoadState('networkidle');
   await page.waitForSelector('#game-canvas', { timeout: 10000 });
-  await page.waitForTimeout(3000);
+  await page.waitForFunction(
+    () => {
+      const game = (window as any).__gameInstance;
+      if (!game) return false;
+      return typeof game.isReady === 'function' ? game.isReady() : true;
+    },
+    { timeout: 10000 }
+  );
   if (startPlaying) {
     await page.evaluate(() => {
       const game = (window as any).__gameInstance;
@@ -17,7 +24,16 @@ export async function navigateToGame(page: Page, startPlaying = true) {
         sm.startLevelById?.(1);
       }
     });
-    await page.waitForTimeout(1000);
+    await page.waitForFunction(
+      () => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        const scene = game.getGameScene?.();
+        if (!scene) return false;
+        return scene.isActive?.() !== false;
+      },
+      { timeout: 5000 }
+    );
   }
 }
 
@@ -45,8 +61,28 @@ export async function getCanvasBoundingBox(page: Page) {
 
 export async function dropBlocks(page: Page, count: number, intervalMs = 800) {
   for (let i = 0; i < count; i++) {
+    const blockCountBefore = await page.evaluate(() => {
+      const game = (window as any).__gameInstance;
+      if (!game) return -1;
+      const spawner = game.getBlockSpawner?.();
+      return spawner?.getBlocks?.()?.length ?? -1;
+    });
     await clickCanvasCenter(page);
-    await page.waitForTimeout(intervalMs);
+    try {
+      await page.waitForFunction(
+        (before: number) => {
+          const game = (window as any).__gameInstance;
+          if (!game) return false;
+          const spawner = game.getBlockSpawner?.();
+          const now = spawner?.getBlocks?.()?.length ?? -1;
+          return now > before;
+        },
+        blockCountBefore,
+        { timeout: Math.max(intervalMs, 3000) }
+      );
+    } catch {
+      await page.waitForTimeout(intervalMs);
+    }
   }
 }
 

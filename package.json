@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
-    "build:wechat": "tsc && vite build --mode wechat",
+    "build": "vite build",
+    "build:wechat": "vite build --mode wechat",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
