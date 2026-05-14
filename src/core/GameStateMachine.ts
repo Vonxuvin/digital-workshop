@@ -8,7 +8,7 @@ const VALID_TRANSITIONS: Record<GameState, GameState[]> = {
   'boot': ['loading'],
   'loading': ['menu'],
   'menu': ['playing'],
-  'playing': ['paused', 'gameover', 'levelComplete'],
+  'playing': ['paused', 'gameover', 'levelComplete', 'menu'],
   'paused': ['playing', 'menu'],
   'gameover': ['menu', 'playing'],
   'levelComplete': ['menu', 'playing'],

@@ -838,7 +838,7 @@ describe('Deep Integration Tests', () => {
 
       it('should test transition to all 5 states from playing', () => {
         sm.transition('playing');
-        expect(sm.canTransition('menu')).toBe(false);
+        expect(sm.canTransition('menu')).toBe(true);
         expect(sm.canTransition('playing')).toBe(false);
         expect(sm.canTransition('paused')).toBe(true);
         expect(sm.canTransition('gameover')).toBe(true);

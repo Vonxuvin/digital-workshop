@@ -42,7 +42,7 @@ describe('GameStateMachine', () => {
     expect(sm.canTransition('paused')).toBe(true);
     expect(sm.canTransition('gameover')).toBe(true);
     expect(sm.canTransition('levelComplete')).toBe(true);
-    expect(sm.canTransition('menu')).toBe(false);
+    expect(sm.canTransition('menu')).toBe(true);
   });
 
   it('should validate paused transitions', () => {

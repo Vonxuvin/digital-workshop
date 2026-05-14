@@ -42,12 +42,12 @@ describe('GameStateMachine', () => {
       expect(sm.getPreviousState()).toBeNull();
     });
 
-    it('transition() blocks invalid transition from playing to menu', () => {
+    it('transition() allows valid transition from playing to menu', () => {
       sm.transition('playing');
-      expect(sm.canTransition('menu')).toBe(false);
+      expect(sm.canTransition('menu')).toBe(true);
       const result = sm.transition('menu');
-      expect(result).toBe(false);
-      expect(sm.getCurrentState()).toBe('playing');
+      expect(result).toBe(true);
+      expect(sm.getCurrentState()).toBe('menu');
     });
 
     it('onEnter does not fire for invalid transitions', () => {
@@ -136,12 +136,12 @@ describe('GameStateMachine', () => {
       expect(sm.canTransition('menu')).toBe(false);
     });
 
-    it('playing can transition to paused, gameover, levelComplete', () => {
+    it('playing can transition to paused, gameover, levelComplete, menu', () => {
       sm.transition('playing');
       expect(sm.canTransition('paused')).toBe(true);
       expect(sm.canTransition('gameover')).toBe(true);
       expect(sm.canTransition('levelComplete')).toBe(true);
-      expect(sm.canTransition('menu')).toBe(false);
+      expect(sm.canTransition('menu')).toBe(true);
     });
 
     it('paused can transition to playing and menu', () => {
