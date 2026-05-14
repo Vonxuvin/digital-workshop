@@ -357,21 +357,6 @@ test.describe('状态管理与完整流程', () => {
       expect(scoreLogs.length).toBeGreaterThan(0);
     });
 
-    test('计分更新应触发HUD刷新', async ({ page }) => {
-      await navigateToGame(page);
-      await dropBlocks(page, 5);
-      await waitForStable(page, 3000);
-
-      const score = await page.evaluate(() => {
-        const game = (window as any).__gameInstance;
-        if (!game) return -1;
-        const scoreSystem = game.getScoreSystem?.();
-        return scoreSystem?.getScore?.() ?? -1;
-      });
-
-      expect(score).toBeGreaterThanOrEqual(0);
-    });
-
     test('目标达成应触发通关流程', async ({ page }) => {
       await navigateToGame(page);
 

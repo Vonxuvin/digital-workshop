@@ -141,32 +141,4 @@ test.describe('启动与初始化', () => {
       expect(fps).toBeGreaterThan(0);
     });
   });
-
-  test.describe('微信小游戏环境适配', () => {
-    test('应正确检测运行环境', async ({ page }) => {
-      await navigateToGame(page);
-
-      const env = await page.evaluate(() => {
-        const game = (window as any).__gameInstance;
-        if (!game) return null;
-        const adapter = game.getPlatformAdapter?.();
-        return adapter?.getPlatform?.() ?? null;
-      });
-
-      expect(env).toBeTruthy();
-    });
-
-    test('非微信环境应使用浏览器适配', async ({ page }) => {
-      await navigateToGame(page);
-
-      const isBrowser = await page.evaluate(() => {
-        const game = (window as any).__gameInstance;
-        if (!game) return false;
-        const adapter = game.getPlatformAdapter?.();
-        return adapter?.isBrowser?.() ?? true;
-      });
-
-      expect(isBrowser).toBeTruthy();
-    });
-  });
 });

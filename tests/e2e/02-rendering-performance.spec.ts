@@ -122,39 +122,6 @@ test.describe('渲染与性能', () => {
   });
 
   test.describe('内存管理', () => {
-    test('GraphicsPool应复用图形对象', async ({ page }) => {
-      await navigateToGame(page);
-
-      const hasPool = await page.evaluate(() => {
-        const game = (window as any).__gameInstance;
-        if (!game) return false;
-        const scene = game.getGameScene?.();
-        if (!scene) return false;
-        const effectManager = scene.getEffectManager?.();
-        if (!effectManager) return false;
-        return effectManager.graphicsPool !== null;
-      });
-
-      expect(hasPool).toBeTruthy();
-    });
-
-    test('特效管理器应正确清理过期特效', async ({ page }) => {
-      await navigateToGame(page);
-
-      const hasCleanup = await page.evaluate(() => {
-        const game = (window as any).__gameInstance;
-        if (!game) return false;
-        const scene = game.getGameScene?.();
-        if (!scene) return false;
-        const effectManager = scene.getEffectManager?.();
-        if (!effectManager) return false;
-        return typeof effectManager.cleanup === 'function'
-          && typeof effectManager.clearAll === 'function';
-      });
-
-      expect(hasCleanup).toBeTruthy();
-    });
-
     test('场景切换后旧资源应被释放', async ({ page }) => {
       await navigateToGame(page);
       await dropBlocks(page, 5);

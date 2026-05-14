@@ -20,15 +20,29 @@ test.describe('UI界面', () => {
     test('主菜单应包含开始游戏入口', async ({ page }) => {
       await navigateToGame(page);
 
-      const screenshot = await page.screenshot();
-      expect(screenshot.length).toBeGreaterThan(1000);
+      const hasStartButton = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        const mainMenu = game.getUIManager?.()?.getScreen?.('mainMenu');
+        if (!mainMenu) return false;
+        return mainMenu.startButton !== null || mainMenu.playButton !== null;
+      });
+
+      expect(hasStartButton).toBeTruthy();
     });
 
     test('主菜单应包含关卡选择入口', async ({ page }) => {
       await navigateToGame(page);
 
-      const screenshot = await page.screenshot();
-      expect(screenshot.length).toBeGreaterThan(1000);
+      const hasLevelSelect = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        const mainMenu = game.getUIManager?.()?.getScreen?.('mainMenu');
+        if (!mainMenu) return false;
+        return mainMenu.levelSelectButton !== null || mainMenu.levelsButton !== null;
+      });
+
+      expect(hasLevelSelect).toBeTruthy();
     });
 
     test('主菜单应包含设置入口', async ({ page }) => {
@@ -164,15 +178,45 @@ test.describe('UI界面', () => {
     test('暂停界面应包含重新开始按钮', async ({ page }) => {
       await navigateToGame(page);
 
-      const screenshot = await page.screenshot();
-      expect(screenshot.length).toBeGreaterThan(1000);
+      await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return;
+        game.getStateMachine?.()?.transitionTo?.('paused');
+      });
+
+      await page.waitForTimeout(500);
+
+      const hasRestartButton = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        const pauseScreen = game.getPauseScreen?.();
+        if (!pauseScreen) return false;
+        return pauseScreen.restartButton !== null || pauseScreen.retryButton !== null;
+      });
+
+      expect(hasRestartButton).toBeTruthy();
     });
 
     test('暂停界面应包含返回主菜单按钮', async ({ page }) => {
       await navigateToGame(page);
 
-      const screenshot = await page.screenshot();
-      expect(screenshot.length).toBeGreaterThan(1000);
+      await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return;
+        game.getStateMachine?.()?.transitionTo?.('paused');
+      });
+
+      await page.waitForTimeout(500);
+
+      const hasMenuButton = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        const pauseScreen = game.getPauseScreen?.();
+        if (!pauseScreen) return false;
+        return pauseScreen.menuButton !== null || pauseScreen.quitButton !== null;
+      });
+
+      expect(hasMenuButton).toBeTruthy();
     });
 
     test('暂停时游戏应停止运行', async ({ page }) => {
@@ -216,15 +260,31 @@ test.describe('UI界面', () => {
     test('胜利时应显示恭喜过关', async ({ page }) => {
       await navigateToGame(page);
 
-      const screenshot = await page.screenshot();
-      expect(screenshot.length).toBeGreaterThan(1000);
+      const hasWinState = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        const resultScreen = game.getResultScreen?.();
+        if (!resultScreen) return false;
+        return typeof resultScreen.showWin === 'function'
+          || typeof resultScreen.setResult === 'function';
+      });
+
+      expect(hasWinState).toBeTruthy();
     });
 
     test('失败时应显示游戏结束', async ({ page }) => {
       await navigateToGame(page);
 
-      const screenshot = await page.screenshot();
-      expect(screenshot.length).toBeGreaterThan(1000);
+      const hasLoseState = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        const resultScreen = game.getResultScreen?.();
+        if (!resultScreen) return false;
+        return typeof resultScreen.showLose === 'function'
+          || typeof resultScreen.showFailure === 'function';
+      });
+
+      expect(hasLoseState).toBeTruthy();
     });
 
     test('星级评定动画应正确播放', async ({ page }) => {
