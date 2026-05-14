@@ -26,7 +26,7 @@ export class LevelSelectScreen extends Screen {
   private onSelectLevel: (levelId: number) => void;
   private saveManager: SaveManager;
   private levelLoader: LevelLoader;
-  private scrollContainer: Container;
+  public scrollContainer: Container;
   private scrollMask: Graphics;
   private scrollY: number = 0;
   private maxScrollY: number = 0;

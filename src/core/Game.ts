@@ -12,8 +12,10 @@ import { MainMenuScreen } from '../ui/screens/MainMenuScreen';
 import { ResultScreen } from '../ui/screens/ResultScreen';
 import { LevelSelectScreen } from '../ui/screens/LevelSelectScreen';
 import { PauseScreen } from '../ui/screens/PauseScreen';
+import { SettingsScreen } from '../ui/screens/SettingsScreen';
 import { GameHUD } from '../ui/hud/GameHUD';
 import { createPlatformAdapter } from '../platform/PlatformFactory';
+import { PlatformAdapter } from '../platform/PlatformAdapter';
 import { AnimationManager } from '../utils/AnimationManager';
 import { PerformanceMonitor } from '../utils/PerformanceMonitor';
 import { PropSystem } from '../gameplay/props/PropSystem';
@@ -28,6 +30,7 @@ import { SceneManager } from './SceneManager';
 import { TutorialOverlay } from '../ui/TutorialOverlay';
 import { TutorialManager } from './TutorialManager';
 import { TimeManager } from '../utils/TimeManager';
+import { eventBus } from '../utils/EventBus';
 import propsData from '../data/props/props.json';
 
 export class Game {
@@ -50,6 +53,7 @@ export class Game {
   private resultScreen: ResultScreen;
   private levelSelectScreen: LevelSelectScreen;
   private pauseScreen: PauseScreen;
+  private settingsScreen: SettingsScreen;
   private uiManager!: UIManager;
   private gameScene!: GameScene;
   private sceneManager!: SceneManager;
@@ -59,9 +63,11 @@ export class Game {
   private fpsDisplay: Text | null = null;
   private boundHandleResize: (() => void) | null = null;
   private boundUpdate: (() => void) | null = null;
+  private boundKeydown: ((e: KeyboardEvent) => void) | null = null;
   private static readonly TOUCH_OFFSET_Y = 30;
   private tutorialOverlay!: TutorialOverlay;
   private tutorialManager!: TutorialManager;
+  private platform!: PlatformAdapter;
 
   constructor(canvas: HTMLCanvasElement) {
     Game.instance = this;
@@ -96,6 +102,7 @@ export class Game {
       this.levelLoader,
     );
     this.pauseScreen = new PauseScreen();
+    this.settingsScreen = new SettingsScreen();
     this.gameHUD = new GameHUD(this.propSystem);
   }
 
@@ -110,6 +117,7 @@ export class Game {
     try {
       const platform = createPlatformAdapter();
       await platform.init();
+      this.platform = platform;
       const systemInfo = await platform.getSystemInfo();
 
       await this.saveManager.init();
@@ -227,6 +235,8 @@ export class Game {
       this.boundHandleResize = this.handleResize.bind(this);
       window.addEventListener('resize', this.boundHandleResize);
 
+      this.setupKeyboard();
+
       this.stateMachine.transition('menu');
       this.uiManager.showScreen('mainMenu');
 
@@ -262,6 +272,7 @@ export class Game {
       { name: 'levelSelect', screen: this.levelSelectScreen },
       { name: 'result', screen: this.resultScreen },
       { name: 'pause', screen: this.pauseScreen },
+      { name: 'settings', screen: this.settingsScreen },
     ]);
   }
 
@@ -304,6 +315,29 @@ export class Game {
         this.gameScene.getPreview().setNextValue(this.gameScene.getBlockSpawner().getCurrentValue());
       }
     });
+  }
+
+  private setupKeyboard(): void {
+    this.boundKeydown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        const currentState = this.stateMachine.getCurrentState();
+        if (currentState === 'playing') {
+          this.sceneManager.pauseGame();
+        } else if (currentState === 'paused') {
+          this.sceneManager.resumeGame();
+        }
+      } else if (e.key === ' ') {
+        const currentState = this.stateMachine.getCurrentState();
+        if (currentState === 'playing' && this.gameScene.getBlockSpawner().getCanDrop()) {
+          const centerX = this.app.screen.width / 2;
+          const dropY = this.calculateDropY(100);
+          this.gameScene.dropBlockWithShrinkCheck(centerX, dropY, this.gameScene.getBlockSpawner().getCurrentValue());
+          this.gameScene.getBlockSpawner().startCooldown();
+          this.gameScene.getPreview().setNextValue(this.gameScene.getBlockSpawner().getCurrentValue());
+        }
+      }
+    };
+    window.addEventListener('keydown', this.boundKeydown);
   }
 
   private calculateDropY(touchY: number): number {
@@ -427,6 +461,23 @@ export class Game {
     return this.sceneManager;
   }
 
+  getBlockSpawner() { return this.gameScene.getBlockSpawner(); }
+  getPhysics() { return this.gameScene.getPhysics(); }
+  getMergeSystem(): MergeSystem { return this.mergeSystem; }
+  getPlatformAdapter(): PlatformAdapter { return this.platform; }
+  getPerformanceMonitor(): PerformanceMonitor { return this.performanceMonitor; }
+  getLevelLoader(): LevelLoader { return this.levelLoader; }
+  getSaveManager(): SaveManager { return this.saveManager; }
+  getAudioManager(): AudioManager { return this.audioManager; }
+  getPropSystem() { return this.gameScene.getPropSystem(); }
+  getUIManager(): UIManager { return this.uiManager; }
+  getGameHUD() { return this.gameScene.getGameHUD(); }
+  getLevelSystem() { return this.gameScene.getLevelSystem(); }
+  getResultScreen(): ResultScreen { return this.resultScreen; }
+  getPauseScreen(): PauseScreen { return this.pauseScreen; }
+  getLevelSelectScreen(): LevelSelectScreen { return this.levelSelectScreen; }
+  getEventBus() { return eventBus; }
+
   destroy(): void {
     if (this.boundHandleResize) {
       window.removeEventListener('resize', this.boundHandleResize);
@@ -439,6 +490,10 @@ export class Game {
     if (this.boundUpdate) {
       this.app.ticker.remove(this.boundUpdate);
       this.boundUpdate = null;
+    }
+    if (this.boundKeydown) {
+      window.removeEventListener('keydown', this.boundKeydown);
+      this.boundKeydown = null;
     }
     this.eventRouter.destroy();
     this.gameScene.destroy();

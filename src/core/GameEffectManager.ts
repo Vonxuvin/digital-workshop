@@ -8,12 +8,16 @@ export class GameEffectManager {
   private stage: Container;
   private effects: any[] = [];
   private freezeEffect: FreezeEffect | null = null;
-  private graphicsPool: GraphicsPool;
+  private _graphicsPool: GraphicsPool;
 
   constructor(stage: Container) {
     this.stage = stage;
-    this.graphicsPool = new GraphicsPool(60);
-    this.graphicsPool.setParent(stage);
+    this._graphicsPool = new GraphicsPool(60);
+    this._graphicsPool.setParent(stage);
+  }
+
+  get graphicsPool(): GraphicsPool {
+    return this._graphicsPool;
   }
 
   addMergeEffect(x: number, y: number, oldValue: number, newValue: number): void {
@@ -66,7 +70,9 @@ export class GameEffectManager {
   }
 
   getEffects(): any[] {
-    return this.effects;
+    const all = [...this.effects];
+    if (this.freezeEffect) all.push(this.freezeEffect);
+    return all;
   }
 
   destroy(): void {

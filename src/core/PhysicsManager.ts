@@ -109,6 +109,10 @@ export class PhysicsManager {
     return this.running;
   }
 
+  hasCollision(): boolean {
+    return this.engine.pairs.list.length > 0;
+  }
+
   createCircle(x: number, y: number, radius: number, options?: Matter.IBodyDefinition): Matter.Body {
     const body = Matter.Bodies.circle(x, y, radius, {
       restitution: this.physicsConfig.restitution,

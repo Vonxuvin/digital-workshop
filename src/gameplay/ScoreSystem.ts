@@ -75,6 +75,7 @@ export class ScoreSystem {
       baseScore,
       chainMultiplier,
     });
+    console.log(`[ScoreSystem] score:updated`, { totalScore: this.score, earnedScore: finalScore, chainCount: this.chainCount });
   }
 
   update(deltaMS: number): void {
@@ -109,6 +110,20 @@ export class ScoreSystem {
 
   getChainCount(): number {
     return this.chainCount;
+  }
+
+  getCombo(): number {
+    return this.chainCount;
+  }
+
+  getComboMultiplier(): number {
+    return 1 + Math.min(this.chainCount * this.config.chainBonusPerLevel, this.config.maxChainBonus);
+  }
+
+  resetCombo(): void {
+    this.chainCount = 0;
+    this.chainTimer = 0;
+    eventBus.emit('score:chainEnded');
   }
 
   getMaxChainCount(): number {

@@ -38,3 +38,7 @@ Thumbs.db
 
 # WeChat devtools
 project.private.config.json
+
+# Playwright
+test-results/
+playwright-report/

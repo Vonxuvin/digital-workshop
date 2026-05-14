@@ -10,6 +10,7 @@ async function init() {
   }
   console.log('[main.ts] 步骤B: 创建Game实例');
   const game = new Game(canvas);
+  (window as any).__gameInstance = game;
   console.log('[main.ts] 步骤C: 调用game.init()');
   await game.init();
   console.log('[main.ts] 初始化完成!');

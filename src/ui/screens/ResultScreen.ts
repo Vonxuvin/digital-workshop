@@ -20,16 +20,21 @@ export class ResultScreen extends Screen {
   private scoreText: Text;
   private starsContainer: Container;
   private starTexts: Text[] = [];
-  private nextButton: Container | null = null;
-  private retryButton: Container | null = null;
-  private menuButton: Container | null = null;
-  private reviveButton: Container | null = null;
+  get starTimeline(): gsap.core.Timeline | null { return this._starTimeline; }
+  get nextButton(): Container | null { return this._nextButton; }
+  get retryButton(): Container | null { return this._retryButton; }
+  get menuButton(): Container | null { return this._menuButton; }
+
+  private _nextButton: Container | null = null;
+  private _retryButton: Container | null = null;
+  private _menuButton: Container | null = null;
+  private _reviveButton: Container | null = null;
   private onNextLevel: (() => void) | null = null;
   private onRetry: (() => void) | null = null;
   private onMenu: (() => void) | null = null;
   private onRevive: (() => void) | null = null;
   private detailsContainer: Container;
-  private starTimeline: gsap.core.Timeline | null = null;
+  private _starTimeline: gsap.core.Timeline | null = null;
   private screenWidth: number = 800;
   private screenHeight: number = 600;
 
@@ -105,9 +110,9 @@ export class ResultScreen extends Screen {
   setResult(data: ResultData): void {
     this.container.visible = true;
 
-    if (this.starTimeline) {
-      this.starTimeline.kill();
-      this.starTimeline = null;
+    if (this._starTimeline) {
+      this._starTimeline.kill();
+      this._starTimeline = null;
     }
 
     this.resultText.text = data.isWin ? '恭喜过关!' : '游戏结束';
@@ -141,20 +146,20 @@ export class ResultScreen extends Screen {
   }
 
   private animateStars(earnedStars: number): void {
-    this.starTimeline = gsap.timeline();
+    this._starTimeline = gsap.timeline();
 
     for (let i = 0; i < earnedStars; i++) {
       const star = this.starTexts[i];
       star.style.fill = 0xffd700;
 
-      this.starTimeline.to(star.scale, {
+      this._starTimeline.to(star.scale, {
         x: 1.3,
         y: 1.3,
         duration: 0.3,
         ease: 'back.out(2)',
       }, i * 0.4);
 
-      this.starTimeline.to(star.scale, {
+      this._starTimeline.to(star.scale, {
         x: 1,
         y: 1,
         duration: 0.15,
@@ -208,13 +213,13 @@ export class ResultScreen extends Screen {
     this.clearButtons();
 
     if (isWin) {
-      this.nextButton = this.createButton('下一关', 0x27ae60, () => this.onNextLevel?.());
-      this.retryButton = this.createButton('重试', 0x2d3436, () => this.onRetry?.());
-      this.menuButton = this.createButton('返回', 0x2d3436, () => this.onMenu?.());
+      this._nextButton = this.createButton('下一关', 0x27ae60, () => this.onNextLevel?.());
+      this._retryButton = this.createButton('重试', 0x2d3436, () => this.onRetry?.());
+      this._menuButton = this.createButton('返回', 0x2d3436, () => this.onMenu?.());
     } else {
-      this.reviveButton = this.createButton('复活', 0xe74c3c, () => this.onRevive?.());
-      this.retryButton = this.createButton('重试', 0x2d3436, () => this.onRetry?.());
-      this.menuButton = this.createButton('返回', 0x2d3436, () => this.onMenu?.());
+      this._reviveButton = this.createButton('复活', 0xe74c3c, () => this.onRevive?.());
+      this._retryButton = this.createButton('重试', 0x2d3436, () => this.onRetry?.());
+      this._menuButton = this.createButton('返回', 0x2d3436, () => this.onMenu?.());
     }
   }
 
@@ -246,10 +251,10 @@ export class ResultScreen extends Screen {
   }
 
   private clearButtons(): void {
-    if (this.nextButton) { this.container.removeChild(this.nextButton); this.nextButton.destroy(); this.nextButton = null; }
-    if (this.retryButton) { this.container.removeChild(this.retryButton); this.retryButton.destroy(); this.retryButton = null; }
-    if (this.menuButton) { this.container.removeChild(this.menuButton); this.menuButton.destroy(); this.menuButton = null; }
-    if (this.reviveButton) { this.container.removeChild(this.reviveButton); this.reviveButton.destroy(); this.reviveButton = null; }
+    if (this._nextButton) { this.container.removeChild(this._nextButton); this._nextButton.destroy(); this._nextButton = null; }
+    if (this._retryButton) { this.container.removeChild(this._retryButton); this._retryButton.destroy(); this._retryButton = null; }
+    if (this._menuButton) { this.container.removeChild(this._menuButton); this._menuButton.destroy(); this._menuButton = null; }
+    if (this._reviveButton) { this.container.removeChild(this._reviveButton); this._reviveButton.destroy(); this._reviveButton = null; }
   }
 
   layout(screenWidth: number, screenHeight: number): void {
@@ -266,23 +271,23 @@ export class ResultScreen extends Screen {
     const btnY = 460;
     let btnX = screenWidth / 2;
 
-    if (this.nextButton) {
-      this.nextButton.x = btnX;
-      this.nextButton.y = btnY;
+    if (this._nextButton) {
+      this._nextButton.x = btnX;
+      this._nextButton.y = btnY;
       btnX = screenWidth / 2;
     }
-    if (this.reviveButton) {
-      this.reviveButton.x = btnX;
-      this.reviveButton.y = btnY;
+    if (this._reviveButton) {
+      this._reviveButton.x = btnX;
+      this._reviveButton.y = btnY;
       btnX = screenWidth / 2;
     }
-    if (this.retryButton) {
-      this.retryButton.x = screenWidth / 2 - 80;
-      this.retryButton.y = btnY + 60;
+    if (this._retryButton) {
+      this._retryButton.x = screenWidth / 2 - 80;
+      this._retryButton.y = btnY + 60;
     }
-    if (this.menuButton) {
-      this.menuButton.x = screenWidth / 2 + 80;
-      this.menuButton.y = btnY + 60;
+    if (this._menuButton) {
+      this._menuButton.x = screenWidth / 2 + 80;
+      this._menuButton.y = btnY + 60;
     }
   }
 
@@ -295,9 +300,9 @@ export class ResultScreen extends Screen {
   }
 
   onHide(): void {
-    if (this.starTimeline) {
-      this.starTimeline.kill();
-      this.starTimeline = null;
+    if (this._starTimeline) {
+      this._starTimeline.kill();
+      this._starTimeline = null;
     }
     this.container.visible = false;
   }
@@ -307,9 +312,9 @@ export class ResultScreen extends Screen {
   }update(): void {}
 
   destroy(): void {
-    if (this.starTimeline) {
-      this.starTimeline.kill();
-      this.starTimeline = null;
+    if (this._starTimeline) {
+      this._starTimeline.kill();
+      this._starTimeline = null;
     }
     this.clearButtons();
     this.container.destroy({ children: true });

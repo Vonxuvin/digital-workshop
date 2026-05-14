@@ -10,24 +10,34 @@ import { ComboDisplay } from '../components/ComboDisplay';
 import { TimeManager } from '../../utils/TimeManager';
 
 export class GameHUD extends Container {
-  private scoreText!: Text;
-  private chainText!: Text;
-  private levelText!: Text;
-  private pauseButton!: Container;
+  private _scoreText!: Text;
+  private _chainText!: Text;
+  private _levelText!: Text;
+  private _pauseButton!: Container;
   private timerText!: Text;
-  private objectiveBar!: UIProgressBar;
+  private _objectiveBar!: UIProgressBar;
   private currentScore = 0;
   private displayScore = 0;
   private scoreProxy: { value: number };
   private scoreTween: gsap.core.Tween | null = null;
   private onScoreUpdatedBound: (data: { totalScore: number; earnedScore: number; chainCount: number }) => void;
   private propSystem: PropSystem;
-  private propButtons: Map<PropType, PropButton> = new Map();
+  private _propButtons: Map<PropType, PropButton> = new Map();
   private crosshair: Graphics | null = null;
-  private comboDisplay: ComboDisplay | null = null;
-  private propsContainer!: Container;
+  private _comboDisplay: ComboDisplay | null = null;
+  private _propsContainer!: Container;
   private selectedProp: PropType | null = null;
   private propTargetMode = false;
+
+  get scoreText(): Text { return this._scoreText; }
+  get levelText(): Text { return this._levelText; }
+  get pauseButton(): Container { return this._pauseButton; }
+  get propsContainer(): Container { return this._propsContainer; }
+  get objectiveBar(): UIProgressBar { return this._objectiveBar; }
+  get comboDisplay(): ComboDisplay | null { return this._comboDisplay; }
+  get propButtons(): Map<PropType, PropButton> { return this._propButtons; }
+
+  getObjectiveBar(): UIProgressBar { return this._objectiveBar; }
 
   constructor(propSystem: PropSystem) {
     super();
@@ -46,7 +56,7 @@ export class GameHUD extends Container {
   }
 
   private createScoreDisplay(): void {
-    this.scoreText = new Text({
+    this._scoreText = new Text({
       text: 'Score: 0',
       style: {
         fontFamily: 'Arial',
@@ -55,13 +65,13 @@ export class GameHUD extends Container {
         fontWeight: 'bold',
       },
     });
-    this.scoreText.x = 20;
-    this.scoreText.y = 20;
-    this.addChild(this.scoreText);
+    this._scoreText.x = 20;
+    this._scoreText.y = 20;
+    this.addChild(this._scoreText);
   }
 
   private createChainDisplay(): void {
-    this.chainText = new Text({
+    this._chainText = new Text({
       text: '',
       style: {
         fontFamily: 'Arial',
@@ -69,13 +79,13 @@ export class GameHUD extends Container {
         fill: 0xffd700,
       },
     });
-    this.chainText.x = 20;
-    this.chainText.y = 55;
-    this.addChild(this.chainText);
+    this._chainText.x = 20;
+    this._chainText.y = 55;
+    this.addChild(this._chainText);
   }
 
   private createLevelDisplay(): void {
-    this.levelText = new Text({
+    this._levelText = new Text({
       text: 'Level 1',
       style: {
         fontFamily: 'Arial',
@@ -83,14 +93,14 @@ export class GameHUD extends Container {
         fill: 0x999999,
       },
     });
-    this.levelText.x = 20;
-    this.levelText.y = 80;
-    this.addChild(this.levelText);
+    this._levelText.x = 20;
+    this._levelText.y = 80;
+    this.addChild(this._levelText);
   }
 
   private createPropsBar(): void {
-    this.propsContainer = new Container();
-    this.propsContainer.eventMode = 'static';
+    this._propsContainer = new Container();
+    this._propsContainer.eventMode = 'static';
 
     const propsData = [
       { type: PropType.BOMB, icon: 'bomb', row: 0, col: 0 },
@@ -116,19 +126,19 @@ export class GameHUD extends Container {
         x,
         y,
       });
-      this.propsContainer.addChild(button);
-      this.propButtons.set(propData.type, button);
+      this._propsContainer.addChild(button);
+      this._propButtons.set(propData.type, button);
     });
 
-    this.addChild(this.propsContainer);
+    this.addChild(this._propsContainer);
 
     this.crosshair = new Graphics();
     this.crosshair.visible = false;
     this.addChild(this.crosshair);
 
-    this.comboDisplay = new ComboDisplay();
-    this.comboDisplay.visible = false;
-    this.addChild(this.comboDisplay);
+    this._comboDisplay = new ComboDisplay();
+    this._comboDisplay.visible = false;
+    this.addChild(this._comboDisplay);
   }
 
   private onPropClick(type: PropType): void {
@@ -183,15 +193,15 @@ export class GameHUD extends Container {
   }
 
   updatePropButtons(): void {
-    this.propButtons.forEach((button, type) => {
+    this._propButtons.forEach((button, type) => {
       const count = this.propSystem.getPropCount(type);
       button.updateCount(count);
     });
   }
 
   showCombo(count: number): void {
-    if (this.comboDisplay) {
-      this.comboDisplay.showCombo(count);
+    if (this._comboDisplay) {
+      this._comboDisplay.showCombo(count);
     }
   }
 
@@ -221,23 +231,23 @@ export class GameHUD extends Container {
 
   setPropSelected(propType: PropType | null): void {
     if (this.selectedProp && this.selectedProp !== propType) {
-      const prev = this.propButtons.get(this.selectedProp);
+      const prev = this._propButtons.get(this.selectedProp);
       if (prev) prev.clearSelected();
     }
     this.selectedProp = propType;
     if (propType) {
-      const btn = this.propButtons.get(propType);
+      const btn = this._propButtons.get(propType);
       if (btn) btn.setSelected();
     }
   }
 
   private createPauseButton(): void {
-    this.pauseButton = new Container();
+    this._pauseButton = new Container();
 
     const bg = new Graphics();
     bg.circle(0, 0, 25);
     bg.fill({ color: 0x333333 });
-    this.pauseButton.addChild(bg);
+    this._pauseButton.addChild(bg);
 
     const icon = new Text({
       text: '⏸',
@@ -248,18 +258,18 @@ export class GameHUD extends Container {
       },
     });
     icon.anchor.set(0.5);
-    this.pauseButton.addChild(icon);
+    this._pauseButton.addChild(icon);
 
-    this.pauseButton.x = -100;
-    this.pauseButton.y = 30;
-    this.pauseButton.eventMode = 'static';
-    this.pauseButton.cursor = 'pointer';
+    this._pauseButton.x = -100;
+    this._pauseButton.y = 30;
+    this._pauseButton.eventMode = 'static';
+    this._pauseButton.cursor = 'pointer';
 
-    this.pauseButton.on('pointerdown', () => {
+    this._pauseButton.on('pointerdown', () => {
       eventBus.emit('ui:pause');
     });
 
-    this.addChild(this.pauseButton);
+    this.addChild(this._pauseButton);
   }
 
   private createTimerDisplay(): void {
@@ -296,9 +306,9 @@ export class GameHUD extends Container {
   }
 
   private createObjectiveBar(): void {
-    this.objectiveBar = new UIProgressBar(150, 12, 0x333333, 0x4ECDC4);
-    this.objectiveBar.x = -100;
-    this.objectiveBar.y = 85;
+    this._objectiveBar = new UIProgressBar(150, 12, 0x333333, 0x4ECDC4);
+    this._objectiveBar.x = -100;
+    this._objectiveBar.y = 85;
 
     const label = new Text({
       text: '进度',
@@ -310,13 +320,13 @@ export class GameHUD extends Container {
     });
     label.x = 0;
     label.y = -16;
-    this.objectiveBar.addChild(label);
+    this._objectiveBar.addChild(label);
 
-    this.addChild(this.objectiveBar);
+    this.addChild(this._objectiveBar);
   }
 
   setObjectiveProgress(progress: number): void {
-    this.objectiveBar.setProgress(progress);
+    this._objectiveBar.setProgress(progress);
   }
 
   private setupEventListeners(): void {
@@ -326,10 +336,10 @@ export class GameHUD extends Container {
   private handleScoreUpdated(data: { totalScore: number; earnedScore: number; chainCount: number }): void {
     this.currentScore = data.totalScore;
     if (data.chainCount > 1) {
-      this.chainText.text = `连锁 x${data.chainCount}!`;
+      this._chainText.text = `连锁 x${data.chainCount}!`;
       this.showCombo(data.chainCount);
     } else {
-      this.chainText.text = '';
+      this._chainText.text = '';
     }
   }
 
@@ -353,11 +363,11 @@ export class GameHUD extends Container {
       ease: 'power1.out',
       onUpdate: () => {
         this.displayScore = Math.round(this.scoreProxy.value);
-        this.scoreText.text = `Score: ${this.displayScore.toLocaleString()}`;
+        this._scoreText.text = `Score: ${this.displayScore.toLocaleString()}`;
       },
       onComplete: () => {
         this.displayScore = this.currentScore;
-        this.scoreText.text = `Score: ${this.displayScore.toLocaleString()}`;
+        this._scoreText.text = `Score: ${this.displayScore.toLocaleString()}`;
         this.scoreTween = null;
       },
     });
@@ -365,7 +375,7 @@ export class GameHUD extends Container {
   }
 
   updateLevel(levelId: number, levelName: string): void {
-    this.levelText.text = `Level ${levelId}: ${levelName}`;
+    this._levelText.text = `Level ${levelId}: ${levelName}`;
   }
 
   layout(screenWidth: number, screenHeight: number): void {
@@ -373,13 +383,13 @@ export class GameHUD extends Container {
     const buttonGap = 8;
     const rowGap = 6;
     const propsBarWidth = 3 * buttonSize + 2 * buttonGap;
-    this.propsContainer.x = screenWidth - propsBarWidth - 10;
-    this.propsContainer.y = 15;
-    this.pauseButton.x = screenWidth - 50;
-    this.pauseButton.y = 30;
+    this._propsContainer.x = screenWidth - propsBarWidth - 10;
+    this._propsContainer.y = 15;
+    this._pauseButton.x = screenWidth - 50;
+    this._pauseButton.y = 30;
     this.timerText.x = screenWidth / 2;
-    this.objectiveBar.x = screenWidth - 250;
-    this.objectiveBar.y = 85;
+    this._objectiveBar.x = screenWidth - 250;
+    this._objectiveBar.y = 85;
   }
 
   reset(): void {
@@ -390,11 +400,11 @@ export class GameHUD extends Container {
       this.scoreTween.kill();
       this.scoreTween = null;
     }
-    this.scoreText.text = 'Score: 0';
-    this.chainText.text = '';
+    this._scoreText.text = 'Score: 0';
+    this._chainText.text = '';
     this.timerText.visible = false;
     this.timerText.text = '';
-    this.objectiveBar.setProgress(0);
+    this._objectiveBar.setProgress(0);
     this.updatePropButtons();
     this.exitPropTargetMode();
   }
@@ -406,7 +416,7 @@ export class GameHUD extends Container {
     }
     this.displayScore = this.currentScore;
     this.scoreProxy.value = this.currentScore;
-    this.scoreText.text = `Score: ${this.displayScore.toLocaleString()}`;
+    this._scoreText.text = `Score: ${this.displayScore.toLocaleString()}`;
   }
 
   destroy(): void {
@@ -415,7 +425,7 @@ export class GameHUD extends Container {
       this.scoreTween.kill();
       this.scoreTween = null;
     }
-    this.propButtons.clear();
+    this._propButtons.clear();
     super.destroy();
   }
 }

@@ -45,6 +45,10 @@ export class UIManager {
     return layer;
   }
 
+  getScreens(): Map<string, Screen> {
+    return this.screens;
+  }
+
   registerScreen(name: string, screen: Screen): void {
     this.screens.set(name, screen);
     screen.visible = false;

@@ -50,6 +50,8 @@ function hslToHex(h: number, s: number, l: number): number {
 export class Block extends Container {
   public body: Matter.Body;
   public value: number;
+  get number(): number { return this.value; }
+  get color(): number { return this.config.color; }
   private config: BlockConfig;
   private sprite: Sprite;
   private _destroyed: boolean = false;

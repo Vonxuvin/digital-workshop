@@ -32,6 +32,7 @@ export interface PlayerData {
     totalPlayTime: number;
     highestMerge: number;
     longestCombo: number;
+    maxCombo: number;
   };
   lastSaveTime: number;
 }
@@ -100,6 +101,7 @@ export class SaveManager {
         totalPlayTime: 0,
         highestMerge: 0,
         longestCombo: 0,
+        maxCombo: 0,
       },
       lastSaveTime: Date.now(),
     };
@@ -203,6 +205,9 @@ export class SaveManager {
     }
     if (comboCount > this.data.playStatistics.longestCombo) {
       this.data.playStatistics.longestCombo = comboCount;
+    }
+    if (comboCount > this.data.playStatistics.maxCombo) {
+      this.data.playStatistics.maxCombo = comboCount;
     }
     this.markDirty();
   }

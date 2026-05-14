@@ -158,6 +158,7 @@ export class MergeSystem {
       newBlock,
       destroyedBlocks: [blockA, blockB],
     });
+    console.log(`[MergeSystem] block:merged`, { newValue: mergedValue });
 
     console.log(`[MergeSystem] 合成: ${blockA.value} + ${blockB.value} = ${mergedValue}`);
 

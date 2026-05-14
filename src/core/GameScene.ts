@@ -80,6 +80,7 @@ export class GameScene {
   }
 
   init(): void {
+    this.propSystem.setPhysicsManager(this.physics);
     this.blockSpawner = new BlockSpawner(this.physics, this.mergeSystem, this.propSystem, this.app.stage);
     this.blockSpawner.setOnBlockDropped((block) => {
       if (this.propEffectHandler.isShrinkActive()) {
@@ -487,6 +488,20 @@ export class GameScene {
   getPropSystem(): PropSystem { return this.propSystem; }
   getModifierManager(): ModifierManager { return this.modifierManager; }
   getPropEffectHandler(): PropEffectHandler { return this.propEffectHandler; }
+
+  getContainer(): { width: number; height: number } {
+    return { width: this.containerWidth, height: this.containerHeight };
+  }
+
+  checkWarningLine(): boolean {
+    if (!this.warningLine) return false;
+    const blocks = this.blockSpawner.getBlocks();
+    return blocks.some(b => b.y <= (this.warningLine?.y ?? Infinity));
+  }
+
+  checkGameOver(): boolean {
+    return this.checkWarningLine();
+  }
 
   setWarningLineVisible(visible: boolean): void {
     if (this.warningLine) {

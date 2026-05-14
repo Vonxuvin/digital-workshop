@@ -8,7 +8,7 @@ const VALID_TRANSITIONS: Record<GameState, GameState[]> = {
   'boot': ['loading'],
   'loading': ['menu'],
   'menu': ['playing'],
-  'playing': ['paused', 'gameover', 'levelComplete'],
+  'playing': ['paused', 'gameover', 'levelComplete', 'menu'],
   'paused': ['playing', 'menu'],
   'gameover': ['menu', 'playing'],
   'levelComplete': ['menu', 'playing'],
@@ -95,6 +95,14 @@ export class GameStateMachine {
 
   canTransition(to: GameState): boolean {
     return VALID_TRANSITIONS[this.currentState]?.includes(to) || false;
+  }
+
+  transitionTo(to: GameState): boolean {
+    return this.transition(to);
+  }
+
+  canTransitionTo(to: GameState): boolean {
+    return this.canTransition(to);
   }
 
   reset(): void {

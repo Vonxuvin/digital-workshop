@@ -79,4 +79,12 @@ export class MockAdapter implements PlatformAdapter {
   getPlatform(): string {
     return 'mock';
   }
+
+  isBrowser(): boolean {
+    return true;
+  }
+
+  mockWxAPI(): void {
+    console.log('[MockAdapter] wx API mock not needed in browser');
+  }
 }

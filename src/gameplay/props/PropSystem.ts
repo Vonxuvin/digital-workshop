@@ -5,6 +5,7 @@ import { RainbowProp } from './RainbowProp';
 import { FreezeProp } from './FreezeProp';
 import { ShrinkProp } from './ShrinkProp';
 import { LuckyProp } from './LuckyProp';
+import { PhysicsManager } from '../../core/PhysicsManager';
 
 export class PropSystem {
   private static instance: PropSystem | null = null;
@@ -12,8 +13,18 @@ export class PropSystem {
   private propsConfig: Map<string, PropConfig> = new Map();
   private eventBus = eventBus;
   private isPaused: boolean = false;
+  private physicsManager: PhysicsManager | null = null;
 
   constructor() {}
+
+  setPhysicsManager(physicsManager: PhysicsManager): void {
+    this.physicsManager = physicsManager;
+    this.props.forEach((prop) => {
+      if (prop instanceof FreezeProp) {
+        (prop as FreezeProp).setPhysicsManager(physicsManager);
+      }
+    });
+  }
 
   static setInstance(instance: PropSystem): void {
     PropSystem.instance = instance;
@@ -39,6 +50,9 @@ export class PropSystem {
       const config = this.propsConfig.get(prop.type);
       if (config) {
         const propInstance = this.createPropInstance(prop.type, config);
+        if (propInstance instanceof FreezeProp && this.physicsManager) {
+          (propInstance as FreezeProp).setPhysicsManager(this.physicsManager);
+        }
         this.props.set(prop.type, propInstance);
       }
     }
@@ -74,6 +88,7 @@ export class PropSystem {
     const success = prop.use(target);
     if (success) {
       this.eventBus.emit('props:used', { type, remaining: prop.getRemainingCount() });
+      console.log(`[PropSystem] props:used`, { type, remaining: prop.getRemainingCount() });
     }
     return success;
   }

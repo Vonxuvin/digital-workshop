@@ -30,6 +30,10 @@ export class PerformanceMonitor {
     return Math.round(1000 / avgFrameTime);
   }
 
+  getAverageFPS(): number {
+    return this.getFPS();
+  }
+
   getAverageFrameTime(): number {
     if (this.frameTimes.length === 0) return 16.67;
     return this.frameTimes.reduce((a, b) => a + b, 0) / this.frameTimes.length;

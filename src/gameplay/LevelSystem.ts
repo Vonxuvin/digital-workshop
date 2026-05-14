@@ -220,6 +220,14 @@ export class LevelSystem {
     return this.isCompleted;
   }
 
+  updateProgress(): void {
+    this.checkObjective();
+  }
+
+  checkWinCondition(): boolean {
+    return this.isCompleted;
+  }
+
   getHighestMergeValue(): number {
     return this.highestMergeValue;
   }

@@ -231,6 +231,7 @@ export class AudioManager {
   }
 
   private playSfx(key: string): void {
+    console.log(`playSfx('${key}')`);
     this.play(key);
   }
 

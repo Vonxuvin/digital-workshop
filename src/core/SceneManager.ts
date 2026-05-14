@@ -80,6 +80,22 @@ export class SceneManager {
     }
   }
 
+  startGame(): void {
+    const firstUnlocked = this.findFirstUnlockedLevel();
+    const config = this.levelLoader.getLevelConfig(firstUnlocked);
+    if (config) {
+      this.startLevel(config);
+    }
+  }
+
+  private findFirstUnlockedLevel(): number {
+    for (let id = 1; id <= 15; id++) {
+      const progress = this.saveManager.getLevelProgress(id);
+      if (progress.unlocked && !progress.completed) return id;
+    }
+    return 1;
+  }
+
   pauseGame(): void {
     if (this.stateMachine.canTransition('paused')) {
       this.stateMachine.transition('paused');

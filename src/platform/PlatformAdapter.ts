@@ -24,4 +24,6 @@ export interface PlatformAdapter {
   vibrateShort(): void;
   vibrateLong(): void;
   getPlatform(): string;
+  isBrowser?(): boolean;
+  mockWxAPI?(): void;
 }
