@@ -4,7 +4,7 @@ vi.mock('pixi.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('pixi.js')>();
   return {
     ...actual,
-    Application: vi.fn().mockImplementation(() => {
+    Application: vi.fn(function() {
       const stage = {
         children: [] as unknown[],
         addChild: vi.fn(),

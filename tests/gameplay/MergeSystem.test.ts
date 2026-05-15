@@ -23,6 +23,7 @@ describe('MergeSystem', () => {
     block1?.destroy();
     block2?.destroy();
     physics.clearAll();
+    vi.restoreAllMocks();
   });
 
   const createBlocks = () => {
