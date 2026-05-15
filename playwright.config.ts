@@ -26,7 +26,7 @@ export default defineConfig({
   projects: [
     {
       name: 'smoke',
-      testMatch: /.*@smoke.*/,
+      grep: /@smoke/,
       use: { ...devices['Desktop Chrome'] },
     },
     {

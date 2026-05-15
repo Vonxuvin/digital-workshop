@@ -12,13 +12,15 @@ export async function navigateToGame(page: Page, startPlaying = true) {
       const game = (window as any).__gameInstance;
       if (!game) return false;
       try {
-        const app = game.getApp?.() ?? game.app;
-        return app !== null && app !== undefined;
+        const stateMachine = game.getStateMachine?.();
+        if (!stateMachine) return false;
+        const state = stateMachine.getCurrentState?.();
+        return state === 'menu' || state === 'loading';
       } catch {
         return false;
       }
     },
-    { timeout: 20000 }
+    { timeout: 30000 }
   );
   if (startPlaying) {
     await page.evaluate(() => {

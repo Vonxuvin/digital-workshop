@@ -81,7 +81,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run Smoke E2E Tests
-        run: npx playwright test --grep @smoke
+        run: npx playwright test --grep @smoke --project=chromium-desktop
 
   e2e-tests:
     name: E2E Tests (Desktop, Shard ${{ matrix.shard }}/4)
@@ -118,7 +118,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: 运行 E2E 测试 (Shard ${{ matrix.shard }}/4)
-        run: npx playwright test --shard=${{ matrix.shard }}/4
+        run: npx playwright test --shard=${{ matrix.shard }}/4 --project=chromium-desktop
 
       - name: 上传 Playwright 报告
         if: always()
