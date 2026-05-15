@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { navigateToGame, dropBlocks, waitForStable } from './helpers';
 
-test.describe('渲染与性能', () => {
-  test.describe('基础渲染', () => {
+test.describe('渲染与性能 @regression', () => {
+  test.describe('基础渲染 @smoke', () => {
     test('游戏画面应正确渲染非空白内容', async ({ page }) => {
       await navigateToGame(page);
 
@@ -18,9 +18,13 @@ test.describe('渲染与性能', () => {
         if (!canvas) return true;
         const gl = canvas.getContext('webgl') || canvas.getContext('webgl2');
         if (!gl) return true;
-        const pixels = new Uint8Array(4);
-        gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-        return pixels[0] === 0 && pixels[1] === 0 && pixels[2] === 0 && pixels[3] === 0;
+        try {
+          const pixels = new Uint8Array(4);
+          gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+          return pixels[0] === 0 && pixels[1] === 0 && pixels[2] === 0 && pixels[3] === 0;
+        } catch {
+          return false;
+        }
       });
 
       expect(isBlackScreen).toBeFalsy();
@@ -32,10 +36,14 @@ test.describe('渲染与性能', () => {
       const hasContainer = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
         if (!game) return false;
-        const scene = game.getGameScene?.();
-        if (!scene) return false;
-        const container = scene.getContainer?.();
-        return container !== null && container.width > 0 && container.height > 0;
+        try {
+          const scene = game.getGameScene?.();
+          if (!scene) return false;
+          const container = scene.getContainer?.();
+          return container !== null && container.width > 0 && container.height > 0;
+        } catch {
+          return false;
+        }
       });
 
       expect(hasContainer).toBeTruthy();
@@ -49,10 +57,14 @@ test.describe('渲染与性能', () => {
       const hasBlocks = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
         if (!game) return false;
-        const spawner = game.getBlockSpawner?.();
-        if (!spawner) return false;
-        const blocks = spawner.getBlocks?.();
-        return blocks && blocks.length > 0;
+        try {
+          const spawner = game.getBlockSpawner?.();
+          if (!spawner) return false;
+          const blocks = spawner.getBlocks?.();
+          return blocks && blocks.length > 0;
+        } catch {
+          return false;
+        }
       });
 
       expect(hasBlocks).toBeTruthy();
@@ -66,26 +78,34 @@ test.describe('渲染与性能', () => {
       const hasText = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
         if (!game) return false;
-        const spawner = game.getBlockSpawner?.();
-        if (!spawner) return false;
-        const blocks = spawner.getBlocks?.();
-        if (!blocks || blocks.length === 0) return false;
-        return blocks.some((b: any) => b.number !== undefined && b.number > 0);
+        try {
+          const spawner = game.getBlockSpawner?.();
+          if (!spawner) return false;
+          const blocks = spawner.getBlocks?.();
+          if (!blocks || blocks.length === 0) return false;
+          return blocks.some((b: any) => b.number !== undefined && b.number > 0);
+        } catch {
+          return false;
+        }
       });
 
       expect(hasText).toBeTruthy();
     });
   });
 
-  test.describe('帧率性能', () => {
+  test.describe('帧率性能 @regression', () => {
     test('FPS监控应正常工作', async ({ page }) => {
       await navigateToGame(page);
 
       const hasFPSMonitor = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
         if (!game) return false;
-        const monitor = game.getPerformanceMonitor?.();
-        return monitor !== null && monitor !== undefined;
+        try {
+          const monitor = game.getPerformanceMonitor?.();
+          return monitor !== null && monitor !== undefined;
+        } catch {
+          return false;
+        }
       });
 
       expect(hasFPSMonitor).toBeTruthy();
@@ -98,8 +118,12 @@ test.describe('渲染与性能', () => {
       const fps = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
         if (!game) return -1;
-        const monitor = game.getPerformanceMonitor?.();
-        return monitor?.getAverageFPS?.() ?? -1;
+        try {
+          const monitor = game.getPerformanceMonitor?.();
+          return monitor?.getAverageFPS?.() ?? -1;
+        } catch {
+          return -1;
+        }
       });
 
       expect(fps).toBeGreaterThanOrEqual(5);
@@ -113,15 +137,19 @@ test.describe('渲染与性能', () => {
       const fps = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
         if (!game) return -1;
-        const monitor = game.getPerformanceMonitor?.();
-        return monitor?.getAverageFPS?.() ?? -1;
+        try {
+          const monitor = game.getPerformanceMonitor?.();
+          return monitor?.getAverageFPS?.() ?? -1;
+        } catch {
+          return -1;
+        }
       });
 
       expect(fps).toBeGreaterThanOrEqual(1);
     });
   });
 
-  test.describe('内存管理', () => {
+  test.describe('内存管理 @full', () => {
     test('场景切换后旧资源应被释放', async ({ page }) => {
       await navigateToGame(page);
       await dropBlocks(page, 5);
@@ -130,15 +158,21 @@ test.describe('渲染与性能', () => {
       const blockCountBefore = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
         if (!game) return -1;
-        const spawner = game.getBlockSpawner?.();
-        return spawner?.getBlocks?.()?.length ?? -1;
+        try {
+          const spawner = game.getBlockSpawner?.();
+          return spawner?.getBlocks?.()?.length ?? -1;
+        } catch {
+          return -1;
+        }
       });
 
       await page.evaluate(() => {
         const game = (window as any).__gameInstance;
         if (!game) return;
-        const scene = game.getGameScene?.();
-        scene?.resetGame?.();
+        try {
+          const scene = game.getGameScene?.();
+          scene?.resetGame?.();
+        } catch {}
       });
 
       await waitForStable(page);
@@ -146,15 +180,19 @@ test.describe('渲染与性能', () => {
       const blockCountAfter = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
         if (!game) return -1;
-        const spawner = game.getBlockSpawner?.();
-        return spawner?.getBlocks?.()?.length ?? -1;
+        try {
+          const spawner = game.getBlockSpawner?.();
+          return spawner?.getBlocks?.()?.length ?? -1;
+        } catch {
+          return -1;
+        }
       });
 
       expect(blockCountAfter).toBeLessThan(blockCountBefore);
     });
   });
 
-  test.describe('窗口适配', () => {
+  test.describe('窗口适配 @regression', () => {
     test('窗口缩放应触发resize处理', async ({ page }) => {
       await navigateToGame(page);
 
@@ -194,25 +232,29 @@ test.describe('渲染与性能', () => {
     });
   });
 
-  test.describe('渲染层级', () => {
+  test.describe('渲染层级 @regression', () => {
     test('UIManager应包含5个渲染层级', async ({ page }) => {
       await navigateToGame(page);
 
       const layers = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
         if (!game) return [];
-        const ui = game.getUIManager?.();
-        if (!ui) return [];
+        try {
+          const ui = game.getUIManager?.();
+          if (!ui) return [];
 
-        const layerNames = ['background', 'main', 'popup', 'overlay', 'toast'];
-        const results: string[] = [];
-        for (const name of layerNames) {
-          try {
-            const layer = ui.getLayer?.(name);
-            if (layer) results.push(name);
-          } catch {}
+          const layerNames = ['background', 'main', 'popup', 'overlay', 'toast'];
+          const results: string[] = [];
+          for (const name of layerNames) {
+            try {
+              const layer = ui.getLayer?.(name);
+              if (layer) results.push(name);
+            } catch {}
+          }
+          return results;
+        } catch {
+          return [];
         }
-        return results;
       });
 
       expect(layers.length).toBe(5);
@@ -224,15 +266,19 @@ test.describe('渲染与性能', () => {
       const layerOrder = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
         if (!game) return false;
-        const ui = game.getUIManager?.();
-        if (!ui) return false;
-        const mainLayer = ui.getLayer?.('main');
-        if (!mainLayer) return false;
-        const mainLayerIndex = mainLayer.parent?.getChildIndex(mainLayer);
-        const bgLayer = ui.getLayer?.('background');
-        if (!bgLayer) return false;
-        const bgLayerIndex = bgLayer.parent?.getChildIndex(bgLayer);
-        return mainLayerIndex > bgLayerIndex;
+        try {
+          const ui = game.getUIManager?.();
+          if (!ui) return false;
+          const mainLayer = ui.getLayer?.('main');
+          if (!mainLayer) return false;
+          const mainLayerIndex = mainLayer.parent?.getChildIndex(mainLayer);
+          const bgLayer = ui.getLayer?.('background');
+          if (!bgLayer) return false;
+          const bgLayerIndex = bgLayer.parent?.getChildIndex(bgLayer);
+          return mainLayerIndex > bgLayerIndex;
+        } catch {
+          return false;
+        }
       });
 
       expect(layerOrder).toBeTruthy();

@@ -6,7 +6,7 @@ export default defineConfig({
     exclude: ['tests/e2e/**', 'node_modules/**'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'text-summary'],
+      reporter: ['text', 'text-summary', 'html'],
       include: [
         'src/core/GameStateMachine.ts',
         'src/core/LevelLoader.ts',

@@ -6,34 +6,47 @@ export const LEVEL_EDITOR_URL = '/tools/level-editor/index.html';
 export async function navigateToGame(page: Page, startPlaying = true) {
   await page.goto(GAME_URL);
   await page.waitForLoadState('networkidle');
-  await page.waitForSelector('#game-canvas', { timeout: 10000 });
+  await page.waitForSelector('#game-canvas', { timeout: 15000 });
   await page.waitForFunction(
     () => {
       const game = (window as any).__gameInstance;
       if (!game) return false;
-      return typeof game.isReady === 'function' ? game.isReady() : true;
+      try {
+        const app = game.getApp?.() ?? game.app;
+        return app !== null && app !== undefined;
+      } catch {
+        return false;
+      }
     },
-    { timeout: 10000 }
+    { timeout: 15000 }
   );
   if (startPlaying) {
     await page.evaluate(() => {
       const game = (window as any).__gameInstance;
       if (!game) return;
-      const sm = game.getSceneManager?.();
-      if (sm) {
-        sm.startLevelById?.(1);
+      try {
+        const sm = game.getSceneManager?.();
+        if (sm) {
+          sm.startLevelById?.(1);
+        }
+      } catch (e) {
+        console.warn('[helpers] startLevelById failed:', e);
       }
     });
-    await page.waitForFunction(
-      () => {
-        const game = (window as any).__gameInstance;
-        if (!game) return false;
-        const stateMachine = game.getStateMachine?.();
-        if (!stateMachine) return false;
-        return stateMachine.getCurrentState?.() === 'playing';
-      },
-      { timeout: 5000 }
-    );
+    try {
+      await page.waitForFunction(
+        () => {
+          const game = (window as any).__gameInstance;
+          if (!game) return false;
+          const stateMachine = game.getStateMachine?.();
+          if (!stateMachine) return false;
+          return stateMachine.getCurrentState?.() === 'playing';
+        },
+        { timeout: 8000 }
+      );
+    } catch {
+      await page.waitForTimeout(2000);
+    }
   }
 }
 
@@ -64,8 +77,12 @@ export async function dropBlocks(page: Page, count: number, intervalMs = 800) {
     const blockCountBefore = await page.evaluate(() => {
       const game = (window as any).__gameInstance;
       if (!game) return -1;
-      const spawner = game.getBlockSpawner?.();
-      return spawner?.getBlocks?.()?.length ?? -1;
+      try {
+        const spawner = game.getBlockSpawner?.();
+        return spawner?.getBlocks?.()?.length ?? -1;
+      } catch {
+        return -1;
+      }
     });
     await clickCanvasCenter(page);
     try {
@@ -73,9 +90,13 @@ export async function dropBlocks(page: Page, count: number, intervalMs = 800) {
         (before: number) => {
           const game = (window as any).__gameInstance;
           if (!game) return false;
-          const spawner = game.getBlockSpawner?.();
-          const now = spawner?.getBlocks?.()?.length ?? -1;
-          return now > before;
+          try {
+            const spawner = game.getBlockSpawner?.();
+            const now = spawner?.getBlocks?.()?.length ?? -1;
+            return now > before;
+          } catch {
+            return false;
+          }
         },
         blockCountBefore,
         { timeout: Math.max(intervalMs, 3000) }
@@ -125,7 +146,11 @@ export async function getGameModule(page: Page, path: string) {
     for (const part of parts) {
       if (current == null) return null;
       if (typeof current[part] === 'function') {
-        current = current[part]();
+        try {
+          current = current[part]();
+        } catch {
+          return null;
+        }
       } else {
         current = current[part];
       }

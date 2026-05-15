@@ -11,7 +11,9 @@ export default defineConfig({
     ['list'],
     ['json', { outputFile: 'playwright-report/results.json' }],
   ],
-  timeout: 60000,
+  timeout: 45000,
+  globalTimeout: 300000,
+  actionTimeout: 15000,
   expect: {
     timeout: 10000,
   },
@@ -22,6 +24,11 @@ export default defineConfig({
     video: 'retain-on-failure',
   },
   projects: [
+    {
+      name: 'smoke',
+      testMatch: /.*@smoke.*/,
+      use: { ...devices['Desktop Chrome'] },
+    },
     {
       name: 'chromium-desktop',
       use: { ...devices['Desktop Chrome'] },
@@ -49,9 +56,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run dev',
+    command: process.env.CI ? 'npm run build && npm run preview' : 'npm run dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
-    timeout: 30000,
+    timeout: 120000,
   },
 });

@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { navigateToGame, collectPageErrors, GAME_URL } from './helpers';
 
-test.describe('启动与初始化', () => {
-  test.describe('页面加载', () => {
+test.describe('启动与初始化 @smoke', () => {
+  test.describe('页面加载 @smoke', () => {
     test('页面应正确加载并返回200状态码', async ({ page }) => {
       const response = await page.goto(GAME_URL);
       expect(response?.status()).toBe(200);
@@ -31,7 +31,7 @@ test.describe('启动与初始化', () => {
     });
   });
 
-  test.describe('Canvas初始化', () => {
+  test.describe('Canvas初始化 @smoke', () => {
     test('Canvas元素应正确创建并可见', async ({ page }) => {
       await navigateToGame(page);
 
@@ -59,23 +59,31 @@ test.describe('启动与初始化', () => {
         if (gl) return true;
         const game = (window as any).__gameInstance;
         if (!game) return false;
-        const app = game.getApp?.();
-        return app !== null && app !== undefined;
+        try {
+          const app = game.getApp?.() ?? game.app;
+          return app !== null && app !== undefined;
+        } catch {
+          return false;
+        }
       });
 
       expect(hasWebGL).toBeTruthy();
     });
   });
 
-  test.describe('引擎启动', () => {
+  test.describe('引擎启动 @smoke', () => {
     test('PixiJS Application应正确初始化', async ({ page }) => {
       await navigateToGame(page);
 
       const appInitialized = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
         if (!game) return false;
-        const app = game.getApp?.() ?? game.app;
-        return app !== null && app !== undefined;
+        try {
+          const app = game.getApp?.() ?? game.app;
+          return app !== null && app !== undefined;
+        } catch {
+          return false;
+        }
       });
 
       expect(appInitialized).toBeTruthy();
@@ -88,8 +96,12 @@ test.describe('启动与初始化', () => {
         const game = (window as any).__gameInstance;
         if (!game) return false;
         try {
-          const instance = game.constructor?.getInstance?.();
-          return instance === game;
+          const GameConstructor = game.constructor;
+          if (typeof GameConstructor?.getInstance === 'function') {
+            const instance = GameConstructor.getInstance();
+            return instance === game;
+          }
+          return false;
         } catch {
           return false;
         }
@@ -119,7 +131,7 @@ test.describe('启动与初始化', () => {
     });
   });
 
-  test.describe('首屏加载性能', () => {
+  test.describe('首屏加载性能 @regression', () => {
     test('首屏加载应在合理时间内完成', async ({ page }) => {
       const startTime = Date.now();
       await navigateToGame(page);
@@ -134,8 +146,12 @@ test.describe('启动与初始化', () => {
       const fps = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
         if (!game) return -1;
-        const monitor = game.getPerformanceMonitor?.();
-        return monitor?.getAverageFPS?.() ?? -1;
+        try {
+          const monitor = game.getPerformanceMonitor?.();
+          return monitor?.getAverageFPS?.() ?? -1;
+        } catch {
+          return -1;
+        }
       });
 
       expect(fps).toBeGreaterThan(0);
