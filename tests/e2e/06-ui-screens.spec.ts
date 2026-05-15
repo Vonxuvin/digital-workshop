@@ -255,23 +255,64 @@ test.describe('UI界面 @regression', () => {
       expect(isPaused).toBeTruthy();
     });
 
-    test('暂停界面应包含重新开始和返回菜单功能', async ({ page }) => {
+    test('暂停界面应包含重新开始按钮', async ({ page }) => {
       await navigateToGame(page);
 
-      const hasRestartAndMenu = await page.evaluate(() => {
+      await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return;
+        try {
+          const sm = game.getSceneManager?.();
+          sm?.pauseGame?.();
+        } catch {}
+      });
+
+      await page.waitForTimeout(500);
+
+      const hasRestartButton = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
         if (!game) return false;
         try {
-          const sm = game.getSceneManager?.();
-          if (!sm) return false;
-          return typeof sm.restartGame === 'function'
-            && typeof sm.showMainMenu === 'function';
+          const pauseScreen = game.getPauseScreen?.();
+          if (!pauseScreen) return false;
+          const btn = pauseScreen.getRestartButton?.();
+          return btn !== null && btn !== undefined;
         } catch {
           return false;
         }
       });
 
-      expect(hasRestartAndMenu).toBeTruthy();
+      expect(hasRestartButton).toBeTruthy();
+    });
+
+    test('暂停界面应包含返回主菜单按钮', async ({ page }) => {
+      await navigateToGame(page);
+
+      await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return;
+        try {
+          const sm = game.getSceneManager?.();
+          sm?.pauseGame?.();
+        } catch {}
+      });
+
+      await page.waitForTimeout(500);
+
+      const hasMenuButton = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const pauseScreen = game.getPauseScreen?.();
+          if (!pauseScreen) return false;
+          const btn = pauseScreen.getMenuButton?.();
+          return btn !== null && btn !== undefined;
+        } catch {
+          return false;
+        }
+      });
+
+      expect(hasMenuButton).toBeTruthy();
     });
 
     test('暂停时游戏应停止运行', async ({ page }) => {

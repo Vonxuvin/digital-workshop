@@ -117,4 +117,20 @@ export class PauseScreen extends Screen {
   hide(): void {
     this.visible = false;
   }
+
+  getRestartButton(): Container | undefined {
+    return this.restartButton;
+  }
+
+  getMenuButton(): Container | undefined {
+    return this.menuButton;
+  }
+
+  getContinueButton(): Container | undefined {
+    return this.continueButton;
+  }
+
+  isInitialized(): boolean {
+    return this.initialized;
+  }
 }

@@ -62,7 +62,7 @@ test.describe('输入与交互 @smoke', () => {
 
       for (let i = 0; i < 5; i++) {
         await clickCanvasCenter(page);
-        await page.waitForTimeout(200);
+        await page.waitForTimeout(400);
       }
 
       await waitForStable(page, 2000);
@@ -302,7 +302,40 @@ test.describe('输入与交互 @smoke', () => {
       const cx = box.x + box.width / 2;
       const cy = box.y + box.height / 2;
 
-      await page.mouse.click(cx, cy);
+      const finger1 = await page.context().newCDPSession(page);
+      const finger2 = await page.context().newCDPSession(page);
+
+      try {
+        await finger1.send('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints: [{ x: cx - 50, y: cy, id: 0 }],
+        });
+        await finger2.send('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints: [{ x: cx + 50, y: cy, id: 1 }],
+        });
+
+        await finger1.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [{ x: cx - 100, y: cy, id: 0 }],
+        });
+        await finger2.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [{ x: cx + 100, y: cy, id: 1 }],
+        });
+
+        await finger1.send('Input.dispatchTouchEvent', {
+          type: 'touchEnd',
+          touchPoints: [{ x: cx - 100, y: cy, id: 0 }],
+        });
+        await finger2.send('Input.dispatchTouchEvent', {
+          type: 'touchEnd',
+          touchPoints: [{ x: cx + 100, y: cy, id: 1 }],
+        });
+      } catch {
+        await page.mouse.click(cx, cy);
+      }
+
       await waitForStable(page, 500);
 
       const noCrash = await page.evaluate(() => {
