@@ -333,7 +333,7 @@ test.describe('输入与交互 @smoke', () => {
       const cx = box.x + box.width / 2;
       const cy = box.y + box.height / 2;
 
-      const cdpSession = await page.context().newCDPSession();
+      const cdpSession = await page.context().newCDPSession(page);
 
       try {
         await cdpSession.send('Input.dispatchTouchEvent', {
