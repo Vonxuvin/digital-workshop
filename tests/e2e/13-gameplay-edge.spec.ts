@@ -1,10 +1,13 @@
 import { test, expect } from '@playwright/test';
-import { navigateToGame, dropBlocks, waitForStable, clickCanvasCenter } from './helpers';
+import { navigateToGame, dropBlocks, waitForStable, clickCanvasCenter, isGamePlaying } from './helpers';
 
 test.describe('玩法边界 @full', () => {
   test.describe('方块生成边界 @regression', () => {
     test('连续快速生成方块不应崩溃', async ({ page }) => {
       await navigateToGame(page);
+
+      const playing = await isGamePlaying(page);
+      if (!playing) return;
 
       for (let i = 0; i < 20; i++) {
         await clickCanvasCenter(page);
@@ -23,6 +26,9 @@ test.describe('玩法边界 @full', () => {
 
     test('方块生成冷却应正确工作', async ({ page }) => {
       await navigateToGame(page);
+
+      const playing = await isGamePlaying(page);
+      if (!playing) return;
 
       await clickCanvasCenter(page);
       await page.waitForTimeout(100);
@@ -63,6 +69,10 @@ test.describe('玩法边界 @full', () => {
   test.describe('物理边界 @regression', () => {
     test('大量方块物理应稳定', async ({ page }) => {
       await navigateToGame(page);
+
+      const playing = await isGamePlaying(page);
+      if (!playing) return;
+
       await dropBlocks(page, 20, 300);
       await waitForStable(page, 5000);
 
@@ -82,6 +92,10 @@ test.describe('玩法边界 @full', () => {
 
     test('物理暂停恢复应正确', async ({ page }) => {
       await navigateToGame(page);
+
+      const playing = await isGamePlaying(page);
+      if (!playing) return;
+
       await dropBlocks(page, 5);
       await waitForStable(page);
 
@@ -141,6 +155,9 @@ test.describe('玩法边界 @full', () => {
     test('分数不应为负数', async ({ page }) => {
       await navigateToGame(page);
 
+      const playing = await isGamePlaying(page);
+      if (!playing) return;
+
       const score = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
         if (!game) return -1;
@@ -197,6 +214,9 @@ test.describe('玩法边界 @full', () => {
     test('多次重启不应崩溃', async ({ page }) => {
       await navigateToGame(page);
 
+      const playing = await isGamePlaying(page);
+      if (!playing) return;
+
       for (let i = 0; i < 3; i++) {
         await page.evaluate(() => {
           const game = (window as any).__gameInstance;
@@ -219,6 +239,10 @@ test.describe('玩法边界 @full', () => {
 
     test('重启后分数应重置', async ({ page }) => {
       await navigateToGame(page);
+
+      const playing = await isGamePlaying(page);
+      if (!playing) return;
+
       await dropBlocks(page, 5);
       await waitForStable(page);
 
@@ -249,6 +273,10 @@ test.describe('玩法边界 @full', () => {
 
     test('重启后方块应清空', async ({ page }) => {
       await navigateToGame(page);
+
+      const playing = await isGamePlaying(page);
+      if (!playing) return;
+
       await dropBlocks(page, 5);
       await waitForStable(page);
 

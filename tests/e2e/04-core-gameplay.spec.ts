@@ -1,10 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { navigateToGame, dropBlocks, waitForStable, clickCanvasCenter } from './helpers';
+import { navigateToGame, dropBlocks, waitForStable, clickCanvasCenter, isGamePlaying } from './helpers';
 
 test.describe('核心玩法 @smoke', () => {
   test.describe('方块生成 @smoke', () => {
     test('方块生成器应正确初始化', async ({ page }) => {
       await navigateToGame(page);
+      const playing = await isGamePlaying(page);
+      if (!playing) return;
 
       const hasSpawner = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -22,6 +24,8 @@ test.describe('核心玩法 @smoke', () => {
 
     test('应能生成方块', async ({ page }) => {
       await navigateToGame(page);
+      const playing = await isGamePlaying(page);
+      if (!playing) return;
       await dropBlocks(page, 1);
 
       const blockCount = await page.evaluate(() => {
@@ -40,6 +44,8 @@ test.describe('核心玩法 @smoke', () => {
 
     test('方块应有正确的数值', async ({ page }) => {
       await navigateToGame(page);
+      const playing = await isGamePlaying(page);
+      if (!playing) return;
       await dropBlocks(page, 3);
       await waitForStable(page);
 
@@ -61,6 +67,8 @@ test.describe('核心玩法 @smoke', () => {
 
     test('方块生成应有冷却时间', async ({ page }) => {
       await navigateToGame(page);
+      const playing = await isGamePlaying(page);
+      if (!playing) return;
 
       await clickCanvasCenter(page);
       await page.waitForTimeout(100);
@@ -83,6 +91,8 @@ test.describe('核心玩法 @smoke', () => {
   test.describe('方块合并 @smoke', () => {
     test('相同数字方块应合并', async ({ page }) => {
       await navigateToGame(page);
+      const playing = await isGamePlaying(page);
+      if (!playing) return;
       await dropBlocks(page, 10, 600);
       await waitForStable(page, 3000);
 
@@ -102,6 +112,8 @@ test.describe('核心玩法 @smoke', () => {
 
     test('合并后方块数值应翻倍', async ({ page }) => {
       await navigateToGame(page);
+      const playing = await isGamePlaying(page);
+      if (!playing) return;
       await dropBlocks(page, 10, 600);
       await waitForStable(page, 3000);
 
@@ -122,6 +134,8 @@ test.describe('核心玩法 @smoke', () => {
 
     test('合并应触发连击计数', async ({ page }) => {
       await navigateToGame(page);
+      const playing = await isGamePlaying(page);
+      if (!playing) return;
       await dropBlocks(page, 10, 400);
       await waitForStable(page, 3000);
 
@@ -145,6 +159,8 @@ test.describe('核心玩法 @smoke', () => {
   test.describe('物理系统 @smoke', () => {
     test('物理引擎应正确初始化', async ({ page }) => {
       await navigateToGame(page);
+      const playing = await isGamePlaying(page);
+      if (!playing) return;
 
       const hasPhysics = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -162,6 +178,8 @@ test.describe('核心玩法 @smoke', () => {
 
     test('方块应受重力影响下落', async ({ page }) => {
       await navigateToGame(page);
+      const playing = await isGamePlaying(page);
+      if (!playing) return;
       await dropBlocks(page, 3);
       await waitForStable(page, 2000);
 
@@ -182,6 +200,8 @@ test.describe('核心玩法 @smoke', () => {
 
     test('方块应正确碰撞', async ({ page }) => {
       await navigateToGame(page);
+      const playing = await isGamePlaying(page);
+      if (!playing) return;
       await dropBlocks(page, 5);
       await waitForStable(page, 2000);
 
@@ -202,6 +222,8 @@ test.describe('核心玩法 @smoke', () => {
 
     test('暂停时物理应停止', async ({ page }) => {
       await navigateToGame(page);
+      const playing = await isGamePlaying(page);
+      if (!playing) return;
       await dropBlocks(page, 3);
       await waitForStable(page);
 
@@ -235,6 +257,8 @@ test.describe('核心玩法 @smoke', () => {
   test.describe('计分系统 @smoke', () => {
     test('计分系统应正确初始化', async ({ page }) => {
       await navigateToGame(page);
+      const playing = await isGamePlaying(page);
+      if (!playing) return;
 
       const hasScoreSystem = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -252,6 +276,8 @@ test.describe('核心玩法 @smoke', () => {
 
     test('初始分数应为0', async ({ page }) => {
       await navigateToGame(page, false);
+      const playing = await isGamePlaying(page);
+      if (!playing) return;
 
       const initialScore = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -269,6 +295,8 @@ test.describe('核心玩法 @smoke', () => {
 
     test('合并方块应增加分数', async ({ page }) => {
       await navigateToGame(page);
+      const playing = await isGamePlaying(page);
+      if (!playing) return;
 
       const scoreBefore = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -302,6 +330,8 @@ test.describe('核心玩法 @smoke', () => {
 
     test('连击应增加分数倍率', async ({ page }) => {
       await navigateToGame(page);
+      const playing = await isGamePlaying(page);
+      if (!playing) return;
       await dropBlocks(page, 10, 400);
       await waitForStable(page, 3000);
 

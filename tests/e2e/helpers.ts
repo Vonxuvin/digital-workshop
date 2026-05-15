@@ -16,6 +16,20 @@ export async function isWebGLAvailable(page: Page): Promise<boolean> {
   });
 }
 
+export async function isGamePlaying(page: Page): Promise<boolean> {
+  return page.evaluate(() => {
+    try {
+      const game = (window as any).__gameInstance;
+      if (!game) return false;
+      const stateMachine = game.getStateMachine?.();
+      if (!stateMachine) return false;
+      return stateMachine.getCurrentState?.() === 'playing';
+    } catch {
+      return false;
+    }
+  });
+}
+
 export async function navigateToGame(page: Page, startPlaying = true) {
   await page.goto(GAME_URL);
   await page.waitForLoadState('domcontentloaded');

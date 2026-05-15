@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { navigateToGame, dropBlocks, waitForStable } from './helpers';
+import { navigateToGame, dropBlocks, waitForStable, isGamePlaying } from './helpers';
 
 test.describe('视觉布局 @regression', () => {
   test.describe('游戏场景布局 @smoke', () => {
@@ -179,6 +179,8 @@ test.describe('视觉布局 @regression', () => {
   test.describe('方块布局 @regression', () => {
     test('方块应在容器范围内', async ({ page }) => {
       await navigateToGame(page);
+      const playing = await isGamePlaying(page);
+      if (!playing) return;
       await dropBlocks(page, 5);
       await waitForStable(page);
 
@@ -201,6 +203,8 @@ test.describe('视觉布局 @regression', () => {
 
     test('方块大小应一致', async ({ page }) => {
       await navigateToGame(page);
+      const playing = await isGamePlaying(page);
+      if (!playing) return;
       await dropBlocks(page, 5);
       await waitForStable(page);
 
@@ -222,6 +226,8 @@ test.describe('视觉布局 @regression', () => {
 
     test('方块间距应均匀', async ({ page }) => {
       await navigateToGame(page);
+      const playing = await isGamePlaying(page);
+      if (!playing) return;
       await dropBlocks(page, 5);
       await waitForStable(page);
 

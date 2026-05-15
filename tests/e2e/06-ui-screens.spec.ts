@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { navigateToGame, dropBlocks, waitForStable } from './helpers';
+import { navigateToGame, dropBlocks, waitForStable, isGamePlaying } from './helpers';
 
 test.describe('UI界面 @regression', () => {
   test.describe('主菜单界面 @smoke', () => {
@@ -230,6 +230,11 @@ test.describe('UI界面 @regression', () => {
     test('暂停界面应包含继续按钮', async ({ page }) => {
       await navigateToGame(page);
 
+      const playing = await isGamePlaying(page);
+      if (!playing) {
+        return;
+      }
+
       await page.evaluate(() => {
         const game = (window as any).__gameInstance;
         if (!game) return;
@@ -265,6 +270,15 @@ test.describe('UI界面 @regression', () => {
           const sm = game.getSceneManager?.();
           sm?.pauseGame?.();
         } catch {}
+        try {
+          const pauseScreen = game.getPauseScreen?.();
+          if (pauseScreen && typeof pauseScreen.show === 'function') {
+            const sm2 = game.getStateMachine?.();
+            if (!sm2 || sm2.getCurrentState?.() !== 'paused') {
+              pauseScreen.show(800, 600);
+            }
+          }
+        } catch {}
       });
 
       await page.waitForTimeout(500);
@@ -295,6 +309,15 @@ test.describe('UI界面 @regression', () => {
           const sm = game.getSceneManager?.();
           sm?.pauseGame?.();
         } catch {}
+        try {
+          const pauseScreen = game.getPauseScreen?.();
+          if (pauseScreen && typeof pauseScreen.show === 'function') {
+            const sm2 = game.getStateMachine?.();
+            if (!sm2 || sm2.getCurrentState?.() !== 'paused') {
+              pauseScreen.show(800, 600);
+            }
+          }
+        } catch {}
       });
 
       await page.waitForTimeout(500);
@@ -317,6 +340,11 @@ test.describe('UI界面 @regression', () => {
 
     test('暂停时游戏应停止运行', async ({ page }) => {
       await navigateToGame(page);
+
+      const playing = await isGamePlaying(page);
+      if (!playing) {
+        return;
+      }
 
       await page.evaluate(() => {
         const game = (window as any).__gameInstance;

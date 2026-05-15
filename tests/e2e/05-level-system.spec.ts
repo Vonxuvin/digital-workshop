@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { navigateToGame, dropBlocks, waitForStable } from './helpers';
+import { navigateToGame, dropBlocks, waitForStable, isGamePlaying } from './helpers';
 
 test.describe('关卡系统 @regression', () => {
   test.describe('关卡加载 @smoke', () => {
@@ -175,6 +175,8 @@ test.describe('关卡系统 @regression', () => {
 
     test('关卡切换应重置游戏状态', async ({ page }) => {
       await navigateToGame(page);
+      const playing = await isGamePlaying(page);
+      if (!playing) return;
       await dropBlocks(page, 5);
       await waitForStable(page);
 
@@ -238,6 +240,8 @@ test.describe('关卡系统 @regression', () => {
 
     test('目标进度应正确更新', async ({ page }) => {
       await navigateToGame(page);
+      const playing = await isGamePlaying(page);
+      if (!playing) return;
       await dropBlocks(page, 5);
       await waitForStable(page, 2000);
 

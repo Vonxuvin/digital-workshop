@@ -119,14 +119,23 @@ export class PauseScreen extends Screen {
   }
 
   getRestartButton(): Container | undefined {
+    if (!this.initialized) {
+      this.initialize();
+    }
     return this.restartButton;
   }
 
   getMenuButton(): Container | undefined {
+    if (!this.initialized) {
+      this.initialize();
+    }
     return this.menuButton;
   }
 
   getContinueButton(): Container | undefined {
+    if (!this.initialized) {
+      this.initialize();
+    }
     return this.continueButton;
   }
 

@@ -478,18 +478,18 @@ export class Game {
     return this.sceneManager;
   }
 
-  getBlockSpawner() { return this.gameScene.getBlockSpawner(); }
-  getPhysics() { return this.gameScene.getPhysics(); }
+  getBlockSpawner() { return this.gameScene?.getBlockSpawner(); }
+  getPhysics() { return this.gameScene?.getPhysics(); }
   getMergeSystem(): MergeSystem { return this.mergeSystem; }
   getPlatformAdapter(): PlatformAdapter { return this.platform; }
   getPerformanceMonitor(): PerformanceMonitor { return this.performanceMonitor; }
   getLevelLoader(): LevelLoader { return this.levelLoader; }
   getSaveManager(): SaveManager { return this.saveManager; }
   getAudioManager(): AudioManager { return this.audioManager; }
-  getPropSystem() { return this.gameScene.getPropSystem(); }
+  getPropSystem() { return this.gameScene?.getPropSystem(); }
   getUIManager(): UIManager { return this.uiManager; }
-  getGameHUD() { return this.gameScene.getGameHUD(); }
-  getLevelSystem() { return this.gameScene.getLevelSystem(); }
+  getGameHUD() { return this.gameScene?.getGameHUD(); }
+  getLevelSystem() { return this.gameScene?.getLevelSystem(); }
   getResultScreen(): ResultScreen { return this.resultScreen; }
   getPauseScreen(): PauseScreen { return this.pauseScreen; }
   getLevelSelectScreen(): LevelSelectScreen { return this.levelSelectScreen; }
