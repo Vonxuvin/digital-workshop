@@ -3,10 +3,38 @@ import { Page } from '@playwright/test';
 export const GAME_URL = '/';
 export const LEVEL_EDITOR_URL = '/tools/level-editor/index.html';
 
+export async function isWebGLAvailable(page: Page): Promise<boolean> {
+  return page.evaluate(() => {
+    try {
+      const game = (window as any).__gameInstance;
+      if (!game) return false;
+      const gs = game.getGameScene?.();
+      return gs != null;
+    } catch {
+      return false;
+    }
+  });
+}
+
 export async function navigateToGame(page: Page, startPlaying = true) {
   await page.goto(GAME_URL);
   await page.waitForLoadState('domcontentloaded');
   await page.waitForSelector('#game-canvas', { timeout: 20000 });
+  await page.waitForFunction(
+    () => {
+      const game = (window as any).__gameInstance;
+      if (!game) return false;
+      try {
+        const stateMachine = game.getStateMachine?.();
+        if (!stateMachine) return false;
+        const state = stateMachine.getCurrentState?.();
+        return state !== 'boot';
+      } catch {
+        return false;
+      }
+    },
+    { timeout: 30000 }
+  );
   await page.waitForFunction(
     () => {
       const game = (window as any).__gameInstance;
@@ -22,18 +50,39 @@ export async function navigateToGame(page: Page, startPlaying = true) {
     { timeout: 30000 }
   );
   if (startPlaying) {
-    await page.evaluate(() => {
+    const startResult = await page.evaluate(() => {
       const game = (window as any).__gameInstance;
-      if (!game) return;
+      if (!game) return 'no-game';
       try {
         const sm = game.getSceneManager?.();
-        if (sm) {
-          sm.startLevelById?.(1);
-        }
-      } catch (e) {
-        console.warn('[helpers] startLevelById failed:', e);
+        if (!sm) return 'no-scene-manager';
+        if (typeof sm.startLevelById !== 'function') return 'no-startLevelById';
+        const result = sm.startLevelById(1);
+        return result ? 'ok' : 'level-not-found';
+      } catch (e: any) {
+        return `error: ${e?.message ?? e}`;
       }
     });
+    if (startResult !== 'ok') {
+      const webglAvailable = await isWebGLAvailable(page);
+      if (!webglAvailable) {
+        console.warn(`[navigateToGame] WebGL不可用(降级模式), startLevelById结果: '${startResult}'. 跳过playing状态.`);
+        return;
+      }
+      const currentState = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return 'no-game';
+        try {
+          return game.getStateMachine?.()?.getCurrentState?.() ?? 'unknown';
+        } catch {
+          return 'error';
+        }
+      });
+      throw new Error(
+        `[navigateToGame] startLevelById(1) failed: '${startResult}'. Current state: '${currentState}'. ` +
+        `The game may be in a degraded mode or level config not loaded.`
+      );
+    }
     try {
       await page.waitForFunction(
         () => {
@@ -57,8 +106,7 @@ export async function navigateToGame(page: Page, startPlaying = true) {
       });
       throw new Error(
         `[navigateToGame] Failed to enter 'playing' state. Current state: '${currentState}'. ` +
-        `This usually means startLevelById(1) was called before the game finished initializing, ` +
-        `or the state transition 'menu'→'playing' was rejected.`
+        `startLevelById returned ok but state transition did not complete.`
       );
     }
   }

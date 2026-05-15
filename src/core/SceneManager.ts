@@ -67,17 +67,21 @@ export class SceneManager {
     this.stateMachine.transition('menu');
   }
 
-  startLevel(config: LevelConfig): void {
+  startLevel(config: LevelConfig): boolean {
+    if (!this.gameScene) {
+      console.warn('[SceneManager] startLevel: gameScene未初始化(WebGL降级模式)');
+      return false;
+    }
     this.uiManager.hideCurrentScreen();
     this.gameScene.loadLevel(config);
     this.stateMachine.transition('playing');
+    return true;
   }
 
   startLevelById(levelId: number): boolean {
     const config = this.levelLoader.getLevelConfig(levelId);
     if (config) {
-      this.startLevel(config);
-      return true;
+      return this.startLevel(config);
     }
     console.warn(`[SceneManager] startLevelById(${levelId}): 关卡配置未找到`);
     return false;
@@ -87,8 +91,7 @@ export class SceneManager {
     const firstUnlocked = this.findFirstUnlockedLevel();
     const config = this.levelLoader.getLevelConfig(firstUnlocked);
     if (config) {
-      this.startLevel(config);
-      return true;
+      return this.startLevel(config);
     }
     console.warn(`[SceneManager] startGame: 关卡配置未找到 (firstUnlocked=${firstUnlocked})`);
     return false;

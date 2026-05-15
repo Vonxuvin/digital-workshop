@@ -155,6 +155,11 @@ export class Game {
             }
             this.uiManager.showScreen('mainMenu');
           } catch (_) {}
+          try {
+            if (!this.sceneManager) {
+              this.setupUI();
+            }
+          } catch (_) {}
           return;
         }
         throw initErr;
@@ -258,6 +263,11 @@ export class Game {
           this.uiManager = new UIManager(this.app);
         }
         this.uiManager.showScreen('mainMenu');
+      } catch (_) {}
+      try {
+        if (!this.sceneManager) {
+          this.setupUI();
+        }
       } catch (_) {}
     }
   }
