@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { GameHUD } from '../src/ui/hud/GameHUD';
-import { eventBus } from '../src/utils/EventBus';
-import { PropSystem } from '../src/gameplay/props/PropSystem';
-import { PropType } from '../src/gameplay/props/Prop';
+import { GameHUD } from '../../src/ui/hud/GameHUD';
+import { eventBus } from '../../src/utils/EventBus';
+import { PropSystem } from '../../src/gameplay/props/PropSystem';
+import { PropType } from '../../src/gameplay/props/Prop';
 
 describe('GameHUD', () => {
   let hud: GameHUD;

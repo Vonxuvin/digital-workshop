@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { ScoreSystem, SCORE_CONFIGS } from '../src/gameplay/ScoreSystem';
-import { eventBus } from '../src/utils/EventBus';
+import { ScoreSystem, SCORE_CONFIGS } from '../../src/gameplay/ScoreSystem';
+import { eventBus } from '../../src/utils/EventBus';
 
 describe('ScoreSystem', () => {
   let ss: ScoreSystem;

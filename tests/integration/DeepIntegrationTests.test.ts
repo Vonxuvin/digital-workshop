@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { EventBus } from '../src/utils/EventBus';
-import { eventBus } from '../src/utils/EventBus';
-import { ScoreSystem, SCORE_CONFIGS } from '../src/gameplay/ScoreSystem';
-import { LevelSystem, LevelConfig } from '../src/gameplay/LevelSystem';
-import { LevelLoader } from '../src/core/LevelLoader';
-import { GameStateMachine, GameState } from '../src/core/GameStateMachine';
-import { InputManager } from '../src/core/InputManager';
-import { WarningLine } from '../src/ui/components/WarningLine';
+import { EventBus } from '../../src/utils/EventBus';
+import { eventBus } from '../../src/utils/EventBus';
+import { ScoreSystem, SCORE_CONFIGS } from '../../src/gameplay/ScoreSystem';
+import { LevelSystem, LevelConfig } from '../../src/gameplay/LevelSystem';
+import { LevelLoader } from '../../src/core/LevelLoader';
+import { GameStateMachine, GameState } from '../../src/core/GameStateMachine';
+import { InputManager } from '../../src/core/InputManager';
+import { WarningLine } from '../../src/ui/components/WarningLine';
 
 describe('Deep Integration Tests', () => {
 

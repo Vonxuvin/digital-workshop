@@ -1,18 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
-import { ScoreSystem, SCORE_CONFIGS } from '../src/gameplay/ScoreSystem';
-import { LevelSystem, LevelConfig } from '../src/gameplay/LevelSystem';
-import { SaveManager } from '../src/core/SaveManager';
-import { TutorialManager } from '../src/core/TutorialManager';
-import { TutorialOverlay } from '../src/ui/TutorialOverlay';
-import { GameHUD } from '../src/ui/hud/GameHUD';
-import { PropSystem } from '../src/gameplay/props/PropSystem';
-import { AnimationManager } from '../src/utils/AnimationManager';
-import { eventBus } from '../src/utils/EventBus';
+import { ScoreSystem, SCORE_CONFIGS } from '../../src/gameplay/ScoreSystem';
+import { LevelSystem, LevelConfig } from '../../src/gameplay/LevelSystem';
+import { SaveManager } from '../../src/core/SaveManager';
+import { TutorialManager } from '../../src/core/TutorialManager';
+import { TutorialOverlay } from '../../src/ui/TutorialOverlay';
+import { GameHUD } from '../../src/ui/hud/GameHUD';
+import { PropSystem } from '../../src/gameplay/props/PropSystem';
+import { AnimationManager } from '../../src/utils/AnimationManager';
+import { eventBus } from '../../src/utils/EventBus';
 import { Container } from 'pixi.js';
 import fs from 'fs';
 import path from 'path';
 
-const levelsDir = path.resolve(__dirname, '../src/data/levels');
+const levelsDir = path.resolve(__dirname, '../../src/data/levels');
 
 function loadLevelJson(id: number): any {
   return JSON.parse(fs.readFileSync(path.join(levelsDir, `level_${String(id).padStart(2, '0')}.json`), 'utf-8'));
@@ -213,7 +213,7 @@ describe('TC-004: 新手引导验证', () => {
 
     it('Level 1 教程第一步为欢迎/投放引导', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/core/TutorialManager.ts'),
+        path.resolve(__dirname, '../../src/core/TutorialManager.ts'),
         'utf-8'
       );
       expect(content).toContain("id: 'welcome'");
@@ -222,7 +222,7 @@ describe('TC-004: 新手引导验证', () => {
 
     it('Level 1 教程包含投放步骤', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/core/TutorialManager.ts'),
+        path.resolve(__dirname, '../../src/core/TutorialManager.ts'),
         'utf-8'
       );
       expect(content).toContain("id: 'drop'");
@@ -242,7 +242,7 @@ describe('TC-004: 新手引导验证', () => {
   describe('TC-004-02: 完成首次投放显示"相同数字碰撞合成"提示', () => {
     it('Level 1 教程包含合成提示步骤', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/core/TutorialManager.ts'),
+        path.resolve(__dirname, '../../src/core/TutorialManager.ts'),
         'utf-8'
       );
       expect(content).toContain("id: 'merge'");
@@ -251,7 +251,7 @@ describe('TC-004: 新手引导验证', () => {
 
     it('first_merge 事件监听器已注册', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/core/TutorialManager.ts'),
+        path.resolve(__dirname, '../../src/core/TutorialManager.ts'),
         'utf-8'
       );
       expect(content).toContain("eventBus.on('block:merged'");
@@ -259,7 +259,7 @@ describe('TC-004: 新手引导验证', () => {
 
     it('合成提示消息包含合成规则说明', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/core/TutorialManager.ts'),
+        path.resolve(__dirname, '../../src/core/TutorialManager.ts'),
         'utf-8'
       );
       expect(content).toContain('合成');
@@ -269,7 +269,7 @@ describe('TC-004: 新手引导验证', () => {
   describe('TC-004-03: 首次触发警告显示警戒线说明', () => {
     it('Level 1 教程包含警告线步骤', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/core/TutorialManager.ts'),
+        path.resolve(__dirname, '../../src/core/TutorialManager.ts'),
         'utf-8'
       );
       expect(content).toContain("id: 'warning'");
@@ -278,7 +278,7 @@ describe('TC-004: 新手引导验证', () => {
 
     it('warning:started 事件监听器已注册', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/core/TutorialManager.ts'),
+        path.resolve(__dirname, '../../src/core/TutorialManager.ts'),
         'utf-8'
       );
       expect(content).toContain("eventBus.on('warning:started'");
@@ -286,7 +286,7 @@ describe('TC-004: 新手引导验证', () => {
 
     it('警告提示消息包含警戒线说明', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/core/TutorialManager.ts'),
+        path.resolve(__dirname, '../../src/core/TutorialManager.ts'),
         'utf-8'
       );
       expect(content).toContain('警戒线');
@@ -316,7 +316,7 @@ describe('TC-004: 新手引导验证', () => {
   describe('TC-004-05: Level 2 道具教程', () => {
     it('Level 2 教程步骤存在', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/core/TutorialManager.ts'),
+        path.resolve(__dirname, '../../src/core/TutorialManager.ts'),
         'utf-8'
       );
       expect(content).toContain('levelId === 2');
@@ -335,7 +335,7 @@ describe('TC-004: 新手引导验证', () => {
   describe('TC-004-06: Level 3 障碍物教程', () => {
     it('Level 3 教程步骤存在', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/core/TutorialManager.ts'),
+        path.resolve(__dirname, '../../src/core/TutorialManager.ts'),
         'utf-8'
       );
       expect(content).toContain('levelId === 3');
@@ -347,7 +347,7 @@ describe('TC-004: 新手引导验证', () => {
 
     it('obstacle:cleared 事件监听器已注册', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/core/TutorialManager.ts'),
+        path.resolve(__dirname, '../../src/core/TutorialManager.ts'),
         'utf-8'
       );
       expect(content).toContain("eventBus.on('obstacle:cleared'");
@@ -357,7 +357,7 @@ describe('TC-004: 新手引导验证', () => {
   describe('TC-004-07: 使用 AnimationManager.setTimeout 替代原生 setTimeout', () => {
     it('showCurrentStep 使用 AnimationManager.getInstance().setTimeout', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/core/TutorialManager.ts'),
+        path.resolve(__dirname, '../../src/core/TutorialManager.ts'),
         'utf-8'
       );
       const match = content.match(/private showCurrentStep\(\): void \{[\s\S]*?\n  \}/);
@@ -367,7 +367,7 @@ describe('TC-004: 新手引导验证', () => {
 
     it('TutorialManager 导入 AnimationManager', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/core/TutorialManager.ts'),
+        path.resolve(__dirname, '../../src/core/TutorialManager.ts'),
         'utf-8'
       );
       expect(content).toContain("import { AnimationManager }");
@@ -379,7 +379,7 @@ describe('TC-005: 道具交互验证', () => {
   describe('TC-005-01: 点击炸弹道具按钮高亮，显示十字准星光标', () => {
     it('GameHUD 有 showCrosshair 方法', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/ui/hud/GameHUD.ts'),
+        path.resolve(__dirname, '../../src/ui/hud/GameHUD.ts'),
         'utf-8'
       );
       expect(content).toContain('showCrosshair');
@@ -387,7 +387,7 @@ describe('TC-005: 道具交互验证', () => {
 
     it('GameHUD 有 setPropSelected 方法', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/ui/hud/GameHUD.ts'),
+        path.resolve(__dirname, '../../src/ui/hud/GameHUD.ts'),
         'utf-8'
       );
       expect(content).toContain('setPropSelected');
@@ -395,7 +395,7 @@ describe('TC-005: 道具交互验证', () => {
 
     it('炸弹点击进入 targetMode 并发射事件', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/ui/hud/GameHUD.ts'),
+        path.resolve(__dirname, '../../src/ui/hud/GameHUD.ts'),
         'utf-8'
       );
       expect(content).toContain('enterBombTargetMode');
@@ -406,7 +406,7 @@ describe('TC-005: 道具交互验证', () => {
   describe('TC-005-02: 炸弹瞄准模式下点击目标，爆炸效果+范围内方块消除', () => {
     it('GameHUD 有 usePropAtPosition 方法', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/ui/hud/GameHUD.ts'),
+        path.resolve(__dirname, '../../src/ui/hud/GameHUD.ts'),
         'utf-8'
       );
       expect(content).toContain('usePropAtPosition');
@@ -414,7 +414,7 @@ describe('TC-005: 道具交互验证', () => {
 
     it('PropEffectHandler 有 handleBombExplode 方法', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/core/PropEffectHandler.ts'),
+        path.resolve(__dirname, '../../src/core/PropEffectHandler.ts'),
         'utf-8'
       );
       expect(content).toContain('handleBombExplode');
@@ -424,7 +424,7 @@ describe('TC-005: 道具交互验证', () => {
   describe('TC-005-03: 炸弹瞄准模式下退出', () => {
     it('GameHUD 有 exitBombTargetMode / exitPropTargetMode 方法', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/ui/hud/GameHUD.ts'),
+        path.resolve(__dirname, '../../src/ui/hud/GameHUD.ts'),
         'utf-8'
       );
       expect(content).toContain('exitPropTargetMode');
@@ -433,7 +433,7 @@ describe('TC-005: 道具交互验证', () => {
 
     it('退出时隐藏十字准星', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/ui/hud/GameHUD.ts'),
+        path.resolve(__dirname, '../../src/ui/hud/GameHUD.ts'),
         'utf-8'
       );
       expect(content).toContain('hideCrosshair');
@@ -443,7 +443,7 @@ describe('TC-005: 道具交互验证', () => {
   describe('TC-005-04: 冻结道具使用，物理暂停+冰冻视觉效果', () => {
     it('PropEffectHandler 有 handleFreezeActivated 方法', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/core/PropEffectHandler.ts'),
+        path.resolve(__dirname, '../../src/core/PropEffectHandler.ts'),
         'utf-8'
       );
       expect(content).toContain('handleFreezeActivated');
@@ -451,7 +451,7 @@ describe('TC-005: 道具交互验证', () => {
 
     it('FreezeProp 有 setPhysicsManager 方法', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/gameplay/props/FreezeProp.ts'),
+        path.resolve(__dirname, '../../src/gameplay/props/FreezeProp.ts'),
         'utf-8'
       );
       expect(content).toContain('setPhysicsManager');
@@ -459,7 +459,7 @@ describe('TC-005: 道具交互验证', () => {
 
     it('GameEffectManager 有 addFreezeEffect 方法', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/core/GameEffectManager.ts'),
+        path.resolve(__dirname, '../../src/core/GameEffectManager.ts'),
         'utf-8'
       );
       expect(content).toContain('addFreezeEffect');
@@ -469,7 +469,7 @@ describe('TC-005: 道具交互验证', () => {
   describe('TC-005-05: 冻结期间再次使用冻结延长冻结时间', () => {
     it('FreezeProp 有 pause/resume 方法', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/gameplay/props/FreezeProp.ts'),
+        path.resolve(__dirname, '../../src/gameplay/props/FreezeProp.ts'),
         'utf-8'
       );
       expect(content).toContain('pause');
@@ -478,7 +478,7 @@ describe('TC-005: 道具交互验证', () => {
 
     it('FreezeProp 有 isCurrentlyFrozen 方法', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/gameplay/props/FreezeProp.ts'),
+        path.resolve(__dirname, '../../src/gameplay/props/FreezeProp.ts'),
         'utf-8'
       );
       expect(content).toContain('isCurrentlyFrozen');
@@ -488,7 +488,7 @@ describe('TC-005: 道具交互验证', () => {
   describe('TC-005-06: 道具栏2行布局优化', () => {
     it('道具按钮使用 row/col 布局', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/ui/hud/GameHUD.ts'),
+        path.resolve(__dirname, '../../src/ui/hud/GameHUD.ts'),
         'utf-8'
       );
       expect(content).toContain('row: 0, col: 0');
@@ -500,7 +500,7 @@ describe('TC-005: 道具交互验证', () => {
 
     it('按钮位置根据 row/col 动态计算', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/ui/hud/GameHUD.ts'),
+        path.resolve(__dirname, '../../src/ui/hud/GameHUD.ts'),
         'utf-8'
       );
       expect(content).toContain('propData.col * (buttonSize + buttonGap)');
@@ -509,7 +509,7 @@ describe('TC-005: 道具交互验证', () => {
 
     it('layout 方法根据按钮尺寸计算宽度（不再硬编码360）', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/ui/hud/GameHUD.ts'),
+        path.resolve(__dirname, '../../src/ui/hud/GameHUD.ts'),
         'utf-8'
       );
       const layoutMatch = content.match(/layout\(screenWidth: number, screenHeight: number\): void \{[\s\S]*?\n  \}/);
@@ -681,7 +681,7 @@ describe('P2-1: 计分系统数值平衡验证', () => {
   describe('源码验证：addMergeScore 使用 SCORE_CONFIGS', () => {
     it('addMergeScore 方法引用 SCORE_CONFIGS', () => {
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/gameplay/ScoreSystem.ts'),
+        path.resolve(__dirname, '../../src/gameplay/ScoreSystem.ts'),
         'utf-8'
       );
       const match = content.match(/addMergeScore\(value: number, isCombo: boolean = false\): void \{[\s\S]*?\n  \}/);

@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { ScoreSystem, SCORE_CONFIGS } from '../src/gameplay/ScoreSystem';
-import { LevelSystem, LevelConfig } from '../src/gameplay/LevelSystem';
-import { MergeSystem } from '../src/gameplay/MergeSystem';
-import { PhysicsManager } from '../src/core/PhysicsManager';
-import { Block, BLOCK_CONFIGS } from '../src/gameplay/Block';
-import { WarningLine } from '../src/ui/components/WarningLine';
-import { eventBus } from '../src/utils/EventBus';
+import { ScoreSystem, SCORE_CONFIGS } from '../../src/gameplay/ScoreSystem';
+import { LevelSystem, LevelConfig } from '../../src/gameplay/LevelSystem';
+import { MergeSystem } from '../../src/gameplay/MergeSystem';
+import { PhysicsManager } from '../../src/core/PhysicsManager';
+import { Block, BLOCK_CONFIGS } from '../../src/gameplay/Block';
+import { WarningLine } from '../../src/ui/components/WarningLine';
+import { eventBus } from '../../src/utils/EventBus';
 
 describe('ScoreSystem Deep Tests', () => {
   let ss: ScoreSystem;

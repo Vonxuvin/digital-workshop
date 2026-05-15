@@ -21,14 +21,14 @@ vi.mock('pixi.js', async (importOriginal) => {
   };
 });
 
-vi.mock('../src/platform/PlatformFactory', () => ({
+vi.mock('../../src/platform/PlatformFactory', () => ({
   createPlatformAdapter: () => ({
     init: vi.fn().mockResolvedValue(undefined),
     getSystemInfo: vi.fn().mockResolvedValue({ pixelRatio: 1 }),
   }),
 }));
 
-import { Game } from '../src/core/Game';
+import { Game } from '../../src/core/Game';
 
 describe('Game', () => {
   let canvas: HTMLCanvasElement;

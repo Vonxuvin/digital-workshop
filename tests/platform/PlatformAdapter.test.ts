@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MockAdapter } from '../src/platform/MockAdapter';
+import { MockAdapter } from '../../src/platform/MockAdapter';
 
 describe('MockAdapter', () => {
   it('should return mock user info', async () => {

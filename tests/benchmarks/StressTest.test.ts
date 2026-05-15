@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import Matter from 'matter-js';
-import { PhysicsManager } from '../src/core/PhysicsManager';
-import { PerformanceMonitor } from '../src/utils/PerformanceMonitor';
+import { PhysicsManager } from '../../src/core/PhysicsManager';
+import { PerformanceMonitor } from '../../src/utils/PerformanceMonitor';
 
 describe('Stress Test', () => {
   it('should handle 100 bodies simulation', () => {

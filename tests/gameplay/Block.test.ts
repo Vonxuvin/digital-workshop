@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { PhysicsManager } from '../src/core/PhysicsManager';
-import { Block, BLOCK_CONFIGS } from '../src/gameplay/Block';
+import { PhysicsManager } from '../../src/core/PhysicsManager';
+import { Block, BLOCK_CONFIGS } from '../../src/gameplay/Block';
 
 describe('Block', () => {
   let physics: PhysicsManager;

@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { AudioManager } from '../src/core/AudioManager';
-import { eventBus } from '../src/utils/EventBus';
-import { LevelSystem, LevelConfig } from '../src/gameplay/LevelSystem';
-import { GameHUD } from '../src/ui/hud/GameHUD';
-import { ComboDisplay } from '../src/ui/components/ComboDisplay';
-import { PropSystem } from '../src/gameplay/props/PropSystem';
-import { PropType } from '../src/gameplay/props/Prop';
-import { InputManager } from '../src/core/InputManager';
-import { GameEventRouter } from '../src/core/GameEventRouter';
+import { AudioManager } from '../../src/core/AudioManager';
+import { eventBus } from '../../src/utils/EventBus';
+import { LevelSystem, LevelConfig } from '../../src/gameplay/LevelSystem';
+import { GameHUD } from '../../src/ui/hud/GameHUD';
+import { ComboDisplay } from '../../src/ui/components/ComboDisplay';
+import { PropSystem } from '../../src/gameplay/props/PropSystem';
+import { PropType } from '../../src/gameplay/props/Prop';
+import { InputManager } from '../../src/core/InputManager';
+import { GameEventRouter } from '../../src/core/GameEventRouter';
 
 describe('H-1: EventBus 事件名一致性 - AudioManager 事件监听修复', () => {
   let audioManager: AudioManager;
@@ -98,7 +98,7 @@ describe('H-1: EventBus 事件名一致性 - AudioManager 事件监听修复', (
 describe('H-2: ShrinkProp 音效名修复', () => {
   it('FIXED: GameEventRouter.handleShrinkActivate 应播放 shrink 而非 freeze', () => {
     const content = require('fs').readFileSync(
-      require('path').resolve(__dirname, '../src/core/GameEventRouter.ts'),
+      require('path').resolve(__dirname, '../../src/core/GameEventRouter.ts'),
       'utf-8'
     );
     const shrinkActivateMatch = content.match(/private handleShrinkActivate\(data: \{ factor: number; duration: number \}\): void \{[\s\S]*?this\.audioManager\.play\('[^']+'\)/);
@@ -134,7 +134,7 @@ describe('H-11: Level 5 timeLimit 冲突修复', () => {
   });
 
   it('FIXED: Level 5 配置中不再包含 timeLimit', () => {
-    const level5 = require('../src/data/levels/level_05.json');
+    const level5 = require('../../src/data/levels/level_05.json');
     expect(level5.objective.timeLimit).toBeUndefined();
   });
 
@@ -236,7 +236,7 @@ describe('H-11: Level 5 timeLimit 冲突修复', () => {
   it('FIXED: Level 5 实际文件加载后无 timeLimit 字段', async () => {
     const fs = require('fs');
     const path = require('path');
-    const levelPath = path.resolve(__dirname, '../src/data/levels/level_05.json');
+    const levelPath = path.resolve(__dirname, '../../src/data/levels/level_05.json');
     const content = fs.readFileSync(levelPath, 'utf-8');
     const data = JSON.parse(content);
     expect(data.objective.type).toBe('score');

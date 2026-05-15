@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { PhysicsManager } from '../src/core/PhysicsManager';
-import { Block, getBlockConfig } from '../src/gameplay/Block';
-import { BlockSpawner } from '../src/gameplay/BlockSpawner';
-import { MergeSystem } from '../src/gameplay/MergeSystem';
-import { PropSystem } from '../src/gameplay/props/PropSystem';
+import { PhysicsManager } from '../../src/core/PhysicsManager';
+import { Block, getBlockConfig } from '../../src/gameplay/Block';
+import { BlockSpawner } from '../../src/gameplay/BlockSpawner';
+import { MergeSystem } from '../../src/gameplay/MergeSystem';
+import { PropSystem } from '../../src/gameplay/props/PropSystem';
 import { Container } from 'pixi.js';
 import Matter from 'matter-js';
 
@@ -167,7 +167,7 @@ describe('Critical Fixes Verification', () => {
     it('failGame should not mark level as completed', () => {
       const fs = require('fs');
       const path = require('path');
-      const sceneManagerPath = path.resolve(__dirname, '../src/core/SceneManager.ts');
+      const sceneManagerPath = path.resolve(__dirname, '../../src/core/SceneManager.ts');
       const content = fs.readFileSync(sceneManagerPath, 'utf-8');
 
       const failGameMatch = content.match(/failGame\(\)[\s\S]*?\n  \}/);

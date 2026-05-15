@@ -98,6 +98,7 @@ export class NamespacedEventBus {
     const wrapper: EventCallback = (...args) => {
       this.registeredEvents.delete(event);
       this.callbacks.delete(event);
+      this.bus.off(event, wrapper);
       callback(...args);
     };
     this.on(event, wrapper);

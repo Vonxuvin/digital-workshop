@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { GameStateMachine } from '../src/core/GameStateMachine';
+import { GameStateMachine } from '../../src/core/GameStateMachine';
 
 describe('GameStateMachine', () => {
   let sm: GameStateMachine;

@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { GameStateMachine } from '../src/core/GameStateMachine';
-import { EventBus, eventBus } from '../src/utils/EventBus';
-import { PhysicsManager } from '../src/core/PhysicsManager';
-import { ObjectPool } from '../src/core/ObjectPool';
-import { PerformanceMonitor } from '../src/utils/PerformanceMonitor';
+import { GameStateMachine } from '../../src/core/GameStateMachine';
+import { EventBus, eventBus } from '../../src/utils/EventBus';
+import { PhysicsManager } from '../../src/core/PhysicsManager';
+import { ObjectPool } from '../../src/core/ObjectPool';
+import { PerformanceMonitor } from '../../src/utils/PerformanceMonitor';
 
 describe('GameStateMachine', () => {
   let sm: GameStateMachine;
@@ -271,7 +271,7 @@ describe('EventBus', () => {
     });
 
     it('importing eventBus twice returns the same instance', async () => {
-      const mod = await import('../src/utils/EventBus');
+      const mod = await import('../../src/utils/EventBus');
       expect(mod.eventBus).toBe(eventBus);
     });
   });

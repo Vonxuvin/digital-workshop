@@ -1,21 +1,21 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { WarningLine } from '../src/ui/components/WarningLine';
-import { ShrinkModifier, ShrinkConfig } from '../src/gameplay/modifiers/ShrinkModifier';
-import { PhysicsManager } from '../src/core/PhysicsManager';
-import { PropEffectHandler } from '../src/core/PropEffectHandler';
-import { BlockSpawner } from '../src/gameplay/BlockSpawner';
-import { MergeSystem } from '../src/gameplay/MergeSystem';
-import { PropSystem } from '../src/gameplay/props/PropSystem';
-import { Block } from '../src/gameplay/Block';
-import { ScoreSystem } from '../src/gameplay/ScoreSystem';
-import { LevelSystem, LevelConfig } from '../src/gameplay/LevelSystem';
-import { SaveManager } from '../src/core/SaveManager';
-import { TimeManager } from '../src/utils/TimeManager';
-import { GameHUD } from '../src/ui/hud/GameHUD';
-import { BlockPreview } from '../src/gameplay/BlockPreview';
-import { GameEffectManager } from '../src/core/GameEffectManager';
+import { WarningLine } from '../../src/ui/components/WarningLine';
+import { ShrinkModifier, ShrinkConfig } from '../../src/gameplay/modifiers/ShrinkModifier';
+import { PhysicsManager } from '../../src/core/PhysicsManager';
+import { PropEffectHandler } from '../../src/core/PropEffectHandler';
+import { BlockSpawner } from '../../src/gameplay/BlockSpawner';
+import { MergeSystem } from '../../src/gameplay/MergeSystem';
+import { PropSystem } from '../../src/gameplay/props/PropSystem';
+import { Block } from '../../src/gameplay/Block';
+import { ScoreSystem } from '../../src/gameplay/ScoreSystem';
+import { LevelSystem, LevelConfig } from '../../src/gameplay/LevelSystem';
+import { SaveManager } from '../../src/core/SaveManager';
+import { TimeManager } from '../../src/utils/TimeManager';
+import { GameHUD } from '../../src/ui/hud/GameHUD';
+import { BlockPreview } from '../../src/gameplay/BlockPreview';
+import { GameEffectManager } from '../../src/core/GameEffectManager';
 import { Container } from 'pixi.js';
-import { eventBus } from '../src/utils/EventBus';
+import { eventBus } from '../../src/utils/EventBus';
 import Matter from 'matter-js';
 
 describe('P0-2: WarningLine tint 修复 - TC-002 关联测试', () => {
@@ -166,7 +166,7 @@ describe('P0-2: WarningLine tint 修复 - TC-002 关联测试', () => {
       const fs = require('fs');
       const path = require('path');
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/ui/components/WarningLine.ts'),
+        path.resolve(__dirname, '../../src/ui/components/WarningLine.ts'),
         'utf-8'
       );
       const updateVisualMatch = content.match(/private updateVisualFeedback\(\): void \{[\s\S]*?\n  \}/);
@@ -224,7 +224,7 @@ describe('H-3: ShrinkModifier containerOffsetX 修复', () => {
       const fs = require('fs');
       const path = require('path');
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/gameplay/modifiers/ShrinkModifier.ts'),
+        path.resolve(__dirname, '../../src/gameplay/modifiers/ShrinkModifier.ts'),
         'utf-8'
       );
       const updateWallMatch = content.match(/private updateWallPositions\(\): void \{[\s\S]*?\n  \}/);
@@ -236,7 +236,7 @@ describe('H-3: ShrinkModifier containerOffsetX 修复', () => {
       const fs = require('fs');
       const path = require('path');
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/gameplay/modifiers/ShrinkModifier.ts'),
+        path.resolve(__dirname, '../../src/gameplay/modifiers/ShrinkModifier.ts'),
         'utf-8'
       );
       const showWarningMatch = content.match(/protected showWarning\(\): void \{[\s\S]*?\n  \}/);
@@ -250,7 +250,7 @@ describe('H-3: ShrinkModifier containerOffsetX 修复', () => {
       const fs = require('fs');
       const path = require('path');
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/gameplay/modifiers/ModifierManager.ts'),
+        path.resolve(__dirname, '../../src/gameplay/modifiers/ModifierManager.ts'),
         'utf-8'
       );
       const setContainerMatch = content.match(/setContainerSize\(width: number, height: number[^)]*\)/);
@@ -443,7 +443,7 @@ describe('H-6: updateStatistics 参数修复', () => {
       const fs = require('fs');
       const path = require('path');
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/core/SceneManager.ts'),
+        path.resolve(__dirname, '../../src/core/SceneManager.ts'),
         'utf-8'
       );
       const completeMatch = content.match(/completeLevel[\s\S]*?updateStatistics\([^)]+\)/);
@@ -540,7 +540,7 @@ describe('P1-4: 统一时间管理 - TimeManager', () => {
       const fs = require('fs');
       const path = require('path');
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/core/GameScene.ts'),
+        path.resolve(__dirname, '../../src/core/GameScene.ts'),
         'utf-8'
       );
       expect(content).not.toContain('gsap.globalTimeline.pause');
@@ -555,7 +555,7 @@ describe('P1-4: 统一时间管理 - TimeManager', () => {
       const fs = require('fs');
       const path = require('path');
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/ui/effects/MergeEffect.ts'),
+        path.resolve(__dirname, '../../src/ui/effects/MergeEffect.ts'),
         'utf-8'
       );
       expect(content).toContain('TimeManager');
@@ -566,7 +566,7 @@ describe('P1-4: 统一时间管理 - TimeManager', () => {
       const fs = require('fs');
       const path = require('path');
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/ui/effects/ExplosionEffect.ts'),
+        path.resolve(__dirname, '../../src/ui/effects/ExplosionEffect.ts'),
         'utf-8'
       );
       expect(content).toContain('TimeManager');
@@ -577,7 +577,7 @@ describe('P1-4: 统一时间管理 - TimeManager', () => {
       const fs = require('fs');
       const path = require('path');
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/ui/effects/FreezeEffect.ts'),
+        path.resolve(__dirname, '../../src/ui/effects/FreezeEffect.ts'),
         'utf-8'
       );
       expect(content).toContain('TimeManager');
@@ -588,7 +588,7 @@ describe('P1-4: 统一时间管理 - TimeManager', () => {
       const fs = require('fs');
       const path = require('path');
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/ui/effects/ParticleEffect.ts'),
+        path.resolve(__dirname, '../../src/ui/effects/ParticleEffect.ts'),
         'utf-8'
       );
       expect(content).toContain('TimeManager');
@@ -599,7 +599,7 @@ describe('P1-4: 统一时间管理 - TimeManager', () => {
       const fs = require('fs');
       const path = require('path');
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/ui/hud/GameHUD.ts'),
+        path.resolve(__dirname, '../../src/ui/hud/GameHUD.ts'),
         'utf-8'
       );
       expect(content).toContain('TimeManager');
@@ -610,7 +610,7 @@ describe('P1-4: 统一时间管理 - TimeManager', () => {
       const fs = require('fs');
       const path = require('path');
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/ui/components/ComboDisplay.ts'),
+        path.resolve(__dirname, '../../src/ui/components/ComboDisplay.ts'),
         'utf-8'
       );
       expect(content).toContain('TimeManager');
@@ -623,7 +623,7 @@ describe('P1-4: 统一时间管理 - TimeManager', () => {
       const fs = require('fs');
       const path = require('path');
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/core/Game.ts'),
+        path.resolve(__dirname, '../../src/core/Game.ts'),
         'utf-8'
       );
       expect(content).toContain('TimeManager.setInstance');
@@ -633,7 +633,7 @@ describe('P1-4: 统一时间管理 - TimeManager', () => {
       const fs = require('fs');
       const path = require('path');
       const content = fs.readFileSync(
-        path.resolve(__dirname, '../src/core/Game.ts'),
+        path.resolve(__dirname, '../../src/core/Game.ts'),
         'utf-8'
       );
       expect(content).toContain('TimeManager.resetInstance');

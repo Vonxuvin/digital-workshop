@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { LevelSystem, LevelConfig } from '../src/gameplay/LevelSystem';
-import { eventBus } from '../src/utils/EventBus';
-import { ScoreObjectiveChecker } from '../src/gameplay/objectives/ScoreObjectiveChecker';
-import { MergeObjectiveChecker } from '../src/gameplay/objectives/MergeObjectiveChecker';
-import { ClearObstacleChecker } from '../src/gameplay/objectives/ClearObstacleChecker';
-import { SurvivalObjectiveChecker } from '../src/gameplay/objectives/SurvivalObjectiveChecker';
-import { createObjectiveChecker } from '../src/gameplay/objectives/index';
-import { ObjectiveContext } from '../src/gameplay/objectives/ObjectiveChecker';
-import { SaveManager } from '../src/core/SaveManager';
-import { LevelLoader } from '../src/core/LevelLoader';
+import { LevelSystem, LevelConfig } from '../../src/gameplay/LevelSystem';
+import { eventBus } from '../../src/utils/EventBus';
+import { ScoreObjectiveChecker } from '../../src/gameplay/objectives/ScoreObjectiveChecker';
+import { MergeObjectiveChecker } from '../../src/gameplay/objectives/MergeObjectiveChecker';
+import { ClearObstacleChecker } from '../../src/gameplay/objectives/ClearObstacleChecker';
+import { SurvivalObjectiveChecker } from '../../src/gameplay/objectives/SurvivalObjectiveChecker';
+import { createObjectiveChecker } from '../../src/gameplay/objectives/index';
+import { ObjectiveContext } from '../../src/gameplay/objectives/ObjectiveChecker';
+import { SaveManager } from '../../src/core/SaveManager';
+import { LevelLoader } from '../../src/core/LevelLoader';
 
 describe('LevelSystem', () => {
   let ls: LevelSystem;
@@ -167,6 +167,74 @@ describe('LevelSystem', () => {
     };
     ls = new LevelSystem(noTimeConfig);
     expect(ls.getProgress()).toBe(0);
+  });
+
+  it('暂停时应停止计时器', () => {
+    const pauseConfig: LevelConfig = {
+      id: 7, name: '暂停测试', objective: { type: 'survival', target: 60, timeLimit: 60 },
+      container: { width: 400, height: 600, shape: 'rectangle' },
+      spawn: { availableNumbers: [1, 2] },
+      rewards: { stars: [30, 40, 60] },
+    };
+    ls = new LevelSystem(pauseConfig);
+    ls.start();
+    ls.pause();
+    ls.update(30000);
+    expect(ls.getProgress()).toBe(0);
+  });
+
+  it('恢复时应继续计时', () => {
+    const resumeConfig: LevelConfig = {
+      id: 8, name: '恢复测试', objective: { type: 'survival', target: 120, timeLimit: 120 },
+      container: { width: 400, height: 600, shape: 'rectangle' },
+      spawn: { availableNumbers: [1, 2] },
+      rewards: { stars: [60, 80, 120] },
+    };
+    ls = new LevelSystem(resumeConfig);
+    ls.start();
+    ls.pause();
+    ls.update(30000);
+    ls.resume();
+    ls.update(30000);
+    expect(ls.getProgress()).toBe(0.25);
+  });
+
+  it('destroy应清理事件监听', () => {
+    const removeSpy = vi.spyOn(eventBus, 'off');
+    ls = new LevelSystem(scoreConfig);
+    ls.destroy();
+    expect(removeSpy).toHaveBeenCalled();
+  });
+
+  it('forceComplete应强制完成关卡', () => {
+    ls = new LevelSystem(scoreConfig);
+    const spy = vi.spyOn(eventBus, 'emit');
+    ls.forceComplete();
+    expect(ls.isLevelCompleted()).toBe(true);
+  });
+
+  it('应正确返回配置属性', () => {
+    const testConfig: LevelConfig = {
+      id: 9, name: '属性测试', objective: { type: 'score', target: 100 },
+      container: { width: 500, height: 700, shape: 'rectangle' },
+      spawn: { availableNumbers: [1, 2, 8] },
+      rewards: { stars: [50, 80, 100] },
+    };
+    ls = new LevelSystem(testConfig);
+    expect(ls.containerWidth).toBe(500);
+    expect(ls.containerHeight).toBe(700);
+    expect(ls.availableNumbers).toEqual([1, 2, 8]);
+  });
+
+  it('getConfig应返回完整配置', () => {
+    const testConfig: LevelConfig = {
+      id: 10, name: '配置测试', objective: { type: 'score', target: 200 },
+      container: { width: 400, height: 600, shape: 'rectangle' },
+      spawn: { availableNumbers: [1, 2, 4] },
+      rewards: { stars: [100, 150, 200] },
+    };
+    ls = new LevelSystem(testConfig);
+    expect(ls.getConfig()).toEqual(testConfig);
   });
 });
 

@@ -5,7 +5,7 @@ import { Block, getBlockConfig } from '../../src/gameplay/Block';
 import { eventBus } from '../../src/utils/EventBus';
 import Matter from 'matter-js';
 
-describe('MergeSystem Enhanced', () => {
+describe('MergeSystem', () => {
   let physics: PhysicsManager;
   let mergeSystem: MergeSystem;
   let block1: Block;
@@ -39,6 +39,37 @@ describe('MergeSystem Enhanced', () => {
 
     return { block1, block2 };
   };
+
+  it('should register and unregister blocks', () => {
+    const body = physics.createCircle(100, 100, 20);
+    const block = new Block(body, 1);
+    mergeSystem.registerBlock(block);
+    expect(() => mergeSystem.unregisterBlock(block)).not.toThrow();
+  });
+
+  it('should handle unregister of unregistered block gracefully', () => {
+    const body = physics.createCircle(100, 100, 20);
+    const block = new Block(body, 1);
+    expect(() => mergeSystem.unregisterBlock(block)).not.toThrow();
+  });
+
+  it('should not merge already merging blocks', () => {
+    const body1 = physics.createCircle(200, 300, 20, { density: 0.001 });
+    body1.label = 'block_merge_1';
+    const block1 = new Block(body1, 2);
+
+    const body2 = physics.createCircle(220, 300, 20, { density: 0.001 });
+    body2.label = 'block_merge_2';
+    const block2 = new Block(body2, 2);
+
+    mergeSystem.registerBlock(block1);
+    mergeSystem.registerBlock(block2);
+
+    mergeSystem['mergingBodies'].add('block_merge_1');
+    const emitSpy = vi.spyOn(eventBus, 'emit');
+    mergeSystem['handleCollision'](body1, body2);
+    expect(emitSpy).not.toHaveBeenCalled();
+  });
 
   describe('register and unregister', () => {
     it('应正确注册方块', () => {
@@ -216,6 +247,33 @@ describe('MergeSystem Enhanced', () => {
       const config1 = getBlockConfig(2);
       const config2 = getBlockConfig(4);
       expect(config1.color).not.toBe(config2.color);
+    });
+  });
+
+  describe('destroy', () => {
+    it('应正确清理资源', () => {
+      mergeSystem.destroy();
+      expect(mergeSystem['blocks'].size).toBe(0);
+    });
+  });
+
+  describe('rainbow block merging', () => {
+    it('彩虹方块应与任意值方块合成', () => {
+      const body1 = physics.createCircle(200, 300, 20, { density: 0.001 });
+      body1.label = 'rainbow_1';
+      const rainbowBlock = new Block(body1, 2);
+      (rainbowBlock as any).isRainbow = true;
+
+      const body2 = physics.createCircle(220, 300, 20, { density: 0.001 });
+      body2.label = 'other_1';
+      const otherBlock = new Block(body2, 8);
+
+      mergeSystem.registerBlock(rainbowBlock);
+      mergeSystem.registerBlock(otherBlock);
+
+      const emitSpy = vi.spyOn(eventBus, 'emit');
+      mergeSystem['handleCollision'](body1, body2);
+      expect(emitSpy).toHaveBeenCalledWith('block:merged', expect.any(Object));
     });
   });
 });

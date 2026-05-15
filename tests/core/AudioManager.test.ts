@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { AudioManager, SoundConfig } from '../../src/core/AudioManager';
 
-describe('AudioManager Enhanced', () => {
+describe('AudioManager', () => {
   let audioManager: AudioManager;
 
   beforeEach(() => {
@@ -15,6 +15,30 @@ describe('AudioManager Enhanced', () => {
   afterEach(() => {
     vi.useRealTimers();
     audioManager.destroy();
+  });
+
+  it('should be singleton', () => {
+    const a = AudioManager.getInstance();
+    const b = AudioManager.getInstance();
+    expect(a).toBe(b);
+  });
+
+  it('should handle init gracefully when AudioContext unavailable', async () => {
+    const am = AudioManager.getInstance();
+    await am.init();
+  });
+
+  it('should not throw when playing without AudioContext', () => {
+    const am = AudioManager.getInstance();
+    expect(() => am.play('merge')).not.toThrow();
+    expect(() => am.play('drop')).not.toThrow();
+    expect(() => am.play('gameover')).not.toThrow();
+    expect(() => am.play('levelComplete')).not.toThrow();
+  });
+
+  it('should not throw for unknown sound when no AudioContext', () => {
+    const am = AudioManager.getInstance();
+    expect(() => am.play('unknown_sound')).not.toThrow();
   });
 
   describe('volume control', () => {
@@ -55,6 +79,13 @@ describe('AudioManager Enhanced', () => {
       audioManager.setMuted(false);
       expect(audioManager.toggleMute()).toBe(true);
       expect(audioManager.toggleMute()).toBe(false);
+    });
+
+    it('should not play when muted', () => {
+      audioManager.setMuted(true);
+      expect(audioManager.isCurrentlyMuted()).toBe(true);
+      expect(() => audioManager.play('merge')).not.toThrow();
+      audioManager.setMuted(false);
     });
   });
 

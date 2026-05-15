@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { WarningLine } from '../src/ui/components/WarningLine';
-import { eventBus } from '../src/utils/EventBus';
+import { WarningLine } from '../../../src/ui/components/WarningLine';
+import { eventBus } from '../../../src/utils/EventBus';
 
 describe('WarningLine', () => {
   let wl: WarningLine;
