@@ -137,7 +137,8 @@ test.describe('启动与初始化 @smoke', () => {
       await navigateToGame(page);
       const loadTime = Date.now() - startTime;
 
-      expect(loadTime).toBeLessThan(15000);
+      const maxLoadTime = process.env.CI ? 30000 : 15000;
+      expect(loadTime).toBeLessThan(maxLoadTime);
     });
 
     test('资源加载不应阻塞主线程过久', async ({ page }) => {

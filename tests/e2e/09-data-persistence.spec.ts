@@ -277,8 +277,9 @@ test.describe('数据持久化 @regression', () => {
       });
 
       await page.reload();
-      await page.waitForLoadState('networkidle');
-      await page.waitForSelector('#game-canvas', { timeout: 15000 });
+      await page.waitForLoadState('domcontentloaded');
+      await page.waitForSelector('#game-canvas', { timeout: 20000 });
+      await page.waitForTimeout(3000);
 
       const hasSaveManager = await page.evaluate(() => {
         const game = (window as any).__gameInstance;

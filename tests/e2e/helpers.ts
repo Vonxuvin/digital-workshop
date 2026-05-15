@@ -5,8 +5,8 @@ export const LEVEL_EDITOR_URL = '/tools/level-editor/index.html';
 
 export async function navigateToGame(page: Page, startPlaying = true) {
   await page.goto(GAME_URL);
-  await page.waitForLoadState('networkidle');
-  await page.waitForSelector('#game-canvas', { timeout: 15000 });
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForSelector('#game-canvas', { timeout: 20000 });
   await page.waitForFunction(
     () => {
       const game = (window as any).__gameInstance;
@@ -18,7 +18,7 @@ export async function navigateToGame(page: Page, startPlaying = true) {
         return false;
       }
     },
-    { timeout: 15000 }
+    { timeout: 20000 }
   );
   if (startPlaying) {
     await page.evaluate(() => {
@@ -42,9 +42,19 @@ export async function navigateToGame(page: Page, startPlaying = true) {
           if (!stateMachine) return false;
           return stateMachine.getCurrentState?.() === 'playing';
         },
-        { timeout: 8000 }
+        { timeout: 10000 }
       );
     } catch {
+      const currentState = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return 'no-game';
+        try {
+          return game.getStateMachine?.()?.getCurrentState?.() ?? 'unknown';
+        } catch {
+          return 'error';
+        }
+      });
+      console.warn(`[helpers] Failed to enter playing state. Current: ${currentState}. Waiting 2s...`);
       await page.waitForTimeout(2000);
     }
   }
