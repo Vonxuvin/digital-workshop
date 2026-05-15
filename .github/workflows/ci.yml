@@ -80,100 +80,56 @@ jobs:
         run: npx playwright test --grep @smoke --project=chromium-desktop
 
   e2e-tests:
-    name: E2E Tests (Desktop, Shard ${{ matrix.shard }}/4)
-    runs-on: ubuntu-latest
     needs: [lint-and-unit]
     strategy:
       fail-fast: false
       matrix:
         shard: [1, 2, 3, 4]
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          cache: npm
-
-      - uses: actions/cache@v5
-        id: node-modules-cache
-        with:
-          path: node_modules
-          key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-
-      - if: steps.node-modules-cache.outputs.cache-hit != 'true'
-        run: npm ci
-
-      - uses: actions/cache@v5
-        id: playwright-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-
-      - if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium
-
-      - name: 运行 E2E 测试 (Shard ${{ matrix.shard }}/4)
-        run: npx playwright test --shard=${{ matrix.shard }}/4 --project=chromium-desktop
-
-      - name: 上传 Playwright 报告
-        if: always()
-        uses: actions/upload-artifact@v5
-        with:
-          name: playwright-report-shard-${{ matrix.shard }}
-          path: |
-            playwright-report/
-            test-results/
-          retention-days: 7
-          if-no-files-found: ignore
+    uses: ./.github/workflows/e2e-shard-job.yml
+    with:
+      project: chromium-desktop
+      shard-index: ${{ matrix.shard }}
+      shard-total: 4
+      artifact-prefix: playwright-report
 
   e2e-tests-mobile:
-    name: E2E Tests (Mobile, Shard ${{ matrix.shard }}/4)
-    runs-on: ubuntu-latest
     needs: [lint-and-unit]
     strategy:
       fail-fast: false
       matrix:
         shard: [1, 2, 3, 4]
-    steps:
-      - uses: actions/checkout@v5
+    uses: ./.github/workflows/e2e-shard-job.yml
+    with:
+      project: chromium-mobile
+      shard-index: ${{ matrix.shard }}
+      shard-total: 4
+      artifact-prefix: playwright-report-mobile
 
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          cache: npm
+  e2e-tests-small-mobile:
+    needs: [lint-and-unit]
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    uses: ./.github/workflows/e2e-shard-job.yml
+    with:
+      project: chromium-small-mobile
+      shard-index: ${{ matrix.shard }}
+      shard-total: 4
+      artifact-prefix: playwright-report-small-mobile
 
-      - uses: actions/cache@v5
-        id: node-modules-cache
-        with:
-          path: node_modules
-          key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-
-      - if: steps.node-modules-cache.outputs.cache-hit != 'true'
-        run: npm ci
-
-      - uses: actions/cache@v5
-        id: playwright-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-
-      - if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium
-
-      - name: 运行移动端 E2E (Shard ${{ matrix.shard }}/4)
-        run: npx playwright test --shard=${{ matrix.shard }}/4 --project=chromium-mobile --project=chromium-small-mobile
-
-      - name: 上传 Playwright 报告
-        if: always()
-        uses: actions/upload-artifact@v5
-        with:
-          name: playwright-report-mobile-shard-${{ matrix.shard }}
-          path: |
-            playwright-report/
-            test-results/
-          retention-days: 7
-          if-no-files-found: ignore
+  e2e-tests-tablet:
+    needs: [lint-and-unit]
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    uses: ./.github/workflows/e2e-shard-job.yml
+    with:
+      project: chromium-tablet
+      shard-index: ${{ matrix.shard }}
+      shard-total: 4
+      artifact-prefix: playwright-report-tablet
 
   build:
     name: Build

@@ -1,0 +1,64 @@
+name: E2E Shard Job
+
+on:
+  workflow_call:
+    inputs:
+      project:
+        required: true
+        type: string
+        description: 'Playwright project name (e.g. chromium-desktop)'
+      shard-index:
+        required: true
+        type: number
+        description: 'Current shard index (1-based)'
+      shard-total:
+        required: true
+        type: number
+        description: 'Total number of shards'
+      artifact-prefix:
+        required: true
+        type: string
+        description: 'Prefix for artifact name'
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/cache@v5
+        id: node-modules-cache
+        with:
+          path: node_modules
+          key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - if: steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - uses: actions/cache@v5
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E Tests (Shard ${{ inputs.shard-index }}/${{ inputs.shard-total }})
+        run: npx playwright test --shard=${{ inputs.shard-index }}/${{ inputs.shard-total }} --project=${{ inputs.project }}
+
+      - name: Upload Playwright Report
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: ${{ inputs.artifact-prefix }}-${{ inputs.shard-index }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+          if-no-files-found: ignore
