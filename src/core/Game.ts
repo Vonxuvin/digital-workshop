@@ -145,6 +145,9 @@ export class Game {
             initErr?.message?.includes('No available renderer')) {
           console.warn('[Game] WebGL/WebGPU 渲染器初始化失败，这是沙盒环境的已知限制');
           console.warn('[Game] 游戏将在降级模式下运行');
+          if (this.stateMachine.getCurrentState() === 'boot') {
+            this.stateMachine.transition('loading');
+          }
           this.stateMachine.transition('menu');
           try {
             if (!this.uiManager) {
@@ -245,6 +248,10 @@ export class Game {
       console.error('[Game] 初始化失败:', err);
       console.error('[Game] 错误详情:', JSON.stringify(err, null, 2));
       console.error('[Game] 错误堆栈:', (err as Error)?.stack);
+      const currentState = this.stateMachine.getCurrentState();
+      if (currentState === 'boot') {
+        this.stateMachine.transition('loading');
+      }
       this.stateMachine.transition('menu');
       try {
         if (!this.uiManager) {

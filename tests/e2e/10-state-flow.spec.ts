@@ -34,7 +34,7 @@ test.describe('状态流转 @smoke', () => {
         }
       });
 
-      expect(currentState).toBeTruthy();
+      expect(currentState).toBe('playing');
     });
 
     test('状态机应支持状态查询', async ({ page }) => {

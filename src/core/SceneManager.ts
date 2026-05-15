@@ -73,19 +73,25 @@ export class SceneManager {
     this.stateMachine.transition('playing');
   }
 
-  startLevelById(levelId: number): void {
+  startLevelById(levelId: number): boolean {
     const config = this.levelLoader.getLevelConfig(levelId);
     if (config) {
       this.startLevel(config);
+      return true;
     }
+    console.warn(`[SceneManager] startLevelById(${levelId}): 关卡配置未找到`);
+    return false;
   }
 
-  startGame(): void {
+  startGame(): boolean {
     const firstUnlocked = this.findFirstUnlockedLevel();
     const config = this.levelLoader.getLevelConfig(firstUnlocked);
     if (config) {
       this.startLevel(config);
+      return true;
     }
+    console.warn(`[SceneManager] startGame: 关卡配置未找到 (firstUnlocked=${firstUnlocked})`);
+    return false;
   }
 
   private findFirstUnlockedLevel(): number {

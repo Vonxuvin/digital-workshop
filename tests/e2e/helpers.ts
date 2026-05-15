@@ -14,8 +14,7 @@ export async function navigateToGame(page: Page, startPlaying = true) {
       try {
         const stateMachine = game.getStateMachine?.();
         if (!stateMachine) return false;
-        const state = stateMachine.getCurrentState?.();
-        return state === 'menu' || state === 'loading';
+        return stateMachine.getCurrentState?.() === 'menu';
       } catch {
         return false;
       }
@@ -56,8 +55,11 @@ export async function navigateToGame(page: Page, startPlaying = true) {
           return 'error';
         }
       });
-      console.warn(`[helpers] Failed to enter playing state. Current: ${currentState}. Waiting 2s...`);
-      await page.waitForTimeout(2000);
+      throw new Error(
+        `[navigateToGame] Failed to enter 'playing' state. Current state: '${currentState}'. ` +
+        `This usually means startLevelById(1) was called before the game finished initializing, ` +
+        `or the state transition 'menu'→'playing' was rejected.`
+      );
     }
   }
 }
