@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { AudioManager, SoundConfig } from '../../src/core/AudioManager';
+import { eventBus } from '../../src/utils/EventBus';
 
 describe('AudioManager', () => {
   let audioManager: AudioManager;
@@ -177,6 +178,420 @@ describe('AudioManager', () => {
       audioManager.setMasterVolume(0.5);
       audioManager.setMusicVolume(0.8);
       audioManager.setSfxVolume(0.5);
+    });
+  });
+
+  describe('loadSound', () => {
+    it('should load sound successfully on canplaythrough', async () => {
+      vi.spyOn(HTMLAudioElement.prototype, 'load').mockImplementation(function (this: HTMLAudioElement) {
+        this.dispatchEvent(new Event('canplaythrough'));
+      });
+      const config: SoundConfig = { key: 'testLoad', url: 'test.mp3', volume: 0.5, loop: false };
+      await audioManager.loadSound(config);
+      expect((audioManager as any).sounds.has('testLoad')).toBe(true);
+      expect((audioManager as any).volumes.get('testLoad')).toBe(0.5);
+    });
+
+    it('should handle load error gracefully', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      vi.spyOn(HTMLAudioElement.prototype, 'load').mockImplementation(function (this: HTMLAudioElement) {
+        this.dispatchEvent(new Event('error'));
+      });
+      const config: SoundConfig = { key: 'testError', url: 'error.mp3', volume: 0.5, loop: false };
+      await audioManager.loadSound(config);
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('testError'));
+      expect((audioManager as any).sounds.has('testError')).toBe(false);
+      warnSpy.mockRestore();
+    });
+
+    it('should set audio properties from config', async () => {
+      let capturedAudio: HTMLAudioElement | null = null;
+      vi.spyOn(HTMLAudioElement.prototype, 'load').mockImplementation(function (this: HTMLAudioElement) {
+        capturedAudio = this;
+        this.dispatchEvent(new Event('canplaythrough'));
+      });
+      const config: SoundConfig = { key: 'testProps', url: 'props.mp3', volume: 0.7, loop: true };
+      await audioManager.loadSound(config);
+      expect(capturedAudio).not.toBeNull();
+      expect(capturedAudio!.src).toContain('props.mp3');
+      expect(capturedAudio!.volume).toBe(0.7);
+      expect(capturedAudio!.loop).toBe(true);
+    });
+  });
+
+  describe('loadSounds', () => {
+    it('should load multiple sounds', async () => {
+      vi.spyOn(HTMLAudioElement.prototype, 'load').mockImplementation(function (this: HTMLAudioElement) {
+        this.dispatchEvent(new Event('canplaythrough'));
+      });
+      const configs: SoundConfig[] = [
+        { key: 'multi1', url: 's1.mp3', volume: 0.5, loop: false },
+        { key: 'multi2', url: 's2.mp3', volume: 0.7, loop: true },
+        { key: 'multi3', url: 's3.mp3', volume: 1.0, loop: false },
+      ];
+      await audioManager.loadSounds(configs);
+      expect((audioManager as any).sounds.has('multi1')).toBe(true);
+      expect((audioManager as any).sounds.has('multi2')).toBe(true);
+      expect((audioManager as any).sounds.has('multi3')).toBe(true);
+      expect((audioManager as any).volumes.get('multi1')).toBe(0.5);
+      expect((audioManager as any).volumes.get('multi2')).toBe(0.7);
+      expect((audioManager as any).volumes.get('multi3')).toBe(1.0);
+    });
+  });
+
+  describe('init', () => {
+    it('should return early when already initialized', async () => {
+      const am = new AudioManager();
+      await am.init();
+      const ctxSpy = vi.fn();
+      const originalAC = (window as any).AudioContext;
+      (window as any).AudioContext = ctxSpy;
+      await am.init();
+      expect(ctxSpy).not.toHaveBeenCalled();
+      (window as any).AudioContext = originalAC;
+      am.destroy();
+    });
+
+    it('should create AudioContext when available', async () => {
+      const mockClose = vi.fn();
+      const originalAC = (window as any).AudioContext;
+      (window as any).AudioContext = class { close = mockClose; };
+      const am = new AudioManager();
+      await am.init();
+      expect((am as any).audioContext).not.toBeNull();
+      expect((am as any).audioContext.close).toBe(mockClose);
+      (window as any).AudioContext = originalAC;
+      am.destroy();
+    });
+
+    it('should catch AudioContext creation error', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const originalAC = (window as any).AudioContext;
+      (window as any).AudioContext = vi.fn().mockImplementation(() => {
+        throw new Error('AudioContext error');
+      });
+      const am = new AudioManager();
+      await am.init();
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('音频上下文初始化失败'), expect.any(Error));
+      (window as any).AudioContext = originalAC;
+      warnSpy.mockRestore();
+      am.destroy();
+    });
+  });
+
+  describe('playProceduralSfx', () => {
+    let mockOscillator: any;
+    let mockGain: any;
+    let mockCtx: any;
+
+    beforeEach(() => {
+      mockOscillator = {
+        type: '',
+        frequency: { value: 0 },
+        connect: vi.fn(),
+        start: vi.fn(),
+        stop: vi.fn(),
+      };
+      mockGain = {
+        gain: {
+          value: 0,
+          exponentialRampToValueAtTime: vi.fn(),
+        },
+        connect: vi.fn(),
+      };
+      mockCtx = {
+        state: 'running',
+        resume: vi.fn(),
+        createOscillator: vi.fn().mockReturnValue(mockOscillator),
+        createGain: vi.fn().mockReturnValue(mockGain),
+        currentTime: 1.5,
+        destination: { id: 'dest' },
+        close: vi.fn(),
+      };
+      (audioManager as any).audioContext = mockCtx;
+      (audioManager as any).isMuted = false;
+    });
+
+    it('should use triangle oscillator for sfx keys', () => {
+      (audioManager as any).playProceduralSfx('spawn');
+      expect(mockCtx.createOscillator).toHaveBeenCalled();
+      expect(mockOscillator.type).toBe('triangle');
+      expect(mockOscillator.frequency.value).toBe(440);
+      expect(mockOscillator.connect).toHaveBeenCalledWith(mockGain);
+      expect(mockGain.connect).toHaveBeenCalledWith(mockCtx.destination);
+      expect(mockOscillator.start).toHaveBeenCalledWith(1.5);
+      expect(mockOscillator.stop).toHaveBeenCalledWith(1.5 + 0.15);
+    });
+
+    it('should use sine oscillator for music keys', () => {
+      const freqSpy = vi.spyOn(audioManager as any, 'getProceduralFrequency').mockReturnValue(440);
+      (audioManager as any).playProceduralSfx('music_intro');
+      expect(mockOscillator.type).toBe('sine');
+      freqSpy.mockRestore();
+    });
+
+    it('should use sine oscillator for bgm keys', () => {
+      const freqSpy = vi.spyOn(audioManager as any, 'getProceduralFrequency').mockReturnValue(330);
+      (audioManager as any).playProceduralSfx('bgm_main');
+      expect(mockOscillator.type).toBe('sine');
+      freqSpy.mockRestore();
+    });
+
+    it('should resume suspended audioContext', () => {
+      mockCtx.state = 'suspended';
+      (audioManager as any).playProceduralSfx('click');
+      expect(mockCtx.resume).toHaveBeenCalled();
+    });
+
+    it('should not create oscillator for unknown key with zero frequency', () => {
+      const freqSpy = vi.spyOn(audioManager as any, 'getProceduralFrequency').mockReturnValue(0);
+      (audioManager as any).playProceduralSfx('totally_unknown_key');
+      expect(mockCtx.createOscillator).not.toHaveBeenCalled();
+      freqSpy.mockRestore();
+    });
+
+    it('should apply volume override', () => {
+      audioManager.setMasterVolume(1);
+      audioManager.setSfxVolume(1);
+      (audioManager as any).playProceduralSfx('click', 0.6);
+      expect(mockGain.gain.value).toBeCloseTo(0.6, 2);
+    });
+
+    it('should use default volume 0.3 when no override', () => {
+      audioManager.setMasterVolume(1);
+      audioManager.setSfxVolume(1);
+      (audioManager as any).playProceduralSfx('click');
+      expect(mockGain.gain.value).toBeCloseTo(0.3, 2);
+    });
+
+    it('should apply exponential ramp to gain', () => {
+      (audioManager as any).playProceduralSfx('spawn');
+      expect(mockGain.gain.exponentialRampToValueAtTime).toHaveBeenCalledWith(0.001, 1.5 + 0.15);
+    });
+
+    it('should return early when audioContext is null', () => {
+      (audioManager as any).audioContext = null;
+      expect(() => (audioManager as any).playProceduralSfx('spawn')).not.toThrow();
+    });
+  });
+
+  describe('getEffectiveVolume', () => {
+    it('should return musicVolume * masterVolume for music keys', () => {
+      audioManager.setMasterVolume(0.5);
+      audioManager.setMusicVolume(0.8);
+      audioManager.setSfxVolume(0.5);
+      expect((audioManager as any).getEffectiveVolume('music')).toBeCloseTo(0.4, 5);
+      expect((audioManager as any).getEffectiveVolume('bgm')).toBeCloseTo(0.4, 5);
+      expect((audioManager as any).getEffectiveVolume('music_intro')).toBeCloseTo(0.4, 5);
+      expect((audioManager as any).getEffectiveVolume('bgm_main')).toBeCloseTo(0.4, 5);
+    });
+
+    it('should return sfxVolume * masterVolume for sfx keys', () => {
+      audioManager.setMasterVolume(0.5);
+      audioManager.setMusicVolume(0.8);
+      audioManager.setSfxVolume(0.5);
+      expect((audioManager as any).getEffectiveVolume('spawn')).toBeCloseTo(0.25, 5);
+      expect((audioManager as any).getEffectiveVolume('click')).toBeCloseTo(0.25, 5);
+      expect((audioManager as any).getEffectiveVolume('gameOver')).toBeCloseTo(0.25, 5);
+    });
+  });
+
+  describe('updateAllVolumes with loaded sounds', () => {
+    it('should update volume of loaded sounds when master volume changes', async () => {
+      vi.spyOn(HTMLAudioElement.prototype, 'load').mockImplementation(function (this: HTMLAudioElement) {
+        this.dispatchEvent(new Event('canplaythrough'));
+      });
+      const config: SoundConfig = { key: 'volTest', url: 'vt.mp3', volume: 0.6, loop: false };
+      await audioManager.loadSound(config);
+
+      audioManager.setMasterVolume(0.5);
+      audioManager.setSfxVolume(0.8);
+
+      const audio = (audioManager as any).sounds.get('volTest') as HTMLAudioElement;
+      expect(audio.volume).toBeCloseTo(0.6 * 0.8 * 0.5, 2);
+    });
+
+    it('should update volume of music-keyed loaded sounds', async () => {
+      vi.spyOn(HTMLAudioElement.prototype, 'load').mockImplementation(function (this: HTMLAudioElement) {
+        this.dispatchEvent(new Event('canplaythrough'));
+      });
+      const config: SoundConfig = { key: 'bgm_vol', url: 'bgm.mp3', volume: 0.7, loop: true };
+      await audioManager.loadSound(config);
+
+      audioManager.setMasterVolume(0.4);
+      audioManager.setMusicVolume(0.9);
+
+      const audio = (audioManager as any).sounds.get('bgm_vol') as HTMLAudioElement;
+      expect(audio.volume).toBeCloseTo(0.7 * 0.9 * 0.4, 2);
+    });
+  });
+
+  describe('resumeAudioContext', () => {
+    it('should resume suspended audioContext', () => {
+      const mockResume = vi.fn();
+      (audioManager as any).audioContext = { state: 'suspended', resume: mockResume, close: vi.fn() };
+      audioManager.resumeAudioContext();
+      expect(mockResume).toHaveBeenCalled();
+    });
+
+    it('should not resume running audioContext', () => {
+      const mockResume = vi.fn();
+      (audioManager as any).audioContext = { state: 'running', resume: mockResume, close: vi.fn() };
+      audioManager.resumeAudioContext();
+      expect(mockResume).not.toHaveBeenCalled();
+    });
+
+    it('should not throw when audioContext is null', () => {
+      (audioManager as any).audioContext = null;
+      expect(() => audioManager.resumeAudioContext()).not.toThrow();
+    });
+  });
+
+  describe('destroy with audioContext', () => {
+    it('should close audioContext on destroy', () => {
+      const mockClose = vi.fn();
+      (audioManager as any).audioContext = { close: mockClose };
+      audioManager.destroy();
+      expect(mockClose).toHaveBeenCalled();
+      expect((audioManager as any).audioContext).toBeNull();
+    });
+
+    it('should clear sounds and volumes on destroy', async () => {
+      vi.spyOn(HTMLAudioElement.prototype, 'load').mockImplementation(function (this: HTMLAudioElement) {
+        this.dispatchEvent(new Event('canplaythrough'));
+      });
+      const config: SoundConfig = { key: 'destroyTest', url: 'dt.mp3', volume: 0.5, loop: false };
+      await audioManager.loadSound(config);
+      expect((audioManager as any).sounds.size).toBe(1);
+      expect((audioManager as any).volumes.size).toBe(1);
+
+      audioManager.destroy();
+      expect((audioManager as any).sounds.size).toBe(0);
+      expect((audioManager as any).volumes.size).toBe(0);
+    });
+  });
+
+  describe('setMuted', () => {
+    it('should call stopAll when muted is true', () => {
+      const stopAllSpy = vi.spyOn(audioManager as any, 'stopAll');
+      audioManager.setMuted(true);
+      expect(stopAllSpy).toHaveBeenCalled();
+      stopAllSpy.mockRestore();
+    });
+
+    it('should not call stopAll when muted is false', () => {
+      audioManager.setMuted(false);
+      const stopAllSpy = vi.spyOn(audioManager as any, 'stopAll');
+      audioManager.setMuted(false);
+      expect(stopAllSpy).not.toHaveBeenCalled();
+      stopAllSpy.mockRestore();
+    });
+
+    it('should emit audio:muteChanged event', () => {
+      const emitSpy = vi.spyOn(eventBus, 'emit');
+      audioManager.setMuted(true);
+      expect(emitSpy).toHaveBeenCalledWith('audio:muteChanged', { isMuted: true });
+      audioManager.setMuted(false);
+      expect(emitSpy).toHaveBeenCalledWith('audio:muteChanged', { isMuted: false });
+      emitSpy.mockRestore();
+    });
+  });
+
+  describe('play with loaded sound and options', () => {
+    beforeEach(() => {
+      (audioManager as any).isMuted = false;
+    });
+
+    it('should apply loop option to loaded sound', async () => {
+      vi.spyOn(HTMLAudioElement.prototype, 'load').mockImplementation(function (this: HTMLAudioElement) {
+        this.dispatchEvent(new Event('canplaythrough'));
+      });
+      const config: SoundConfig = { key: 'loopTest', url: 'loop.mp3', volume: 0.5, loop: false };
+      await audioManager.loadSound(config);
+
+      audioManager.play('loopTest', { loop: true });
+      const audio = (audioManager as any).sounds.get('loopTest') as HTMLAudioElement;
+      expect(audio.loop).toBe(true);
+    });
+
+    it('should apply volume option to loaded sound', async () => {
+      vi.spyOn(HTMLAudioElement.prototype, 'load').mockImplementation(function (this: HTMLAudioElement) {
+        this.dispatchEvent(new Event('canplaythrough'));
+      });
+      const config: SoundConfig = { key: 'volOptTest', url: 'volopt.mp3', volume: 0.5, loop: false };
+      await audioManager.loadSound(config);
+
+      audioManager.setMasterVolume(1);
+      audioManager.setSfxVolume(1);
+      audioManager.play('volOptTest', { volume: 0.8 });
+      const audio = (audioManager as any).sounds.get('volOptTest') as HTMLAudioElement;
+      expect(audio.volume).toBeCloseTo(0.8, 2);
+    });
+
+    it('should reset currentTime to 0 on play', async () => {
+      vi.spyOn(HTMLAudioElement.prototype, 'load').mockImplementation(function (this: HTMLAudioElement) {
+        this.dispatchEvent(new Event('canplaythrough'));
+      });
+      const config: SoundConfig = { key: 'resetTest', url: 'reset.mp3', volume: 0.5, loop: false };
+      await audioManager.loadSound(config);
+
+      const audio = (audioManager as any).sounds.get('resetTest') as HTMLAudioElement;
+      audio.currentTime = 5;
+      audioManager.play('resetTest');
+      expect(audio.currentTime).toBe(0);
+    });
+
+    it('should use base volume from volumes map when no volume option', async () => {
+      vi.spyOn(HTMLAudioElement.prototype, 'load').mockImplementation(function (this: HTMLAudioElement) {
+        this.dispatchEvent(new Event('canplaythrough'));
+      });
+      const config: SoundConfig = { key: 'baseVolTest', url: 'basevol.mp3', volume: 0.6, loop: false };
+      await audioManager.loadSound(config);
+
+      audioManager.setMasterVolume(0.5);
+      audioManager.setSfxVolume(0.8);
+      audioManager.play('baseVolTest');
+      const audio = (audioManager as any).sounds.get('baseVolTest') as HTMLAudioElement;
+      expect(audio.volume).toBeCloseTo(0.6 * 0.8 * 0.5, 2);
+    });
+  });
+
+  describe('playSfx private method', () => {
+    it('should call play with the given key', () => {
+      const playSpy = vi.spyOn(audioManager as any, 'play');
+      (audioManager as any).playSfx('testSfx');
+      expect(playSpy).toHaveBeenCalledWith('testSfx');
+      playSpy.mockRestore();
+    });
+  });
+
+  describe('AudioManager.setInstance', () => {
+    it('should set the singleton instance', () => {
+      const newInstance = new AudioManager();
+      AudioManager.setInstance(newInstance);
+      expect(AudioManager.getInstance()).toBe(newInstance);
+      AudioManager.setInstance(audioManager);
+      newInstance.destroy();
+    });
+  });
+
+  describe('stop with loaded sound', () => {
+    beforeEach(() => {
+      (audioManager as any).isMuted = false;
+    });
+
+    it('should pause and reset loaded sound on stop', async () => {
+      vi.spyOn(HTMLAudioElement.prototype, 'load').mockImplementation(function (this: HTMLAudioElement) {
+        this.dispatchEvent(new Event('canplaythrough'));
+      });
+      const config: SoundConfig = { key: 'stopTest', url: 'stop.mp3', volume: 0.5, loop: false };
+      await audioManager.loadSound(config);
+
+      const audio = (audioManager as any).sounds.get('stopTest') as HTMLAudioElement;
+      audio.currentTime = 3;
+      audioManager.stop('stopTest');
+      expect(HTMLAudioElement.prototype.pause).toHaveBeenCalled();
+      expect(audio.currentTime).toBe(0);
     });
   });
 });

@@ -3,6 +3,8 @@ import { MergeSystem } from '../../src/gameplay/MergeSystem';
 import { PhysicsManager } from '../../src/core/PhysicsManager';
 import { Block, getBlockConfig } from '../../src/gameplay/Block';
 import { eventBus } from '../../src/utils/EventBus';
+import { AnimationManager } from '../../src/utils/AnimationManager';
+import { ScoreSystem } from '../../src/gameplay/ScoreSystem';
 import Matter from 'matter-js';
 
 describe('MergeSystem', () => {
@@ -275,6 +277,238 @@ describe('MergeSystem', () => {
       const emitSpy = vi.spyOn(eventBus, 'emit');
       mergeSystem['handleCollision'](body1, body2);
       expect(emitSpy).toHaveBeenCalledWith('block:merged', expect.any(Object));
+    });
+  });
+
+  describe('setScoreSystem', () => {
+    it('should add merge score when blocks merge with scoreSystem set', () => {
+      const scoreSystem = new ScoreSystem();
+      mergeSystem.setScoreSystem(scoreSystem);
+
+      const body1 = physics.createCircle(200, 300, 20, { density: 0.001 });
+      body1.label = 'block_score_1';
+      const b1 = new Block(body1, 2);
+
+      const body2 = physics.createCircle(220, 300, 20, { density: 0.001 });
+      body2.label = 'block_score_2';
+      const b2 = new Block(body2, 2);
+
+      mergeSystem.registerBlock(b1);
+      mergeSystem.registerBlock(b2);
+
+      mergeSystem['mergeBlocks'](b1, b2);
+
+      expect(scoreSystem.getScore()).toBeGreaterThan(0);
+    });
+  });
+
+  describe('rainbow block as blockB', () => {
+    it('should merge when blockB is the rainbow block', () => {
+      const body1 = physics.createCircle(200, 300, 20, { density: 0.001 });
+      body1.label = 'normal_rb1';
+      const normalBlock = new Block(body1, 8);
+
+      const body2 = physics.createCircle(220, 300, 20, { density: 0.001 });
+      body2.label = 'rainbow_rb2';
+      const rainbowBlock = new Block(body2, 2);
+      (rainbowBlock as any).isRainbow = true;
+
+      mergeSystem.registerBlock(normalBlock);
+      mergeSystem.registerBlock(rainbowBlock);
+
+      const emitSpy = vi.spyOn(eventBus, 'emit');
+      mergeSystem['handleCollision'](body1, body2);
+
+      expect(emitSpy).toHaveBeenCalledWith('block:merged', expect.objectContaining({
+        newValue: 16,
+      }));
+    });
+  });
+
+  describe('one static body collision', () => {
+    it('should not merge when one body is static', () => {
+      const staticBody = physics.createCircle(200, 300, 20, { isStatic: true });
+      staticBody.label = 'static_body_1';
+
+      const dynamicBody = physics.createCircle(220, 300, 20, { density: 0.001 });
+      dynamicBody.label = 'dynamic_body_1';
+      const dynamicBlock = new Block(dynamicBody, 2);
+
+      mergeSystem.registerBlock(dynamicBlock);
+
+      const emitSpy = vi.spyOn(eventBus, 'emit');
+      mergeSystem['handleCollision'](staticBody, dynamicBody);
+      expect(emitSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('obstacle collision with aIsObstacle=false', () => {
+    it('should clear obstacle when obstacle is bodyB', () => {
+      const obstacleBody = physics.createCircle(200, 300, 20, { density: 0.001 });
+      const obstacle = new Block(obstacleBody, 4);
+
+      const playerBody = physics.createCircle(220, 300, 20, { density: 0.001 });
+      playerBody.label = 'player_obs_b';
+      const player = new Block(playerBody, 4);
+
+      mergeSystem.registerObstacle(obstacle);
+      mergeSystem.registerBlock(player);
+
+      const emitSpy = vi.spyOn(eventBus, 'emit');
+      mergeSystem['handleObstacleCollision'](playerBody, obstacleBody, false);
+
+      expect(emitSpy).toHaveBeenCalledWith('obstacle:cleared');
+
+      obstacle.destroy();
+      player.destroy();
+    });
+  });
+
+  describe('obstacle collision not found in maps', () => {
+    it('should not clear when obstacle not found in map', () => {
+      const obstacleBody = physics.createCircle(200, 300, 20, { density: 0.001 });
+      obstacleBody.label = 'obstacle_missing';
+
+      const playerBody = physics.createCircle(220, 300, 20, { density: 0.001 });
+      playerBody.label = 'player_found_obs';
+      const player = new Block(playerBody, 4);
+
+      mergeSystem.registerBlock(player);
+
+      const emitSpy = vi.spyOn(eventBus, 'emit');
+      mergeSystem['handleObstacleCollision'](obstacleBody, playerBody, true);
+
+      expect(emitSpy).not.toHaveBeenCalled();
+      player.destroy();
+    });
+
+    it('should not clear when player not found in map', () => {
+      const obstacleBody = physics.createCircle(200, 300, 20, { density: 0.001 });
+      const obstacle = new Block(obstacleBody, 4);
+
+      const playerBody = physics.createCircle(220, 300, 20, { density: 0.001 });
+      playerBody.label = 'player_missing_obs';
+
+      mergeSystem.registerObstacle(obstacle);
+
+      const emitSpy = vi.spyOn(eventBus, 'emit');
+      mergeSystem['handleObstacleCollision'](obstacleBody, playerBody, true);
+
+      expect(emitSpy).not.toHaveBeenCalled();
+      obstacle.destroy();
+    });
+  });
+
+  describe('processChainChecks', () => {
+    it('should skip destroyed blocks', () => {
+      const body1 = physics.createCircle(200, 300, 20, { density: 0.001 });
+      body1.label = 'block_destroyed_check';
+      const b1 = new Block(body1, 4);
+
+      mergeSystem.registerBlock(b1);
+      b1.destroy();
+
+      mergeSystem['pendingChainChecks'].push('block_destroyed_check');
+
+      const emitSpy = vi.spyOn(eventBus, 'emit');
+      mergeSystem['processChainChecks']();
+
+      expect(emitSpy).not.toHaveBeenCalledWith('block:merged', expect.any(Object));
+    });
+
+    it('should skip blocks at max chain depth', () => {
+      const body1 = physics.createCircle(200, 300, 20, { density: 0.001 });
+      body1.label = 'block_max_depth';
+      const b1 = new Block(body1, 4);
+
+      mergeSystem.registerBlock(b1);
+      mergeSystem['chainDepthMap'].set('block_max_depth', 10);
+      mergeSystem['pendingChainChecks'].push('block_max_depth');
+
+      const emitSpy = vi.spyOn(eventBus, 'emit');
+      mergeSystem['processChainChecks']();
+
+      expect(emitSpy).not.toHaveBeenCalledWith('block:merged', expect.any(Object));
+    });
+
+    it('should skip blocks not found in blocks map', () => {
+      mergeSystem['pendingChainChecks'].push('nonexistent_label');
+
+      const emitSpy = vi.spyOn(eventBus, 'emit');
+      mergeSystem['processChainChecks']();
+
+      expect(emitSpy).not.toHaveBeenCalledWith('block:merged', expect.any(Object));
+    });
+  });
+
+  describe('checkChainReaction', () => {
+    it('should detect and merge nearby matching blocks', () => {
+      const body1 = physics.createCircle(200, 300, 20, { density: 0.001 });
+      body1.label = 'block_chain_detect_1';
+      const b1 = new Block(body1, 4);
+
+      const body2 = physics.createCircle(215, 300, 20, { density: 0.001 });
+      body2.label = 'block_chain_detect_2';
+      const b2 = new Block(body2, 4);
+
+      mergeSystem.registerBlock(b1);
+      mergeSystem.registerBlock(b2);
+
+      const emitSpy = vi.spyOn(eventBus, 'emit');
+      mergeSystem['checkChainReaction'](b1, 0);
+
+      expect(emitSpy).toHaveBeenCalledWith('block:merged', expect.any(Object));
+    });
+  });
+
+  describe('scheduleChainCheck', () => {
+    it('should schedule chain check and set chainCheckAnimId', () => {
+      mergeSystem['scheduleChainCheck']('test_schedule_label');
+
+      expect(mergeSystem['pendingChainChecks']).toContain('test_schedule_label');
+      expect(mergeSystem['chainCheckAnimId']).not.toBeNull();
+    });
+  });
+
+  describe('destroy with chainCheckAnimId', () => {
+    it('should unregister chainCheckAnimId on destroy', () => {
+      const body1 = physics.createCircle(200, 300, 20, { density: 0.001 });
+      body1.label = 'block_destroy_anim_1';
+      const b1 = new Block(body1, 2);
+
+      const body2 = physics.createCircle(220, 300, 20, { density: 0.001 });
+      body2.label = 'block_destroy_anim_2';
+      const b2 = new Block(body2, 2);
+
+      mergeSystem.registerBlock(b1);
+      mergeSystem.registerBlock(b2);
+
+      mergeSystem['mergeBlocks'](b1, b2);
+
+      expect(mergeSystem['chainCheckAnimId']).not.toBeNull();
+
+      const animManager = AnimationManager.getInstance();
+      const unregisterSpy = vi.spyOn(animManager, 'unregister');
+
+      mergeSystem.destroy();
+
+      expect(unregisterSpy).toHaveBeenCalled();
+      expect(mergeSystem['chainCheckAnimId']).toBeNull();
+    });
+  });
+
+  describe('registerObstacle', () => {
+    it('should register obstacle in obstacles map', () => {
+      const obstacleBody = physics.createCircle(200, 300, 20, { density: 0.001 });
+      obstacleBody.label = 'obstacle_reg_test';
+      const obstacle = new Block(obstacleBody, 4);
+
+      mergeSystem.registerObstacle(obstacle);
+
+      expect(mergeSystem['obstacles'].has('obstacle_reg_test')).toBe(true);
+      expect(mergeSystem['obstacles'].get('obstacle_reg_test')).toBe(obstacle);
+
+      obstacle.destroy();
     });
   });
 });

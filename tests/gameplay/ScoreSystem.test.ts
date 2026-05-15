@@ -83,6 +83,130 @@ describe('ScoreSystem', () => {
     const score2 = ss.getCurrentScore();
     expect(score2).toBeGreaterThan(score1);
   });
+
+  it('should apply lucky multiplier to score calculation', () => {
+    ss.addMergeScore(2);
+    const scoreWithoutLucky = ss.getCurrentScore();
+    ss.reset();
+    ss.setLuckyMultiplier(2);
+    ss.addMergeScore(2);
+    const scoreWithLucky = ss.getCurrentScore();
+    expect(scoreWithLucky).toBe(scoreWithoutLucky * 2);
+  });
+
+  it('should return baseScore of 1 for unknown value <= 2 via calculateScore fallback', () => {
+    ss.addMergeScore(1);
+    expect(ss.getCurrentScore()).toBe(1);
+  });
+
+  it('should return baseScore of 1 for value with non-finite log2 tier', () => {
+    ss.addMergeScore(0);
+    expect(ss.getCurrentScore()).toBe(1);
+  });
+
+  it('should return baseScore of 1 for negative value via calculateScore fallback', () => {
+    ss.addMergeScore(-1);
+    expect(ss.getCurrentScore()).toBe(1);
+  });
+
+  it('should calculate score for unknown value using log2 fallback', () => {
+    ss.addMergeScore(6);
+    expect(ss.getCurrentScore()).toBe(3);
+  });
+
+  it('should use calculateScore fallback for value 3 not in SCORE_CONFIGS', () => {
+    ss.addMergeScore(3);
+    expect(ss.getCurrentScore()).toBe(2);
+  });
+
+  it('should return same value from getScore, getTotalScore, and getCurrentScore', () => {
+    ss.addMergeScore(4);
+    const score = ss.getCurrentScore();
+    expect(ss.getScore()).toBe(score);
+    expect(ss.getTotalScore()).toBe(score);
+  });
+
+  it('should return chainCount from getCombo', () => {
+    ss.addMergeScore(2);
+    ss.addMergeScore(4, true);
+    expect(ss.getCombo()).toBe(2);
+    expect(ss.getCombo()).toBe(ss.getChainCount());
+  });
+
+  it('should calculate combo multiplier correctly', () => {
+    expect(ss.getComboMultiplier()).toBe(1);
+    ss.addMergeScore(2);
+    expect(ss.getComboMultiplier()).toBe(1.5);
+    ss.addMergeScore(4, true);
+    expect(ss.getComboMultiplier()).toBe(2);
+  });
+
+  it('should reset combo and emit score:chainEnded', () => {
+    const handler = vi.fn();
+    eventBus.on('score:chainEnded', handler);
+    ss.addMergeScore(2);
+    ss.addMergeScore(4, true);
+    expect(ss.getChainCount()).toBe(2);
+    ss.resetCombo();
+    expect(ss.getChainCount()).toBe(0);
+    expect(handler).toHaveBeenCalled();
+    eventBus.off('score:chainEnded', handler);
+  });
+
+  it('should track max chain count across merges', () => {
+    ss.addMergeScore(2);
+    ss.addMergeScore(4, true);
+    ss.addMergeScore(8, true);
+    expect(ss.getMaxChainCount()).toBe(3);
+    ss.update(4000);
+    expect(ss.getChainCount()).toBe(0);
+    expect(ss.getMaxChainCount()).toBe(3);
+    ss.addMergeScore(2);
+    expect(ss.getMaxChainCount()).toBe(3);
+  });
+
+  it('should calculate stars for level correctly', () => {
+    expect(ss.getStarsForLevel(500, [100, 300, 500])).toBe(3);
+    expect(ss.getStarsForLevel(200, [100, 300, 500])).toBe(1);
+    expect(ss.getStarsForLevel(50, [100, 300, 500])).toBe(0);
+  });
+
+  it('should return 0 stars for empty threshold array', () => {
+    expect(ss.getStarsForLevel(500, [])).toBe(0);
+  });
+
+  it('should award star when score equals threshold exactly', () => {
+    expect(ss.getStarsForLevel(100, [100, 300, 500])).toBe(1);
+    expect(ss.getStarsForLevel(300, [100, 300, 500])).toBe(2);
+  });
+
+  it('should reset chainTimer on destroy', () => {
+    ss.addMergeScore(2);
+    expect(ss.getChainCount()).toBe(1);
+    ss.destroy();
+    const handler = vi.fn();
+    eventBus.on('score:chainEnded', handler);
+    ss.update(5000);
+    expect(handler).not.toHaveBeenCalled();
+    eventBus.off('score:chainEnded', handler);
+  });
+
+  it('should emit score:chainEnded when chainTimer reaches exactly 0', () => {
+    const handler = vi.fn();
+    eventBus.on('score:chainEnded', handler);
+    ss.addMergeScore(2);
+    ss.update(3000);
+    expect(handler).toHaveBeenCalled();
+    expect(ss.getChainCount()).toBe(0);
+    eventBus.off('score:chainEnded', handler);
+  });
+
+  it('should cap chain bonus at maxChainBonus', () => {
+    for (let i = 0; i < 12; i++) {
+      ss.addMergeScore(2, true);
+    }
+    expect(ss.getComboMultiplier()).toBe(6);
+  });
 });
 
 describe('SCORE_CONFIGS', () => {
