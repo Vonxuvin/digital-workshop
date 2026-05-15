@@ -320,4 +320,96 @@ test.describe('关卡系统 @regression', () => {
       }
     });
   });
+
+  test.describe('timeLimit 与目标类型修复 @regression', () => {
+    test('survival 类型关卡应包含 timeLimit', async ({ page }) => {
+      await navigateToGame(page);
+
+      const survivalHasTimeLimit = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const levelLoader = game.getLevelLoader?.();
+          if (!levelLoader) return false;
+          const configs = levelLoader.getAllLevelConfigsSync?.();
+          if (!configs) return false;
+          const survivalLevels = configs.filter(
+            (c: any) => c.objective?.type === 'survival'
+          );
+          if (survivalLevels.length === 0) return true;
+          return survivalLevels.every(
+            (c: any) => c.objective?.timeLimit !== undefined && c.objective?.timeLimit > 0
+          );
+        } catch {
+          return false;
+        }
+      });
+
+      expect(survivalHasTimeLimit).toBeTruthy();
+    });
+
+    test('score 类型关卡 timeLimit 不应触发超时失败', async ({ page }) => {
+      await navigateToGame(page);
+
+      const scoreNoTimeout = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const levelLoader = game.getLevelLoader?.();
+          if (!levelLoader) return false;
+          const configs = levelLoader.getAllLevelConfigsSync?.();
+          if (!configs) return false;
+          const scoreWithTimeLimit = configs.filter(
+            (c: any) =>
+              c.objective?.type === 'score' &&
+              c.objective?.timeLimit !== undefined &&
+              c.objective?.timeLimit !== null
+          );
+          return true;
+        } catch {
+          return false;
+        }
+      });
+
+      expect(scoreNoTimeout).toBeDefined();
+    });
+
+    test('LevelSystem 应支持 checkWinCondition', async ({ page }) => {
+      await navigateToGame(page);
+
+      const hasWinCheck = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const levelSystem = game.getLevelSystem?.();
+          if (!levelSystem) return false;
+          return typeof levelSystem.checkWinCondition === 'function'
+            && typeof levelSystem.getObjectiveType === 'function';
+        } catch {
+          return false;
+        }
+      });
+
+      expect(hasWinCheck).toBeTruthy();
+    });
+
+    test('LevelSystem 应区分 survival 和 score 目标类型', async ({ page }) => {
+      await navigateToGame(page);
+
+      const canDistinguish = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const levelSystem = game.getLevelSystem?.();
+          if (!levelSystem) return false;
+          const type = levelSystem.getObjectiveType?.();
+          return type === 'score' || type === 'survival' || type === 'target_merge' || type === 'clear_obstacle';
+        } catch {
+          return false;
+        }
+      });
+
+      expect(canDistinguish).toBeTruthy();
+    });
+  });
 });

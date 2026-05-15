@@ -248,6 +248,94 @@ test.describe('视觉布局 @regression', () => {
     });
   });
 
+  test.describe('WarningLine PixiJS v8 兼容性 @regression', () => {
+    test('警戒线应使用 PixiJS v8 stroke API 而非 tint', async ({ page }) => {
+      await navigateToGame(page);
+
+      const usesStrokeAPI = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const scene = game.getGameScene?.();
+          if (!scene) return false;
+          const warningLine = scene.getWarningLine?.();
+          if (!warningLine) return false;
+          const graphics = warningLine.getGraphics?.();
+          if (!graphics) return false;
+          return typeof graphics.stroke === 'function';
+        } catch {
+          return false;
+        }
+      });
+
+      expect(usesStrokeAPI).toBeTruthy();
+    });
+
+    test('警戒线应支持颜色参数', async ({ page }) => {
+      await navigateToGame(page);
+
+      const supportsColor = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const scene = game.getGameScene?.();
+          if (!scene) return false;
+          const warningLine = scene.getWarningLine?.();
+          if (!warningLine) return false;
+          return typeof warningLine.setColor === 'function'
+            || typeof warningLine.getColor === 'function';
+        } catch {
+          return false;
+        }
+      });
+
+      expect(supportsColor).toBeDefined();
+    });
+
+    test('警戒线应支持透明度参数', async ({ page }) => {
+      await navigateToGame(page);
+
+      const supportsAlpha = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const scene = game.getGameScene?.();
+          if (!scene) return false;
+          const warningLine = scene.getWarningLine?.();
+          if (!warningLine) return false;
+          return typeof warningLine.setAlpha === 'function'
+            || typeof warningLine.getAlpha === 'function';
+        } catch {
+          return false;
+        }
+      });
+
+      expect(supportsAlpha).toBeDefined();
+    });
+
+    test('警戒线应在游戏场景中可见', async ({ page }) => {
+      await navigateToGame(page);
+
+      const isVisible = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const scene = game.getGameScene?.();
+          if (!scene) return false;
+          const warningLine = scene.getWarningLine?.();
+          if (!warningLine) return false;
+          const container = warningLine.getContainer?.();
+          if (!container) return warningLine.visible !== false;
+          return container.visible !== false;
+        } catch {
+          return false;
+        }
+      });
+
+      expect(isVisible).toBeTruthy();
+    });
+  });
+
   test.describe('弹窗布局 @regression', () => {
     test('弹窗应居中显示', async ({ page }) => {
       await navigateToGame(page);

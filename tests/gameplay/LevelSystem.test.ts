@@ -15,22 +15,30 @@ describe('LevelSystem', () => {
 
   const scoreConfig: LevelConfig = {
     id: 1, name: '分数关卡', objective: { type: 'score', target: 100 },
-    containerWidth: 400, containerHeight: 600, availableNumbers: [1, 2, 4],
+    container: { width: 400, height: 600, shape: 'rectangle' },
+    spawn: { availableNumbers: [1, 2, 4] },
+    rewards: { stars: [50, 80, 100] },
   };
 
   const mergeConfig: LevelConfig = {
     id: 2, name: '合成关卡', objective: { type: 'target_merge', target: 16 },
-    containerWidth: 400, containerHeight: 600, availableNumbers: [1, 2, 4, 8],
+    container: { width: 400, height: 600, shape: 'rectangle' },
+    spawn: { availableNumbers: [1, 2, 4, 8] },
+    rewards: { stars: [50, 80, 100] },
   };
 
   const obstacleConfig: LevelConfig = {
     id: 3, name: '障碍关卡', objective: { type: 'clear_obstacle', target: 3 },
-    containerWidth: 400, containerHeight: 600, availableNumbers: [1, 2, 4],
+    container: { width: 400, height: 600, shape: 'rectangle' },
+    spawn: { availableNumbers: [1, 2, 4] },
+    rewards: { stars: [50, 80, 100] },
   };
 
   const survivalConfig: LevelConfig = {
     id: 4, name: '生存关卡', objective: { type: 'survival', target: 10, timeLimit: 10 },
-    containerWidth: 400, containerHeight: 600, availableNumbers: [1, 2, 4],
+    container: { width: 400, height: 600, shape: 'rectangle' },
+    spawn: { availableNumbers: [1, 2, 4] },
+    rewards: { stars: [50, 80, 100] },
   };
 
   it('should initialize correctly', () => {
@@ -103,17 +111,44 @@ describe('LevelSystem', () => {
     expect(handler).toHaveBeenCalled();
   });
 
-  it('should emit game:timeout when time runs out for non-survival', () => {
+  it('should NOT emit game:timeout for non-survival levels with timeLimit', () => {
     const timedConfig: LevelConfig = {
       id: 5, name: '限时关卡', objective: { type: 'score', target: 9999, timeLimit: 5 },
-      containerWidth: 400, containerHeight: 600, availableNumbers: [1, 2],
+      container: { width: 400, height: 600, shape: 'rectangle' },
+      spawn: { availableNumbers: [1, 2] },
+      rewards: { stars: [50, 80, 100] },
     };
     ls = new LevelSystem(timedConfig);
     ls.start();
     const handler = vi.fn();
     eventBus.on('game:timeout', handler);
     ls.update(5000);
-    expect(handler).toHaveBeenCalled();
+    expect(handler).not.toHaveBeenCalled();
+    eventBus.off('game:timeout', handler);
+  });
+
+  it('should still emit level:timeUpdate for non-survival levels with timeLimit', () => {
+    const timedConfig: LevelConfig = {
+      id: 5, name: '限时关卡', objective: { type: 'score', target: 9999, timeLimit: 5 },
+      container: { width: 400, height: 600, shape: 'rectangle' },
+      spawn: { availableNumbers: [1, 2] },
+      rewards: { stars: [50, 80, 100] },
+    };
+    ls = new LevelSystem(timedConfig);
+    ls.start();
+    const handler = vi.fn();
+    eventBus.on('level:timeUpdate', handler);
+    ls.update(1000);
+    ls.update(1000);
+    expect(handler).toHaveBeenCalledTimes(2);
+    eventBus.off('level:timeUpdate', handler);
+  });
+
+  it('should complete survival level when timeLimit reached', () => {
+    ls = new LevelSystem(survivalConfig);
+    ls.start();
+    ls.update(10000);
+    expect(ls.isLevelCompleted()).toBe(true);
   });
 
   it('should emit level:timeUpdate on each second', () => {
@@ -163,7 +198,9 @@ describe('LevelSystem', () => {
   it('should return 0 progress for survival without timeLimit', () => {
     const noTimeConfig: LevelConfig = {
       id: 6, name: '无限制生存', objective: { type: 'survival', target: 10 },
-      containerWidth: 400, containerHeight: 600, availableNumbers: [1, 2],
+      container: { width: 400, height: 600, shape: 'rectangle' },
+      spawn: { availableNumbers: [1, 2] },
+      rewards: { stars: [50, 80, 100] },
     };
     ls = new LevelSystem(noTimeConfig);
     expect(ls.getProgress()).toBe(0);

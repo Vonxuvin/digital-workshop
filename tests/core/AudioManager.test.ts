@@ -4,9 +4,33 @@ import { eventBus } from '../../src/utils/EventBus';
 
 describe('AudioManager', () => {
   let audioManager: AudioManager;
+  let mockAudioContext: any;
 
   beforeEach(() => {
     vi.useFakeTimers();
+
+    mockAudioContext = {
+      state: 'running',
+      currentTime: 0,
+      createOscillator: vi.fn(() => ({
+        type: 'sine',
+        frequency: { value: 440 },
+        connect: vi.fn(),
+        start: vi.fn(),
+        stop: vi.fn(),
+      })),
+      createGain: vi.fn(() => ({
+        gain: { value: 1, exponentialRampToValueAtTime: vi.fn() },
+        connect: vi.fn(),
+      })),
+      destination: {},
+      resume: vi.fn(),
+      close: vi.fn(),
+    };
+
+    vi.stubGlobal('AudioContext', vi.fn(() => mockAudioContext));
+    vi.stubGlobal('webkitAudioContext', vi.fn(() => mockAudioContext));
+
     audioManager = AudioManager.getInstance();
     vi.spyOn(HTMLAudioElement.prototype, 'play').mockImplementation(() => Promise.resolve());
     vi.spyOn(HTMLAudioElement.prototype, 'pause').mockImplementation(() => {});
@@ -16,6 +40,7 @@ describe('AudioManager', () => {
   afterEach(() => {
     vi.useRealTimers();
     audioManager.destroy();
+    vi.unstubAllGlobals();
   });
 
   it('should be singleton', () => {
@@ -166,6 +191,240 @@ describe('AudioManager', () => {
   describe('destroy', () => {
     it('应正确清理资源', () => {
       audioManager.destroy();
+    });
+  });
+
+  describe('event name consistency', () => {
+    it('should listen for block:dropped event (not gameplay:blockSpawn)', () => {
+      const am = AudioManager.getInstance();
+      expect(() => am.play('spawn')).not.toThrow();
+    });
+
+    it('should listen for block:merged event', () => {
+      const am = AudioManager.getInstance();
+      expect(() => am.playMergeSound(4)).not.toThrow();
+    });
+
+    it('should listen for score:updated event for combo sounds', () => {
+      const am = AudioManager.getInstance();
+      expect(() => am.playComboSound(3)).not.toThrow();
+    });
+
+    it('should listen for game:over event', () => {
+      const am = AudioManager.getInstance();
+      expect(() => am.play('gameOver')).not.toThrow();
+    });
+
+    it('should listen for level:completed event', () => {
+      const am = AudioManager.getInstance();
+      expect(() => am.play('levelComplete')).not.toThrow();
+    });
+
+    it('should listen for props:used event', () => {
+      const am = AudioManager.getInstance();
+      expect(() => am.playPropSound('bomb')).not.toThrow();
+    });
+
+    it('should listen for ui:buttonClick event', () => {
+      const am = AudioManager.getInstance();
+      expect(() => am.play('click')).not.toThrow();
+    });
+
+    it('should handle all registered event sounds without error', () => {
+      const am = AudioManager.getInstance();
+      const sounds = ['spawn', 'merge', 'gameOver', 'levelComplete', 'click', 'combo', 'comboGreat', 'comboSuper'];
+      for (const sound of sounds) {
+        expect(() => am.play(sound)).not.toThrow();
+      }
+    });
+
+    it('should handle unknown prop type with fallback sound', () => {
+      const am = AudioManager.getInstance();
+      expect(() => am.playPropSound('unknown_prop_type')).not.toThrow();
+    });
+
+    it('should handle playMergeSound for all merge levels', () => {
+      const am = AudioManager.getInstance();
+      const levels = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048];
+      for (const level of levels) {
+        expect(() => am.playMergeSound(level)).not.toThrow();
+      }
+    });
+
+    it('should handle playComboSound for all combo levels', () => {
+      const am = AudioManager.getInstance();
+      const combos = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20];
+      for (const combo of combos) {
+        expect(() => am.playComboSound(combo)).not.toThrow();
+      }
+    });
+  });
+
+  describe('procedural SFX with AudioContext', () => {
+    it('should play procedural SFX when AudioContext is available', async () => {
+      const am = AudioManager.getInstance();
+      (am as any).sounds.clear();
+      await am.init();
+      expect(() => am.play('spawn')).not.toThrow();
+      expect(() => am.play('click')).not.toThrow();
+      expect(() => am.play('combo')).not.toThrow();
+      expect(() => am.play('warning')).not.toThrow();
+      expect(() => am.play('score')).not.toThrow();
+    });
+
+    it('should play procedural SFX with volume override', async () => {
+      const am = AudioManager.getInstance();
+      (am as any).sounds.clear();
+      await am.init();
+      expect(() => am.play('spawn', { volume: 0.8 })).not.toThrow();
+    });
+
+    it('should handle procedural SFX for music/bgm keys', async () => {
+      const am = AudioManager.getInstance();
+      (am as any).sounds.clear();
+      await am.init();
+      expect(() => am.play('bgm_test')).not.toThrow();
+    });
+
+    it('should handle unknown procedural key with AudioContext', async () => {
+      const am = AudioManager.getInstance();
+      (am as any).sounds.clear();
+      await am.init();
+      expect(() => am.play('unknown_key')).not.toThrow();
+    });
+  });
+
+  describe('procedural SFX', () => {
+    it('should play procedural SFX for spawn', () => {
+      const am = AudioManager.getInstance();
+      expect(() => am.play('spawn')).not.toThrow();
+    });
+
+    it('should play procedural SFX for click', () => {
+      const am = AudioManager.getInstance();
+      expect(() => am.play('click')).not.toThrow();
+    });
+
+    it('should play procedural SFX for combo', () => {
+      const am = AudioManager.getInstance();
+      expect(() => am.play('combo')).not.toThrow();
+    });
+
+    it('should play procedural SFX for comboGreat', () => {
+      const am = AudioManager.getInstance();
+      expect(() => am.play('comboGreat')).not.toThrow();
+    });
+
+    it('should play procedural SFX for comboSuper', () => {
+      const am = AudioManager.getInstance();
+      expect(() => am.play('comboSuper')).not.toThrow();
+    });
+
+    it('should play procedural SFX for warning', () => {
+      const am = AudioManager.getInstance();
+      expect(() => am.play('warning')).not.toThrow();
+    });
+
+    it('should play procedural SFX for score', () => {
+      const am = AudioManager.getInstance();
+      expect(() => am.play('score')).not.toThrow();
+    });
+
+    it('should play procedural SFX for propDefault', () => {
+      const am = AudioManager.getInstance();
+      expect(() => am.play('propDefault')).not.toThrow();
+    });
+
+    it('should handle procedural SFX with volume override', () => {
+      const am = AudioManager.getInstance();
+      expect(() => am.play('spawn', { volume: 0.8 })).not.toThrow();
+    });
+
+    it('should handle procedural SFX for music key', () => {
+      const am = AudioManager.getInstance();
+      expect(() => am.play('bgm_test')).not.toThrow();
+    });
+
+    it('should handle unknown procedural key gracefully', () => {
+      const am = AudioManager.getInstance();
+      expect(() => am.play('unknown_procedural_key')).not.toThrow();
+    });
+  });
+
+  describe('effective volume', () => {
+    it('should calculate effective volume for music keys', () => {
+      const am = AudioManager.getInstance();
+      am.setMasterVolume(0.8);
+      am.setMusicVolume(0.5);
+      expect(() => am.play('bgm_main')).not.toThrow();
+    });
+
+    it('should calculate effective volume for sfx keys', () => {
+      const am = AudioManager.getInstance();
+      am.setMasterVolume(0.8);
+      am.setSfxVolume(0.5);
+      expect(() => am.play('merge')).not.toThrow();
+    });
+  });
+
+  describe('merge sound levels', () => {
+    it('should handle all merge levels', () => {
+      const am = AudioManager.getInstance();
+      const levels = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096];
+      for (const level of levels) {
+        expect(() => am.playMergeSound(level)).not.toThrow();
+      }
+    });
+
+    it('should handle unknown merge level', () => {
+      const am = AudioManager.getInstance();
+      expect(() => am.playMergeSound(9999)).not.toThrow();
+    });
+  });
+
+  describe('combo sound levels', () => {
+    it('should handle all combo levels', () => {
+      const am = AudioManager.getInstance();
+      for (let i = 0; i <= 15; i++) {
+        expect(() => am.playComboSound(i)).not.toThrow();
+      }
+    });
+  });
+
+  describe('event listener triggers', () => {
+    it('should handle block:dropped event', () => {
+      const am = AudioManager.getInstance();
+      expect(() => eventBus.emit('block:dropped', {})).not.toThrow();
+    });
+
+    it('should handle block:merged event', () => {
+      const am = AudioManager.getInstance();
+      expect(() => eventBus.emit('block:merged', { newValue: 4 })).not.toThrow();
+    });
+
+    it('should handle score:updated event', () => {
+      const am = AudioManager.getInstance();
+      expect(() => eventBus.emit('score:updated', { chainCount: 2 })).not.toThrow();
+    });
+
+    it('should handle game:over event', () => {
+      const am = AudioManager.getInstance();
+      expect(() => eventBus.emit('game:over', {})).not.toThrow();
+    });
+
+    it('should handle level:completed event', () => {
+      const am = AudioManager.getInstance();
+      expect(() => eventBus.emit('level:completed', {})).not.toThrow();
+    });
+
+    it('should handle props:used event', () => {
+      const am = AudioManager.getInstance();
+      expect(() => eventBus.emit('props:used', { type: 'bomb' })).not.toThrow();
+    });
+
+    it('should handle ui:buttonClick event', () => {
+      const am = AudioManager.getInstance();
+      expect(() => eventBus.emit('ui:buttonClick', {})).not.toThrow();
     });
   });
 

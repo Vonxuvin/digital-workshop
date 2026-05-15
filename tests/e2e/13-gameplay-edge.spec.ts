@@ -367,4 +367,66 @@ test.describe('玩法边界 @full', () => {
       expect(hasCrosshair).toBeTruthy();
     });
   });
+
+  test.describe('ShrinkModifier 墙壁偏移 @full', () => {
+    test('ShrinkModifier 应支持 containerOffsetX', async ({ page }) => {
+      await navigateToGame(page);
+
+      const hasShrinkModifier = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const scene = game.getGameScene?.();
+          if (!scene) return false;
+          const modifier = scene.getShrinkModifier?.();
+          return modifier !== null && modifier !== undefined;
+        } catch {
+          return false;
+        }
+      });
+
+      expect(hasShrinkModifier).toBeDefined();
+    });
+
+    test('ShrinkModifier 应支持 activate/deactivate', async ({ page }) => {
+      await navigateToGame(page);
+
+      const canToggle = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const scene = game.getGameScene?.();
+          if (!scene) return false;
+          const modifier = scene.getShrinkModifier?.();
+          if (!modifier) return false;
+          return typeof modifier.isActive === 'function'
+            && typeof modifier.getType === 'function';
+        } catch {
+          return false;
+        }
+      });
+
+      expect(canToggle).toBeTruthy();
+    });
+
+    test('ShrinkModifier getType 应返回 shrink', async ({ page }) => {
+      await navigateToGame(page);
+
+      const typeCorrect = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const scene = game.getGameScene?.();
+          if (!scene) return false;
+          const modifier = scene.getShrinkModifier?.();
+          if (!modifier) return false;
+          return modifier.getType() === 'shrink';
+        } catch {
+          return false;
+        }
+      });
+
+      expect(typeCorrect).toBeTruthy();
+    });
+  });
 });

@@ -28,6 +28,8 @@ export class GameHUD extends Container {
   private _propsContainer!: Container;
   private selectedProp: PropType | null = null;
   private propTargetMode = false;
+  private screenWidth = 0;
+  private screenHeight = 0;
 
   get scoreText(): Text { return this._scoreText; }
   get levelText(): Text { return this._levelText; }
@@ -201,7 +203,7 @@ export class GameHUD extends Container {
 
   showCombo(count: number): void {
     if (this._comboDisplay) {
-      this._comboDisplay.showCombo(count);
+      this._comboDisplay.showCombo(count, this.screenWidth, this.screenHeight);
     }
   }
 
@@ -379,6 +381,8 @@ export class GameHUD extends Container {
   }
 
   layout(screenWidth: number, screenHeight: number): void {
+    this.screenWidth = screenWidth;
+    this.screenHeight = screenHeight;
     const buttonSize = 60;
     const buttonGap = 8;
     const rowGap = 6;

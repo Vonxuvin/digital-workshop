@@ -278,6 +278,147 @@ describe('MergeSystem', () => {
       mergeSystem['handleCollision'](body1, body2);
       expect(emitSpy).toHaveBeenCalledWith('block:merged', expect.any(Object));
     });
+
+    it('彩虹方块与彩虹方块可以合成', () => {
+      const body1 = physics.createCircle(200, 300, 20, { density: 0.001 });
+      body1.label = 'rainbow_a';
+      const rainbowBlock1 = new Block(body1, 2);
+      (rainbowBlock1 as any).isRainbow = true;
+
+      const body2 = physics.createCircle(220, 300, 20, { density: 0.001 });
+      body2.label = 'rainbow_b';
+      const rainbowBlock2 = new Block(body2, 4);
+      (rainbowBlock2 as any).isRainbow = true;
+
+      mergeSystem.registerBlock(rainbowBlock1);
+      mergeSystem.registerBlock(rainbowBlock2);
+
+      const emitSpy = vi.spyOn(eventBus, 'emit');
+      mergeSystem['handleCollision'](body1, body2);
+      expect(emitSpy).toHaveBeenCalledWith('block:merged', expect.any(Object));
+    });
+  });
+
+  describe('chain reaction', () => {
+    it('should process chain checks', () => {
+      const body1 = physics.createCircle(200, 300, 20, { density: 0.001 });
+      body1.label = 'chain_a';
+      const block1 = new Block(body1, 4);
+      mergeSystem.registerBlock(block1);
+
+      mergeSystem['pendingChainChecks'].push('chain_a');
+      expect(() => mergeSystem['processChainChecks']()).not.toThrow();
+    });
+
+    it('should skip destroyed blocks in chain check', () => {
+      const body1 = physics.createCircle(200, 300, 20, { density: 0.001 });
+      body1.label = 'chain_destroyed';
+      const block1 = new Block(body1, 4);
+      mergeSystem.registerBlock(block1);
+      block1.destroy();
+
+      mergeSystem['pendingChainChecks'].push('chain_destroyed');
+      expect(() => mergeSystem['processChainChecks']()).not.toThrow();
+    });
+
+    it('should skip blocks at max chain depth', () => {
+      const body1 = physics.createCircle(200, 300, 20, { density: 0.001 });
+      body1.label = 'chain_max';
+      const block1 = new Block(body1, 4);
+      mergeSystem.registerBlock(block1);
+      mergeSystem['chainDepthMap'].set('chain_max', mergeSystem['maxChainDepth']);
+
+      mergeSystem['pendingChainChecks'].push('chain_max');
+      expect(() => mergeSystem['processChainChecks']()).not.toThrow();
+    });
+
+    it('should schedule chain check', () => {
+      expect(() => mergeSystem['scheduleChainCheck']('test_label')).not.toThrow();
+    });
+  });
+
+  describe('obstacle collision', () => {
+    it('should handle obstacle collision with same value', () => {
+      const obstacleBody = physics.createCircle(200, 300, 20, { density: 0.001, label: 'obs_same' });
+      const obstacle = new Block(obstacleBody, 4);
+      mergeSystem.registerObstacle(obstacle);
+
+      const playerBody = physics.createCircle(220, 300, 20, { density: 0.001, label: 'player_same' });
+      playerBody.label = 'player_same';
+      const player = new Block(playerBody, 4);
+      mergeSystem.registerBlock(player);
+
+      const emitSpy = vi.spyOn(eventBus, 'emit');
+      mergeSystem['handleObstacleCollision'](obstacleBody, playerBody, true);
+      expect(emitSpy).toHaveBeenCalledWith('obstacle:cleared');
+
+      obstacle.destroy();
+      player.destroy();
+    });
+
+    it('should handle obstacle collision with different value', () => {
+      const obstacleBody = physics.createCircle(200, 300, 20, { density: 0.001, label: 'obs_diff' });
+      const obstacle = new Block(obstacleBody, 2);
+      mergeSystem.registerObstacle(obstacle);
+
+      const playerBody = physics.createCircle(220, 300, 20, { density: 0.001, label: 'player_diff' });
+      playerBody.label = 'player_diff';
+      const player = new Block(playerBody, 8);
+      mergeSystem.registerBlock(player);
+
+      const emitSpy = vi.spyOn(eventBus, 'emit');
+      mergeSystem['handleObstacleCollision'](obstacleBody, playerBody, false);
+      expect(emitSpy).not.toHaveBeenCalled();
+
+      obstacle.destroy();
+      player.destroy();
+    });
+  });
+
+  describe('collision with unregistered bodies', () => {
+    it('should handle collision with unregistered body', () => {
+      const body1 = physics.createCircle(200, 300, 20, { density: 0.001 });
+      body1.label = 'unreg_1';
+      const body2 = physics.createCircle(220, 300, 20, { density: 0.001 });
+      body2.label = 'unreg_2';
+
+      const emitSpy = vi.spyOn(eventBus, 'emit');
+      mergeSystem['handleCollision'](body1, body2);
+      expect(emitSpy).not.toHaveBeenCalled();
+    });
+
+    it('should handle collision with one registered and one unregistered body', () => {
+      const body1 = physics.createCircle(200, 300, 20, { density: 0.001 });
+      body1.label = 'reg_1';
+      const block1 = new Block(body1, 2);
+      mergeSystem.registerBlock(block1);
+
+      const body2 = physics.createCircle(220, 300, 20, { density: 0.001 });
+      body2.label = 'unreg_2';
+
+      const emitSpy = vi.spyOn(eventBus, 'emit');
+      mergeSystem['handleCollision'](body1, body2);
+      expect(emitSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('merge with custom value', () => {
+    it('should merge blocks with custom newValue', () => {
+      const body1 = physics.createCircle(200, 300, 20, { density: 0.001 });
+      body1.label = 'custom_1';
+      const block1 = new Block(body1, 2);
+
+      const body2 = physics.createCircle(220, 300, 20, { density: 0.001 });
+      body2.label = 'custom_2';
+      const block2 = new Block(body2, 2);
+
+      mergeSystem.registerBlock(block1);
+      mergeSystem.registerBlock(block2);
+
+      const emitSpy = vi.spyOn(eventBus, 'emit');
+      mergeSystem['mergeBlocks'](block1, block2, 8);
+      expect(emitSpy).toHaveBeenCalledWith('block:merged', expect.objectContaining({ newValue: 8 }));
+    });
   });
 
   describe('setScoreSystem', () => {

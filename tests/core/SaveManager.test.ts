@@ -123,4 +123,98 @@ describe('SaveManager', () => {
     expect(importResult).toBe(true);
     expect(saveManager.getData().coins).toBe(500);
   });
+
+  describe('updateStatistics', () => {
+    it('should increment totalGames', () => {
+      saveManager.updateStatistics(0, 0, 0);
+      expect(saveManager.getData().playStatistics.totalGames).toBe(1);
+
+      saveManager.updateStatistics(0, 0, 0);
+      expect(saveManager.getData().playStatistics.totalGames).toBe(2);
+    });
+
+    it('should accumulate totalPlayTime', () => {
+      saveManager.updateStatistics(0, 0, 60);
+      expect(saveManager.getData().playStatistics.totalPlayTime).toBe(60);
+
+      saveManager.updateStatistics(0, 0, 30);
+      expect(saveManager.getData().playStatistics.totalPlayTime).toBe(90);
+    });
+
+    it('should update highestMerge when mergeValue is higher', () => {
+      saveManager.updateStatistics(8, 0, 0);
+      expect(saveManager.getData().playStatistics.highestMerge).toBe(8);
+
+      saveManager.updateStatistics(16, 0, 0);
+      expect(saveManager.getData().playStatistics.highestMerge).toBe(16);
+    });
+
+    it('should not update highestMerge when mergeValue is lower', () => {
+      saveManager.updateStatistics(32, 0, 0);
+      expect(saveManager.getData().playStatistics.highestMerge).toBe(32);
+
+      saveManager.updateStatistics(8, 0, 0);
+      expect(saveManager.getData().playStatistics.highestMerge).toBe(32);
+    });
+
+    it('should update longestCombo when comboCount is higher', () => {
+      saveManager.updateStatistics(0, 3, 0);
+      expect(saveManager.getData().playStatistics.longestCombo).toBe(3);
+
+      saveManager.updateStatistics(0, 7, 0);
+      expect(saveManager.getData().playStatistics.longestCombo).toBe(7);
+    });
+
+    it('should not update longestCombo when comboCount is lower', () => {
+      saveManager.updateStatistics(0, 10, 0);
+      expect(saveManager.getData().playStatistics.longestCombo).toBe(10);
+
+      saveManager.updateStatistics(0, 5, 0);
+      expect(saveManager.getData().playStatistics.longestCombo).toBe(10);
+    });
+
+    it('should update maxCombo when comboCount is higher', () => {
+      saveManager.updateStatistics(0, 4, 0);
+      expect(saveManager.getData().playStatistics.maxCombo).toBe(4);
+
+      saveManager.updateStatistics(0, 8, 0);
+      expect(saveManager.getData().playStatistics.maxCombo).toBe(8);
+    });
+
+    it('should not update maxCombo when comboCount is lower', () => {
+      saveManager.updateStatistics(0, 12, 0);
+      expect(saveManager.getData().playStatistics.maxCombo).toBe(12);
+
+      saveManager.updateStatistics(0, 6, 0);
+      expect(saveManager.getData().playStatistics.maxCombo).toBe(12);
+    });
+
+    it('should update all statistics simultaneously', () => {
+      saveManager.updateStatistics(64, 5, 120);
+
+      const stats = saveManager.getData().playStatistics;
+      expect(stats.totalGames).toBe(1);
+      expect(stats.totalPlayTime).toBe(120);
+      expect(stats.highestMerge).toBe(64);
+      expect(stats.longestCombo).toBe(5);
+      expect(stats.maxCombo).toBe(5);
+    });
+
+    it('should handle zero values correctly', () => {
+      saveManager.updateStatistics(0, 0, 0);
+
+      const stats = saveManager.getData().playStatistics;
+      expect(stats.totalGames).toBe(1);
+      expect(stats.totalPlayTime).toBe(0);
+      expect(stats.highestMerge).toBe(0);
+      expect(stats.longestCombo).toBe(0);
+      expect(stats.maxCombo).toBe(0);
+    });
+
+    it('should mark data as dirty after update', () => {
+      saveManager.updateStatistics(2, 1, 30);
+      const data = saveManager.getData();
+      expect(data.playStatistics.totalGames).toBe(1);
+    });
+  });
 });

@@ -84,7 +84,7 @@ describe('ScoreSystem', () => {
     expect(score2).toBeGreaterThan(score1);
   });
 
-  it('should apply lucky multiplier to score calculation', () => {
+it('should apply lucky multiplier to score calculation', () => {
     ss.addMergeScore(2);
     const scoreWithoutLucky = ss.getCurrentScore();
     ss.reset();
@@ -92,6 +92,15 @@ describe('ScoreSystem', () => {
     ss.addMergeScore(2);
     const scoreWithLucky = ss.getCurrentScore();
     expect(scoreWithLucky).toBe(scoreWithoutLucky * 2);
+  });
+
+  it('should set and apply lucky multiplier', () => {
+    ss.setLuckyMultiplier(2);
+    ss.addMergeScore(2);
+    const score = ss.getCurrentScore();
+    ss.setLuckyMultiplier(1);
+    ss.addMergeScore(2);
+    expect(ss.getCurrentScore()).toBeGreaterThan(score);
   });
 
   it('should return baseScore of 1 for unknown value <= 2 via calculateScore fallback', () => {
@@ -206,6 +215,18 @@ describe('ScoreSystem', () => {
       ss.addMergeScore(2, true);
     }
     expect(ss.getComboMultiplier()).toBe(6);
+  });
+
+  it('should destroy without error', () => {
+    ss.addMergeScore(2);
+    expect(() => ss.destroy()).not.toThrow();
+  });
+
+  it('should handle custom ScoreConfig', () => {
+    const customSS = new (ScoreSystem as any)({ baseMultiplier: 2.0 });
+    customSS.addMergeScore(2);
+    expect(customSS.getCurrentScore()).toBeGreaterThan(0);
+    customSS.reset();
   });
 });
 

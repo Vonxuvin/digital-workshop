@@ -8,6 +8,12 @@ import { PropSystem } from '../../src/gameplay/props/PropSystem';
 import { PropType } from '../../src/gameplay/props/Prop';
 import { InputManager } from '../../src/core/InputManager';
 import { GameEventRouter } from '../../src/core/GameEventRouter';
+import { SaveManager } from '../../src/core/SaveManager';
+import { ShrinkModifier, ShrinkConfig } from '../../src/gameplay/modifiers/ShrinkModifier';
+import { PhysicsManager } from '../../src/core/PhysicsManager';
+import Matter from 'matter-js';
+import { Container } from 'pixi.js';
+import { WarningLine } from '../../src/ui/components/WarningLine';
 
 describe('H-1: EventBus 事件名一致性 - AudioManager 事件监听修复', () => {
   let audioManager: AudioManager;
@@ -212,7 +218,7 @@ describe('H-11: Level 5 timeLimit 冲突修复', () => {
     expect(ls.isLevelCompleted()).toBe(true);
   });
 
-  it('FIXED: score + timeLimit 组合仍触发 game:timeout（其他关卡可能保留此组合）', () => {
+  it('FIXED: score + timeLimit 组合不再触发 game:timeout（仅 survival 类型检查 timeLimit）', () => {
     const config: LevelConfig = {
       id: 99,
       name: '限时得分',
@@ -229,7 +235,7 @@ describe('H-11: Level 5 timeLimit 冲突修复', () => {
 
     ls.update(5000);
 
-    expect(timeoutHandler).toHaveBeenCalled();
+    expect(timeoutHandler).not.toHaveBeenCalled();
     eventBus.off('game:timeout', timeoutHandler);
   });
 
@@ -517,5 +523,340 @@ describe('H-9: InputManager touchend 位置更新修复', () => {
     canvas.dispatchEvent(touchEndEvent);
     expect(inputManager.getState().position.x).toBeCloseTo(200, 0);
     expect(inputManager.getState().position.y).toBeCloseTo(250, 0);
+  });
+});
+
+describe('FIX-5: SaveManager.updateStatistics 参数修复', () => {
+  let saveManager: SaveManager;
+
+  beforeEach(() => {
+    localStorage.clear();
+    saveManager = SaveManager.getInstance();
+    saveManager.reset();
+  });
+
+  it('FIXED: updateStatistics 接受 mergeValue, comboCount, playTime 三个参数', () => {
+    expect(() => saveManager.updateStatistics(16, 3, 120)).not.toThrow();
+  });
+
+  it('FIXED: totalGames 正确递增', () => {
+    saveManager.updateStatistics(0, 0, 0);
+    saveManager.updateStatistics(0, 0, 0);
+    expect(saveManager.getData().playStatistics.totalGames).toBe(2);
+  });
+
+  it('FIXED: totalPlayTime 正确累加', () => {
+    saveManager.updateStatistics(0, 0, 60);
+    saveManager.updateStatistics(0, 0, 45);
+    expect(saveManager.getData().playStatistics.totalPlayTime).toBe(105);
+  });
+
+  it('FIXED: highestMerge 记录最高合并值', () => {
+    saveManager.updateStatistics(4, 0, 0);
+    saveManager.updateStatistics(32, 0, 0);
+    saveManager.updateStatistics(8, 0, 0);
+    expect(saveManager.getData().playStatistics.highestMerge).toBe(32);
+  });
+
+  it('FIXED: longestCombo 记录最长连击', () => {
+    saveManager.updateStatistics(0, 2, 0);
+    saveManager.updateStatistics(0, 5, 0);
+    saveManager.updateStatistics(0, 3, 0);
+    expect(saveManager.getData().playStatistics.longestCombo).toBe(5);
+  });
+
+  it('FIXED: maxCombo 记录最大连击', () => {
+    saveManager.updateStatistics(0, 1, 0);
+    saveManager.updateStatistics(0, 8, 0);
+    saveManager.updateStatistics(0, 4, 0);
+    expect(saveManager.getData().playStatistics.maxCombo).toBe(8);
+  });
+
+  it('FIXED: 同时更新所有统计字段', () => {
+    saveManager.updateStatistics(128, 10, 300);
+    const stats = saveManager.getData().playStatistics;
+    expect(stats.totalGames).toBe(1);
+    expect(stats.totalPlayTime).toBe(300);
+    expect(stats.highestMerge).toBe(128);
+    expect(stats.longestCombo).toBe(10);
+    expect(stats.maxCombo).toBe(10);
+  });
+});
+
+describe('FIX-6: ShrinkModifier 墙壁偏移修复', () => {
+  let physics: PhysicsManager;
+  let engine: Matter.Engine;
+  let stageContainer: Container;
+
+  beforeEach(() => {
+    engine = Matter.Engine.create({
+      gravity: { x: 0, y: 1, scale: 0.001 },
+    });
+
+    physics = {
+      getEngine: vi.fn().mockReturnValue(engine),
+    } as unknown as PhysicsManager;
+
+    stageContainer = new Container();
+  });
+
+  afterEach(() => {
+    stageContainer.destroy({ children: true });
+    Matter.Engine.clear(engine);
+  });
+
+  const createConfig = (overrides?: Partial<ShrinkConfig>): ShrinkConfig => ({
+    type: 'shrink',
+    enabled: true,
+    targetWidth: 200,
+    shrinkSpeed: 50,
+    minWidth: 150,
+    duration: 10,
+    startDelay: 3,
+    ...overrides,
+  });
+
+  it('FIXED: 使用 containerOffsetX 计算墙壁位置', () => {
+    const offsetX = 100;
+    const leftWall = Matter.Bodies.rectangle(0, 300, 10, 600, {
+      isStatic: true,
+      label: 'wall_left',
+    });
+    const rightWall = Matter.Bodies.rectangle(400, 300, 10, 600, {
+      isStatic: true,
+      label: 'wall_right',
+    });
+    Matter.Composite.add(engine.world, [leftWall, rightWall]);
+
+    const modifier = new ShrinkModifier(
+      createConfig(),
+      physics,
+      400,
+      600,
+      580,
+      stageContainer,
+      offsetX
+    );
+
+    modifier['activate']();
+    expect(modifier.isActive()).toBe(true);
+    modifier.deactivate();
+  });
+
+  it('FIXED: 通过 wall_left/wall_right 标签识别墙壁', () => {
+    const leftWall = Matter.Bodies.rectangle(0, 300, 10, 600, {
+      isStatic: true,
+      label: 'wall_left',
+    });
+    const rightWall = Matter.Bodies.rectangle(400, 300, 10, 600, {
+      isStatic: true,
+      label: 'wall_right',
+    });
+    Matter.Composite.add(engine.world, [leftWall, rightWall]);
+
+    const modifier = new ShrinkModifier(
+      createConfig(),
+      physics,
+      400,
+      600,
+      580,
+      stageContainer,
+      0
+    );
+
+    modifier['activate']();
+    expect(modifier.isActive()).toBe(true);
+    modifier.deactivate();
+  });
+
+  it('FIXED: 无墙壁标签时不崩溃', () => {
+    const modifier = new ShrinkModifier(
+      createConfig(),
+      physics,
+      400,
+      600,
+      580,
+      stageContainer,
+      0
+    );
+
+    expect(() => modifier['activate']()).not.toThrow();
+    modifier.deactivate();
+  });
+
+  it('FIXED: 墙壁收缩后位置正确更新', () => {
+    const offsetX = 50;
+    const leftWall = Matter.Bodies.rectangle(0, 300, 10, 600, {
+      isStatic: true,
+      label: 'wall_left',
+    });
+    const rightWall = Matter.Bodies.rectangle(400, 300, 10, 600, {
+      isStatic: true,
+      label: 'wall_right',
+    });
+    Matter.Composite.add(engine.world, [leftWall, rightWall]);
+
+    const modifier = new ShrinkModifier(
+      createConfig({ shrinkSpeed: 100 }),
+      physics,
+      400,
+      600,
+      580,
+      stageContainer,
+      offsetX
+    );
+
+    modifier['activate']();
+    const centerX = offsetX + 200;
+    expect(leftWall.position.x).toBeLessThan(centerX);
+    expect(rightWall.position.x).toBeGreaterThan(centerX);
+    modifier.deactivate();
+  });
+
+  it('FIXED: deactivate 后墙壁恢复原位', () => {
+    const offsetX = 50;
+    const leftWall = Matter.Bodies.rectangle(0, 300, 10, 600, {
+      isStatic: true,
+      label: 'wall_left',
+    });
+    const rightWall = Matter.Bodies.rectangle(400, 300, 10, 600, {
+      isStatic: true,
+      label: 'wall_right',
+    });
+    Matter.Composite.add(engine.world, [leftWall, rightWall]);
+
+    const modifier = new ShrinkModifier(
+      createConfig({ shrinkSpeed: 100 }),
+      physics,
+      400,
+      600,
+      580,
+      stageContainer,
+      offsetX
+    );
+
+    modifier['activate']();
+    expect(modifier.isActive()).toBe(true);
+
+    modifier.deactivate();
+    expect(modifier.isActive()).toBe(false);
+  });
+
+  it('FIXED: getType 返回 shrink', () => {
+    const modifier = new ShrinkModifier(
+      createConfig(),
+      physics,
+      400,
+      600,
+      580,
+      stageContainer,
+      0
+    );
+
+    expect(modifier.getType()).toBe('shrink');
+  });
+});
+
+describe('FIX-2: WarningLine PixiJS v8 Graphics.tint 兼容性修复', () => {
+  let warningLine: WarningLine;
+
+  beforeEach(() => {
+    warningLine = new WarningLine(600, 400);
+  });
+
+  afterEach(() => {
+    warningLine.destroy({ children: true });
+  });
+
+  it('FIXED: 使用 PixiJS v8 stroke API 而非 tint 属性', () => {
+    const graphics = (warningLine as any).graphics;
+    expect(graphics).toBeDefined();
+    expect(typeof graphics.stroke).toBe('function');
+  });
+
+  it('FIXED: drawLine 使用 stroke({ width, color, alpha }) 格式', () => {
+    const graphics = (warningLine as any).graphics;
+    const clearSpy = vi.spyOn(graphics, 'clear');
+    const strokeSpy = vi.spyOn(graphics, 'stroke');
+
+    (warningLine as any).drawLine(0xff4444, 0.8);
+
+    expect(clearSpy).toHaveBeenCalled();
+    expect(strokeSpy).toHaveBeenCalled();
+
+    clearSpy.mockRestore();
+    strokeSpy.mockRestore();
+  });
+
+  it('FIXED: 支持自定义颜色参数', () => {
+    const graphics = (warningLine as any).graphics;
+    const strokeSpy = vi.spyOn(graphics, 'stroke');
+
+    (warningLine as any).drawLine(0x00ff00, 0.5);
+
+    const firstCall = strokeSpy.mock.calls[0][0] as { color: number; alpha: number; width: number };
+    expect(firstCall.color).toBe(0x00ff00);
+    expect(firstCall.alpha).toBe(0.5);
+
+    strokeSpy.mockRestore();
+  });
+
+  it('FIXED: 支持自定义透明度参数', () => {
+    const graphics = (warningLine as any).graphics;
+    const strokeSpy = vi.spyOn(graphics, 'stroke');
+
+    (warningLine as any).drawLine(0xff4444, 0.3);
+
+    const firstCall = strokeSpy.mock.calls[0][0] as { alpha: number };
+    expect(firstCall.alpha).toBe(0.3);
+
+    strokeSpy.mockRestore();
+  });
+
+  it('FIXED: 虚线使用较低透明度', () => {
+    const graphics = (warningLine as any).graphics;
+    const strokeSpy = vi.spyOn(graphics, 'stroke');
+
+    (warningLine as any).drawLine(0xff4444, 0.8);
+
+    const secondCall = strokeSpy.mock.calls[1][0] as { alpha: number };
+    expect(secondCall.alpha).toBeCloseTo(0.48, 1);
+
+    strokeSpy.mockRestore();
+  });
+
+  it('FIXED: 默认颜色为红色警告色', () => {
+    const graphics = (warningLine as any).graphics;
+    const strokeSpy = vi.spyOn(graphics, 'stroke');
+
+    (warningLine as any).drawLine();
+
+    const firstCall = strokeSpy.mock.calls[0][0] as { color: number };
+    expect(firstCall.color).toBe(0xff4444);
+
+    strokeSpy.mockRestore();
+  });
+
+  it('FIXED: 默认透明度为 0.8', () => {
+    const graphics = (warningLine as any).graphics;
+    const strokeSpy = vi.spyOn(graphics, 'stroke');
+
+    (warningLine as any).drawLine();
+
+    const firstCall = strokeSpy.mock.calls[0][0] as { alpha: number };
+    expect(firstCall.alpha).toBe(0.8);
+
+    strokeSpy.mockRestore();
+  });
+
+  it('FIXED: 不依赖已废弃的 Graphics.tint 属性进行绘制', () => {
+    const graphics = (warningLine as any).graphics;
+    const tintSpy = vi.spyOn(graphics, 'tint', 'set');
+
+    (warningLine as any).drawLine(0xff4444, 0.8);
+
+    expect(tintSpy).not.toHaveBeenCalled();
+
+    tintSpy.mockRestore();
   });
 });
