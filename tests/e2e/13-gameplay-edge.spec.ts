@@ -140,10 +140,7 @@ test.describe('警戒线行为', () => {
         if (!scene) return false;
 
         const warningLine = scene.getWarningLine?.();
-        const gameOverLine = scene.getGameOverLine?.();
-        const dangerLine = scene.getDangerLine?.();
-
-        return warningLine != null || gameOverLine != null || dangerLine != null;
+        return warningLine != null;
       });
 
       expect(hasWarningLine).toBeTruthy();
@@ -172,10 +169,7 @@ test.describe('警戒线行为', () => {
         if (!container) return null;
 
         const warningLine = scene.getWarningLine?.();
-        const gameOverLine = scene.getGameOverLine?.();
-        const lineY = warningLine?.warningY ?? warningLine?.y
-          ?? gameOverLine?.warningY ?? gameOverLine?.y
-          ?? gameOverLine?.lineY ?? null;
+        const lineY = warningLine?.getWarningHeight?.() ?? warningLine?.y ?? null;
 
         return {
           lineY,
@@ -225,7 +219,7 @@ test.describe('警戒线行为', () => {
         if (!scene) return false;
         const warningLine = scene.getWarningLine?.();
         if (!warningLine) return false;
-        return warningLine.warningActive === true && warningLine.warningDuration > 500;
+        return warningLine.getWarningProgress?.() > 0 && warningLine.getWarningDuration?.() > 500;
       });
 
       expect(warningTriggered).toBeFalsy();
@@ -245,7 +239,7 @@ test.describe('警戒线行为', () => {
         if (!warningLine) return null;
 
         const blocks = game.getBlockSpawner?.()?.getBlocks?.() ?? [];
-        const warningY = warningLine.warningY ?? warningLine.y ?? 0;
+        const warningY = warningLine.getWarningHeight?.() ?? warningLine.y ?? 0;
 
         const blocksAboveWarning = blocks.filter((b: any) => b.y < warningY).length;
 
@@ -302,8 +296,7 @@ test.describe('合成动画视觉表现', () => {
         if (!effectManager) return false;
 
         return typeof effectManager.cleanup === 'function'
-          || typeof effectManager.clearAll === 'function'
-          || typeof effectManager.clear === 'function';
+          || typeof effectManager.clearAll === 'function';
       });
 
       expect(canCleanup).toBeTruthy();

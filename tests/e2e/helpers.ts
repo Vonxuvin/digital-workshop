@@ -28,9 +28,9 @@ export async function navigateToGame(page: Page, startPlaying = true) {
       () => {
         const game = (window as any).__gameInstance;
         if (!game) return false;
-        const scene = game.getGameScene?.();
-        if (!scene) return false;
-        return scene.isActive?.() !== false;
+        const stateMachine = game.getStateMachine?.();
+        if (!stateMachine) return false;
+        return stateMachine.getCurrentState?.() === 'playing';
       },
       { timeout: 5000 }
     );

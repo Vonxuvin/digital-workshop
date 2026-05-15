@@ -10,6 +10,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   lint-and-unit:
     name: Lint & Unit Tests
@@ -19,7 +22,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - run: npm ci
@@ -43,8 +46,8 @@ jobs:
           name: vitest-report
           path: |
             coverage/
-            test-results/
           retention-days: 7
+          if-no-files-found: ignore
 
   e2e-tests:
     name: E2E Tests (Desktop, Shard ${{ matrix.shard }}/4)
@@ -59,7 +62,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - uses: actions/cache@v4
@@ -92,6 +95,7 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
+          if-no-files-found: ignore
 
   e2e-tests-mobile:
     name: E2E Tests (Mobile, Shard ${{ matrix.shard }}/4)
@@ -106,7 +110,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - uses: actions/cache@v4
@@ -139,6 +143,7 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
+          if-no-files-found: ignore
 
   build:
     name: Build
@@ -149,7 +154,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - uses: actions/cache@v4

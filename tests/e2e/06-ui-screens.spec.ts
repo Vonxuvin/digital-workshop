@@ -23,9 +23,9 @@ test.describe('UI界面', () => {
       const hasStartButton = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
         if (!game) return false;
-        const mainMenu = game.getUIManager?.()?.getScreen?.('mainMenu');
+        const mainMenu = game.getUIManager?.()?.getScreens?.()?.get?.('mainMenu');
         if (!mainMenu) return false;
-        return mainMenu.startButton !== null || mainMenu.playButton !== null;
+        return mainMenu.startButton !== null && mainMenu.startButton !== undefined;
       });
 
       expect(hasStartButton).toBeTruthy();
@@ -37,9 +37,9 @@ test.describe('UI界面', () => {
       const hasLevelSelect = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
         if (!game) return false;
-        const mainMenu = game.getUIManager?.()?.getScreen?.('mainMenu');
+        const mainMenu = game.getUIManager?.()?.getScreens?.()?.get?.('mainMenu');
         if (!mainMenu) return false;
-        return mainMenu.levelSelectButton !== null || mainMenu.levelsButton !== null;
+        return mainMenu.levelSelectButton !== null && mainMenu.levelSelectButton !== undefined;
       });
 
       expect(hasLevelSelect).toBeTruthy();
@@ -191,7 +191,7 @@ test.describe('UI界面', () => {
         if (!game) return false;
         const pauseScreen = game.getPauseScreen?.();
         if (!pauseScreen) return false;
-        return pauseScreen.restartButton !== null || pauseScreen.retryButton !== null;
+        return pauseScreen.restartButton !== null && pauseScreen.restartButton !== undefined;
       });
 
       expect(hasRestartButton).toBeTruthy();
@@ -213,7 +213,7 @@ test.describe('UI界面', () => {
         if (!game) return false;
         const pauseScreen = game.getPauseScreen?.();
         if (!pauseScreen) return false;
-        return pauseScreen.menuButton !== null || pauseScreen.quitButton !== null;
+        return pauseScreen.menuButton !== null && pauseScreen.menuButton !== undefined;
       });
 
       expect(hasMenuButton).toBeTruthy();
@@ -265,8 +265,7 @@ test.describe('UI界面', () => {
         if (!game) return false;
         const resultScreen = game.getResultScreen?.();
         if (!resultScreen) return false;
-        return typeof resultScreen.showWin === 'function'
-          || typeof resultScreen.setResult === 'function';
+        return typeof resultScreen.setResult === 'function';
       });
 
       expect(hasWinState).toBeTruthy();
@@ -280,8 +279,7 @@ test.describe('UI界面', () => {
         if (!game) return false;
         const resultScreen = game.getResultScreen?.();
         if (!resultScreen) return false;
-        return typeof resultScreen.showLose === 'function'
-          || typeof resultScreen.showFailure === 'function';
+        return typeof resultScreen.setResult === 'function';
       });
 
       expect(hasLoseState).toBeTruthy();
