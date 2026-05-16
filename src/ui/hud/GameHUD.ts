@@ -127,6 +127,7 @@ export class GameHUD extends Container {
         onClick: (type) => this.onPropClick(type),
         x,
         y,
+        size: buttonSize,
       });
       this._propsContainer.addChild(button);
       this._propButtons.set(propData.type, button);
@@ -383,12 +384,52 @@ export class GameHUD extends Container {
   layout(screenWidth: number, screenHeight: number): void {
     this.screenWidth = screenWidth;
     this.screenHeight = screenHeight;
-    const buttonSize = 60;
-    const buttonGap = 8;
-    const rowGap = 6;
+
+    const maxPropsBarRatio = 0.45;
+    const maxPropsBarWidth = screenWidth * maxPropsBarRatio;
+    const baseButtonSize = 60;
+    const baseGap = 8;
+    const baseRowGap = 6;
+    const basePropsBarWidth = 3 * baseButtonSize + 2 * baseGap;
+
+    let buttonSize: number;
+    let buttonGap: number;
+    let rowGap: number;
+
+    if (basePropsBarWidth > maxPropsBarWidth) {
+      const scale = maxPropsBarWidth / basePropsBarWidth;
+      buttonSize = Math.floor(baseButtonSize * scale);
+      buttonGap = Math.max(4, Math.floor(baseGap * scale));
+      rowGap = Math.max(3, Math.floor(baseRowGap * scale));
+    } else {
+      buttonSize = baseButtonSize;
+      buttonGap = baseGap;
+      rowGap = baseRowGap;
+    }
+
     const propsBarWidth = 3 * buttonSize + 2 * buttonGap;
     this._propsContainer.x = screenWidth - propsBarWidth - 10;
     this._propsContainer.y = 15;
+
+    this._propButtons.forEach((button) => {
+      button.resize(buttonSize);
+    });
+
+    const propsData = [
+      { type: PropType.BOMB, row: 0, col: 0 },
+      { type: PropType.RAINBOW, row: 0, col: 1 },
+      { type: PropType.FREEZE, row: 0, col: 2 },
+      { type: PropType.SHRINK, row: 1, col: 0 },
+      { type: PropType.LUCKY, row: 1, col: 1 },
+    ];
+    propsData.forEach(pd => {
+      const btn = this._propButtons.get(pd.type);
+      if (btn) {
+        btn.x = pd.col * (buttonSize + buttonGap);
+        btn.y = pd.row * (buttonSize + rowGap);
+      }
+    });
+
     this._pauseButton.x = screenWidth - 50;
     this._pauseButton.y = 30;
     this.timerText.x = screenWidth / 2;

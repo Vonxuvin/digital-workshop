@@ -1,21 +1,21 @@
 {
   "id": 6,
   "name": "挡板初体验",
-  "objective": { "type": "score", "target": 2000 },
+  "objective": { "type": "score", "target": 2500 },
   "container": { "width": 400, "height": 600 },
-  "spawn": { "availableNumbers": [1, 2, 4, 8], "spawnInterval": 0 },
+  "spawn": { "availableNumbers": [1, 2, 4, 8, 16], "spawnInterval": 0 },
   "modifiers": [
     {
       "type": "paddle",
       "enabled": true,
       "mode": "extend",
       "side": "left",
-      "extendDuration": 3,
-      "retractDuration": 2,
-      "extendLength": 80,
-      "triggerInterval": 8,
+      "extendDuration": 2,
+      "retractDuration": 3,
+      "extendLength": 60,
+      "triggerInterval": 12,
       "yPosition": 350
     }
   ],
-  "rewards": { "stars": [1200, 1600, 2000] }
+  "rewards": { "stars": [1500, 2000, 2500] }
 }

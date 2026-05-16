@@ -4,6 +4,7 @@ import { PhysicsManager } from '../core/PhysicsManager';
 import { ScoreSystem } from './ScoreSystem';
 import { eventBus } from '../utils/EventBus';
 import { AnimationManager } from '../utils/AnimationManager';
+import { BlockPool } from '../core/BlockPool';
 
 export class MergeSystem {
   private physics: PhysicsManager;
@@ -15,6 +16,7 @@ export class MergeSystem {
   private chainDepthMap: Map<string, number> = new Map();
   private pendingChainChecks: string[] = [];
   private collisionCallback: ((pair: Matter.Pair) => void) | null = null;
+  private blockPool: BlockPool | null = null;
 
   constructor(physics: PhysicsManager) {
     this.physics = physics;
@@ -23,6 +25,10 @@ export class MergeSystem {
 
   setScoreSystem(scoreSystem: ScoreSystem): void {
     this.scoreSystem = scoreSystem;
+  }
+
+  setBlockPool(pool: BlockPool): void {
+    this.blockPool = pool;
   }
 
   registerBlock(block: Block): void {
@@ -141,7 +147,9 @@ export class MergeSystem {
     });
     Matter.Body.setVelocity(newBody, { x: velocityX, y: velocityY });
 
-    const newBlock = new Block(newBody, mergedValue);
+    const newBlock = this.blockPool
+      ? this.blockPool.acquire(newBody, mergedValue)
+      : new Block(newBody, mergedValue);
     this.registerBlock(newBlock);
 
     if (chainDepth < this.maxChainDepth) {

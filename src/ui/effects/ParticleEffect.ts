@@ -4,6 +4,8 @@ import { TimeManager } from '../../utils/TimeManager';
 
 export type ParticleType = 'sparkle' | 'confetti' | 'smoke' | 'bubble';
 
+export const MAX_PARTICLE_COUNT = 50;
+
 export interface ParticleConfig {
   type: ParticleType;
   x: number;
@@ -37,7 +39,8 @@ export class ParticleEffect extends PIXI.Container {
   }
 
   private createParticles(config: ParticleConfig): void {
-    for (let i = 0; i < config.count; i++) {
+    const clampedCount = Math.max(0, Math.min(config.count, MAX_PARTICLE_COUNT));
+    for (let i = 0; i < clampedCount; i++) {
       const particle = this.createParticle(config.type, config.color);
       particle.x = config.x + (Math.random() - 0.5) * 20;
       particle.y = config.y + (Math.random() - 0.5) * 20;

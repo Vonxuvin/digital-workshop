@@ -9,6 +9,7 @@ export interface PropButtonOptions {
   onClick: (propType: PropType) => void;
   x: number;
   y: number;
+  size?: number;
 }
 
 export class PropButton extends PIXI.Container {
@@ -20,46 +21,46 @@ export class PropButton extends PIXI.Container {
   private isEnabled: boolean = true;
   private cooldownOverlay: PIXI.Graphics;
   private scaleTween: gsap.core.Tween | null = null;
+  private currentSize: number;
 
   constructor(options: PropButtonOptions) {
     super();
     this.propType = options.propType;
     this.onClick = options.onClick;
-    
+    this.currentSize = options.size || 60;
+
     this.background = new PIXI.Graphics();
-    this.background.fill({ color: 0x2d3436 });
-    this.background.setStrokeStyle({ width: 2, color: 0x636e72 });
-    this.background.roundRect(0, 0, 60, 60, 8);
+    this.drawBackground(0x2d3436, 0x636e72);
     this.addChild(this.background);
 
     this.icon = new PIXI.Text({
       text: this.getIconEmoji(options.icon),
       style: {
-        fontSize: 28,
+        fontSize: Math.floor(this.currentSize * 0.47),
         align: 'center',
       }
     });
     this.icon.anchor.set(0.5);
-    this.icon.x = 30;
-    this.icon.y = 25;
+    this.icon.x = this.currentSize / 2;
+    this.icon.y = this.currentSize * 0.42;
     this.addChild(this.icon);
 
     this.countLabel = new PIXI.Text({
       text: `x${options.count}`,
       style: {
-        fontSize: 14,
+        fontSize: Math.floor(this.currentSize * 0.23),
         fill: 0xffffff,
         fontWeight: 'bold',
       }
     });
     this.countLabel.anchor.set(0.5);
-    this.countLabel.x = 30;
-    this.countLabel.y = 50;
+    this.countLabel.x = this.currentSize / 2;
+    this.countLabel.y = this.currentSize * 0.83;
     this.addChild(this.countLabel);
 
     this.cooldownOverlay = new PIXI.Graphics();
     this.cooldownOverlay.fill({ color: 0x000000, alpha: 0.5 });
-    this.cooldownOverlay.rect(0, 0, 60, 60);
+    this.cooldownOverlay.rect(0, 0, this.currentSize, this.currentSize);
     this.cooldownOverlay.visible = false;
     this.addChild(this.cooldownOverlay);
 
@@ -72,6 +73,13 @@ export class PropButton extends PIXI.Container {
     this.on('pointerup', this.handlePointerUp.bind(this));
     this.on('pointerover', this.handlePointerOver.bind(this));
     this.on('pointerout', this.handlePointerOut.bind(this));
+  }
+
+  private drawBackground(fillColor: number, strokeColor: number, strokeWidth: number = 2): void {
+    this.background.clear();
+    this.background.fill({ color: fillColor });
+    this.background.setStrokeStyle({ width: strokeWidth, color: strokeColor });
+    this.background.roundRect(0, 0, this.currentSize, this.currentSize, Math.floor(this.currentSize * 0.13));
   }
 
   private getIconEmoji(icon: string): string {
@@ -119,17 +127,11 @@ export class PropButton extends PIXI.Container {
 
   private handlePointerOver(): void {
     if (!this.isEnabled) return;
-    this.background.clear();
-    this.background.fill({ color: 0x3d4446 });
-    this.background.setStrokeStyle({ width: 2, color: 0x74b9ff });
-    this.background.roundRect(0, 0, 60, 60, 8);
+    this.drawBackground(0x3d4446, 0x74b9ff);
   }
 
   private handlePointerOut(): void {
-    this.background.clear();
-    this.background.fill({ color: 0x2d3436 });
-    this.background.setStrokeStyle({ width: 2, color: 0x636e72 });
-    this.background.roundRect(0, 0, 60, 60, 8);
+    this.drawBackground(0x2d3436, 0x636e72);
     this.killScaleTween();
     this.scaleTween = gsap.to(this.scale, {
       x: 1,
@@ -169,10 +171,7 @@ export class PropButton extends PIXI.Container {
   }
 
   setSelected(): void {
-    this.background.clear();
-    this.background.fill({ color: 0x3d4446 });
-    this.background.setStrokeStyle({ width: 3, color: 0xffd700 });
-    this.background.roundRect(0, 0, 60, 60, 8);
+    this.drawBackground(0x3d4446, 0xffd700, 3);
     this.killScaleTween();
     this.scaleTween = gsap.to(this.scale, {
       x: 1.08,
@@ -184,10 +183,7 @@ export class PropButton extends PIXI.Container {
   }
 
   clearSelected(): void {
-    this.background.clear();
-    this.background.fill({ color: 0x2d3436 });
-    this.background.setStrokeStyle({ width: 2, color: 0x636e72 });
-    this.background.roundRect(0, 0, 60, 60, 8);
+    this.drawBackground(0x2d3436, 0x636e72);
     this.killScaleTween();
     this.scaleTween = gsap.to(this.scale, {
       x: 1,
@@ -196,6 +192,25 @@ export class PropButton extends PIXI.Container {
       ease: 'power2.out',
       onComplete: () => { this.scaleTween = null; },
     });
+  }
+
+  resize(newSize: number): void {
+    if (this.currentSize === newSize) return;
+    this.currentSize = newSize;
+
+    this.icon.x = newSize / 2;
+    this.icon.y = newSize * 0.42;
+    this.icon.style.fontSize = Math.floor(newSize * 0.47);
+
+    this.countLabel.x = newSize / 2;
+    this.countLabel.y = newSize * 0.83;
+    this.countLabel.style.fontSize = Math.floor(newSize * 0.23);
+
+    this.cooldownOverlay.clear();
+    this.cooldownOverlay.fill({ color: 0x000000, alpha: 0.5 });
+    this.cooldownOverlay.rect(0, 0, newSize, newSize);
+
+    this.drawBackground(0x2d3436, 0x636e72);
   }
 
   destroy(): void {

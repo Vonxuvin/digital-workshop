@@ -1,13 +1,14 @@
 import { Container, Graphics, Text } from 'pixi.js';
 import gsap from 'gsap';
 import { TimeManager } from '../../utils/TimeManager';
+import { AnimationManager } from '../../utils/AnimationManager';
 
 export class ComboDisplay extends Container {
   private comboText: Text;
   private comboBg: Graphics;
   private comboGlow: Graphics;
   private currentCombo = 0;
-  private displayTimer: ReturnType<typeof setTimeout> | null = null;
+  private displayTimerId: string | null = null;
   private readonly DISPLAY_DURATION = 2000;
   private scaleTween: gsap.core.Tween | null = null;
   private fadeTween: gsap.core.Tween | null = null;
@@ -67,10 +68,10 @@ export class ComboDisplay extends Container {
 
     this.animateScale(scale);
 
-    if (this.displayTimer) clearTimeout(this.displayTimer);
-    this.displayTimer = setTimeout(() => {
+    if (this.displayTimerId) AnimationManager.getInstance().clearTimeout(this.displayTimerId);
+    this.displayTimerId = AnimationManager.getInstance().setTimeout(() => {
       this.fadeOut();
-    }, this.DISPLAY_DURATION);
+    }, this.DISPLAY_DURATION, `combo_display_${this.currentCombo}`);
   }
 
   private animateScale(targetScale: number = 1): void {
@@ -112,9 +113,9 @@ export class ComboDisplay extends Container {
   hide(): void {
     this.visible = false;
     this.currentCombo = 0;
-    if (this.displayTimer) {
-      clearTimeout(this.displayTimer);
-      this.displayTimer = null;
+    if (this.displayTimerId) {
+      AnimationManager.getInstance().clearTimeout(this.displayTimerId);
+      this.displayTimerId = null;
     }
   }
 
@@ -131,7 +132,10 @@ export class ComboDisplay extends Container {
       this.fadeTween.kill();
       this.fadeTween = null;
     }
-    if (this.displayTimer) clearTimeout(this.displayTimer);
+    if (this.displayTimerId) {
+      AnimationManager.getInstance().clearTimeout(this.displayTimerId);
+      this.displayTimerId = null;
+    }
     this.currentCombo = 0;
     super.destroy();
   }

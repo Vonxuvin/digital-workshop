@@ -11,17 +11,17 @@
     "shape": "rectangle"
   },
   "spawn": {
-    "availableNumbers": [1, 2, 4, 8],
+    "availableNumbers": [1, 2, 4, 8, 16],
     "spawnInterval": 0
   },
   "modifiers": [
     {
       "type": "shrink",
       "enabled": true,
-      "targetWidth": 200,
-      "shrinkSpeed": 10,
-      "minWidth": 150,
-      "triggerInterval": 30
+      "targetWidth": 280,
+      "shrinkSpeed": 5,
+      "minWidth": 200,
+      "triggerInterval": 45
     }
   ],
   "rewards": {

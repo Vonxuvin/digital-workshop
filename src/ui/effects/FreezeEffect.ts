@@ -1,6 +1,7 @@
 import * as PIXI from 'pixi.js';
 import gsap from 'gsap';
 import { TimeManager } from '../../utils/TimeManager';
+import { AnimationManager } from '../../utils/AnimationManager';
 
 interface SnowflakeData {
   text: PIXI.Text;
@@ -103,26 +104,30 @@ export class FreezeEffect extends PIXI.Container {
         this.entranceTween = null;
       }
 
-      gsap.to(this.overlay, {
+      const timeline = TimeManager.getInstance().getGameTimeline();
+
+      const overlayTween = gsap.to(this.overlay, {
         alpha: 0,
         duration: 0.5,
         ease: 'power2.out',
       });
+      timeline.add(overlayTween, timeline.time());
 
       this.snowflakes.forEach(sf => {
-        gsap.to(sf.text, {
+        const snowTween = gsap.to(sf.text, {
           alpha: 0,
           y: this.containerHeight + 20,
           duration: 0.5,
           ease: 'power2.out',
         });
+        timeline.add(snowTween, timeline.time());
       });
 
-      gsap.delayedCall(0.5, () => {
+      AnimationManager.getInstance().setTimeout(() => {
         this.allComplete = true;
         this.destroy();
         resolve();
-      });
+      }, 500, 'freeze_exit_delay');
     });
   }
 

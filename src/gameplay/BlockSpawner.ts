@@ -8,6 +8,7 @@ import { LevelConfig } from '../gameplay/LevelSystem';
 import { Container } from 'pixi.js';
 import { eventBus } from '../utils/EventBus';
 import gsap from 'gsap';
+import { BlockPool } from '../core/BlockPool';
 
 export class BlockSpawner {
   private physics: PhysicsManager;
@@ -15,6 +16,7 @@ export class BlockSpawner {
   private propSystem: PropSystem;
   private stage: Container;
   private onBlockDropped: ((block: Block) => void) | null = null;
+  private blockPool: BlockPool;
 
   private blocks: Block[] = [];
   private obstacleBlocks: Block[] = [];
@@ -43,6 +45,7 @@ export class BlockSpawner {
     this.mergeSystem = mergeSystem;
     this.propSystem = propSystem;
     this.stage = stage;
+    this.blockPool = new BlockPool(30);
   }
 
   setContainerBounds(width: number, offsetX: number): void {
@@ -60,7 +63,7 @@ export class BlockSpawner {
       density: 0.003 + config.mass * 0.0005,
     });
     const isRainbowBlock = this.rainbowRemaining > 0;
-    const block = new Block(body, value, isRainbowBlock);
+    const block = this.blockPool.acquire(body, value, isRainbowBlock);
     if (isRainbowBlock) {
       const rainbowProp = this.propSystem.getProp(PropType.RAINBOW) as RainbowProp;
       rainbowProp.consumeRainbowBlock();
@@ -198,7 +201,7 @@ export class BlockSpawner {
       if (!block.isDestroyed) {
         this.mergeSystem.unregisterBlock(block);
         this.physics.removeBody(block.body);
-        block.destroy();
+        this.blockPool.release(block);
       }
     });
     this.blocks = [];
@@ -220,7 +223,7 @@ export class BlockSpawner {
       if (block.y > screenHeight + 100) {
         this.mergeSystem.unregisterBlock(block);
         this.physics.removeBody(block.body);
-        block.destroy();
+        this.blockPool.release(block);
         return false;
       }
       return true;
@@ -287,5 +290,10 @@ export class BlockSpawner {
     this.luckyMultiplier = 1;
     this.currentValue = 1;
     this.isPaused = false;
+    this.blockPool.clear();
+  }
+
+  getBlockPool(): BlockPool {
+    return this.blockPool;
   }
 }

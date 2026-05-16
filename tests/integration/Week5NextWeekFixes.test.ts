@@ -105,9 +105,10 @@ describe('TC-003: 关卡难度曲线验证', () => {
       expect(paddles.length).toBe(1);
     });
 
-    it('Level 6 可用数字包含 8，目标 2000 可达成', () => {
+    it('Level 6 可用数字包含 8 和 16，目标可达成', () => {
       expect(level6.spawn.availableNumbers).toContain(8);
-      expect(level6.objective.target).toBeLessThanOrEqual(2000);
+      expect(level6.spawn.availableNumbers).toContain(16);
+      expect(level6.objective.target).toBeLessThanOrEqual(2500);
     });
   });
 
@@ -300,16 +301,16 @@ describe('TC-004: 新手引导验证', () => {
       expect(tutorialManager.shouldShowTutorial(1)).toBe(false);
     });
 
-    it('attempts >= 3 时不显示教程', () => {
-      saveManager.getLevelProgress(1).attempts = 3;
+    it('attempts >= 5 时不显示教程', () => {
+      saveManager.getLevelProgress(1).attempts = 5;
       tutorialManager = new TutorialManager(overlay, saveManager);
       expect(tutorialManager.shouldShowTutorial(1)).toBe(false);
     });
 
-    it('Level 4+ 不显示教程', () => {
-      saveManager.unlockLevel(4);
+    it('Level 6+ 不显示教程', () => {
+      saveManager.unlockLevel(6);
       tutorialManager = new TutorialManager(overlay, saveManager);
-      expect(tutorialManager.shouldShowTutorial(4)).toBe(false);
+      expect(tutorialManager.shouldShowTutorial(6)).toBe(false);
     });
   });
 

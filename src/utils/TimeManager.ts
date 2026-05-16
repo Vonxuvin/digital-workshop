@@ -1,4 +1,5 @@
 import gsap from 'gsap';
+import { AnimationManager } from './AnimationManager';
 
 export class TimeManager {
   private static instance: TimeManager | null = null;
@@ -35,12 +36,14 @@ export class TimeManager {
     if (this.isPaused) return;
     this.isPaused = true;
     this.gameTimeline.pause();
+    AnimationManager.getInstance().pauseAll();
   }
 
   resume(): void {
     if (!this.isPaused) return;
     this.isPaused = false;
     this.gameTimeline.resume();
+    AnimationManager.getInstance().resumeAll();
   }
 
   isCurrentlyPaused(): boolean {

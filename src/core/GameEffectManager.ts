@@ -4,6 +4,8 @@ import { ExplosionEffect } from '../ui/effects/ExplosionEffect';
 import { FreezeEffect } from '../ui/effects/FreezeEffect';
 import { GraphicsPool } from '../utils/GraphicsPool';
 
+const MAX_ACTIVE_EFFECTS = 20;
+
 export class GameEffectManager {
   private stage: Container;
   private effects: any[] = [];
@@ -21,6 +23,8 @@ export class GameEffectManager {
   }
 
   addMergeEffect(x: number, y: number, oldValue: number, newValue: number): void {
+    this.cleanup();
+    if (this.effects.length >= MAX_ACTIVE_EFFECTS) return;
     const effect = new MergeEffect({
       x,
       y,
@@ -32,6 +36,8 @@ export class GameEffectManager {
   }
 
   addExplosionEffect(x: number, y: number, radius: number): void {
+    this.cleanup();
+    if (this.effects.length >= MAX_ACTIVE_EFFECTS) return;
     const effect = new ExplosionEffect(x, y, radius, undefined, this.graphicsPool);
     this.stage.addChild(effect);
     this.effects.push(effect);

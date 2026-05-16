@@ -28,9 +28,9 @@ export class TutorialManager {
   }
 
   shouldShowTutorial(levelId: number): boolean {
-    if (levelId < 1 || levelId > 3) return false;
+    if (levelId < 1 || levelId > 5) return false;
     const progress = this.saveManager.getLevelProgress(levelId);
-    return !progress.completed && progress.attempts < 3;
+    return !progress.completed && progress.attempts < 5;
   }
 
   startTutorial(levelId: number, screenWidth: number, screenHeight: number): void {
@@ -91,22 +91,27 @@ export class TutorialManager {
         },
         {
           id: 'bomb_prop',
-          message: '💣 炸弹：点击后选择位置\n可以炸掉附近的方块！',
+          message: '💣 炸弹：点击后选择位置\n可以炸掉附近的方块！\n点击炸弹按钮试试看',
+          trigger: 'tap',
+        },
+        {
+          id: 'try_bomb',
+          message: '很好！现在点击屏幕上\n想炸掉方块的位置',
           trigger: 'tap',
         },
         {
           id: 'rainbow_prop',
-          message: '🌈 彩虹：使用后下一个方块\n可以和任何数字合成！',
+          message: '🌈 彩虹方块：使用后\n下一个方块可以和任何数字合成！\n点击彩虹按钮试试',
           trigger: 'tap',
         },
         {
           id: 'freeze_prop',
-          message: '❄️ 冰冻：暂停物理运动\n给你时间思考策略！',
+          message: '❄️ 冰冻：暂停所有物理运动\n给你时间思考策略！\n点击冰冻按钮试试',
           trigger: 'tap',
         },
         {
           id: 'prop_complete',
-          message: '道具就介绍到这里！\n合理使用道具是通关的关键！',
+          message: '道具就介绍到这里！\n合理使用道具是通关的关键！\n道具数量有限，请谨慎使用',
           trigger: 'auto',
         },
       ];
@@ -116,27 +121,82 @@ export class TutorialManager {
       return [
         {
           id: 'obstacle_intro',
-          message: '注意这些带✕标记的方块！\n它们是障碍物，会挡住你的路',
+          message: '注意这些带✕标记的方块！\n它们是障碍物，会挡住你的路\n障碍物不会自己移动',
           trigger: 'auto',
         },
         {
           id: 'obstacle_rule',
-          message: '消除障碍物的方法：\n合成与障碍物数字相同的方块\n放在它旁边即可清除！',
+          message: '消除障碍物的方法：\n1.观察障碍物上的数字\n2.合成一个相同数字的方块\n3.让合成方块碰到障碍物即可清除！\n例如：数字4的障碍物需要数字4的方块碰撞',
+          trigger: 'tap',
+        },
+        {
+          id: 'obstacle_strategy',
+          message: '小技巧：先在障碍物附近\n投放相同数字的方块\n利用合成后的新方块去碰撞障碍物',
           trigger: 'tap',
         },
         {
           id: 'shrink_prop',
-          message: '🔬 缩小：让所有方块变小\n腾出更多空间！',
+          message: '🔬 缩小：让所有方块变小\n腾出更多空间！\n空间紧张时使用效果最佳',
           trigger: 'tap',
         },
         {
           id: 'lucky_prop',
-          message: '🍀 幸运：接下来几次投放\n会获得更高数字的方块！',
+          message: '🍀 幸运：接下来几次投放\n会获得更高数字的方块！\n配合障碍物清除使用效果更好',
           trigger: 'tap',
         },
         {
           id: 'obstacle_complete',
-          message: '清除所有障碍物即可过关！\n加油！',
+          message: '清除所有障碍物即可过关！\n合理规划投放顺序是关键\n加油！',
+          trigger: 'auto',
+        },
+      ];
+    }
+
+    if (levelId === 4) {
+      return [
+        {
+          id: 'advanced_intro',
+          message: '恭喜你来到进阶关卡！\n这一关会出现更大的数字\n合成策略更加重要',
+          trigger: 'auto',
+        },
+        {
+          id: 'chain_tip',
+          message: '连锁合成技巧：\n连续合成可以获得更高倍率！\n尽量让方块集中在一起',
+          trigger: 'tap',
+        },
+        {
+          id: 'warning_tip',
+          message: '注意：方块堆得太高\n超过红色警戒线就会游戏结束！\n及时使用道具清理空间',
+          trigger: 'tap',
+        },
+        {
+          id: 'advanced_complete',
+          message: '掌握这些技巧后\n后面的关卡会更容易！\n祝你好运！',
+          trigger: 'auto',
+        },
+      ];
+    }
+
+    if (levelId === 5) {
+      return [
+        {
+          id: 'challenge_intro',
+          message: '这是一个综合考验关卡！\n需要运用你学到的所有技巧',
+          trigger: 'auto',
+        },
+        {
+          id: 'planning_tip',
+          message: '高级策略：\n先观察可用数字和目标\n规划合成路线再投放\n不要急于投放！',
+          trigger: 'tap',
+        },
+        {
+          id: 'space_tip',
+          message: '空间管理：\n保持容器下方有足够空间\n避免方块堆积过高\n合理使用道具控制局面',
+          trigger: 'tap',
+        },
+        {
+          id: 'challenge_complete',
+          message: '你已经掌握了核心技巧！\n接下来的关卡会引入\n更多有趣的机制！',
           trigger: 'auto',
         },
       ];

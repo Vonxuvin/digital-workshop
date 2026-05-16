@@ -28,7 +28,6 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@pixi/canvas-renderer": "^7.4.3",
     "gsap": "^3.15.0",
     "matter-js": "0.20.0",
     "pixi.js": "8.6.3"

@@ -87,6 +87,7 @@ export class GameScene {
         this.propEffectHandler.applyShrinkToBlock(block);
       }
     });
+    this.mergeSystem.setBlockPool(this.blockSpawner.getBlockPool());
     this.effectManager = new GameEffectManager(this.app.stage);
     this.propEffectHandler = new PropEffectHandler(
       this.blockSpawner,
