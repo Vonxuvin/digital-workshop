@@ -66,7 +66,11 @@ export class BlockSpawner {
     const block = this.blockPool.acquire(body, value, isRainbowBlock);
     if (isRainbowBlock) {
       const rainbowProp = this.propSystem.getProp(PropType.RAINBOW) as RainbowProp;
-      rainbowProp.consumeRainbowBlock();
+      if (rainbowProp) {
+        rainbowProp.consumeRainbowBlock();
+      } else {
+        this.rainbowRemaining = 0;
+      }
     }
     this.stage.addChild(block);
     this.blocks.push(block);
