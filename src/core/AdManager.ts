@@ -33,11 +33,9 @@ export class AdManager {
     }
 
     this.isShowingRewardedVideo = true;
-    console.log('[AdManager] 开始展示激励视频');
 
     try {
       const result = await this.platform.showRewardedVideo(this.config.rewardedVideoUnitId);
-      console.log(`[AdManager] 激励视频结果: ${result ? '完整观看' : '中途退出'}`);
       return result;
     } catch (error) {
       console.error('[AdManager] 激励视频展示失败:', error);

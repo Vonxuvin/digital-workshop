@@ -250,7 +250,6 @@ export class Game {
       this.setupFPSDisplay();
 
       this.boundStateChange = (from, to) => {
-        console.log(`[Game] 状态变化: ${from} -> ${to}`);
         const isPlaying = to === 'playing';
         this.gameScene.setHUDVisible(isPlaying);
         this.gameScene.setWarningLineVisible(isPlaying);
@@ -277,7 +276,6 @@ export class Game {
       this.stateMachine.transition('menu');
       this.uiManager.showScreen('mainMenu');
 
-      console.log('[Game] 初始化完成');
     } catch (err) {
       console.error('[Game] 初始化失败:', err);
       console.error('[Game] 错误详情:', JSON.stringify(err, null, 2));

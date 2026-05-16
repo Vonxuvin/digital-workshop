@@ -23,7 +23,6 @@ export class BombProp extends Prop {
     this.usedCount++;
     this.lastUseTime = Date.now();
     
-    console.log('[BombProp] 发射爆炸事件', { x: target.x, y: target.y, radius: this.radius });
     this.eventBus.emit(GameEvents.PROPS_BOMB_EXPLODE, {
       x: target.x,
       y: target.y,

@@ -53,7 +53,6 @@ export class ShrinkModifier extends ContainerModifier {
   protected onActivate(): void {
     this.findWalls();
     this.createWallGraphics();
-    console.log(`[ShrinkModifier] 激活收缩容器, targetWidth=${this.targetWidth}, minWidth=${this.minWidth}`);
   }
 
   protected showWarning(): void {

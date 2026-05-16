@@ -96,7 +96,6 @@ export class PropSystem {
     const success = prop.use(target);
     if (success) {
       this.eventBus.emit(GameEvents.PROPS_USED, { type, remaining: prop.getRemainingCount() });
-      console.log(`[PropSystem] props:used`, { type, remaining: prop.getRemainingCount() });
     }
     return success;
   }

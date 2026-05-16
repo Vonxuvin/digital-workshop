@@ -199,7 +199,6 @@ export class SceneManager {
   async reviveGame(): Promise<void> {
     const watched = await this.adManager.showRewardedVideo();
     if (!watched) {
-      console.log('[SceneManager] 用户未看完激励视频，取消复活');
       return;
     }
     this.uiManager.hideCurrentScreen();

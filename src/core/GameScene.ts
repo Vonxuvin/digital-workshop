@@ -159,7 +159,6 @@ export class GameScene {
     this.modifierManager.setContainerSize(this.containerWidth, this.containerHeight, this.containerOffsetX);
     this.modifierManager.setStageContainer(this.app.stage);
     if (config.modifiers && config.modifiers.length > 0) {
-      console.log(`[GameScene] 加载 ${config.modifiers.length} 个变形器`);
       this.modifierManager.loadFromLevelConfig(config.modifiers);
     }
 

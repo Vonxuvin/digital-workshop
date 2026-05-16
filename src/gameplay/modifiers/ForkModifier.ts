@@ -50,7 +50,6 @@ export class ForkModifier extends ContainerModifier {
 
   protected onActivate(): void {
     this.createForkStructure();
-    console.log(`[ForkModifier] 激活分叉通道, forkY=${this.forkY}, leftAngle=${this.leftAngle}, rightAngle=${this.rightAngle}, channelWidth=${this.channelWidth}`);
   }
 
   private createForkStructure(): void {

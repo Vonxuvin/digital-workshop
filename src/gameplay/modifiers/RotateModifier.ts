@@ -54,7 +54,6 @@ export class RotateModifier extends ContainerModifier {
     this.direction = 1;
     this.createVisualWalls();
     this.createRotationIndicator();
-    console.log(`[RotateModifier] 激活旋转容器, maxAngle=${this.maxAngle}, oscillate=${this.oscillate}, bodies=${this.containerBodies.length}, center=(${this.centerX.toFixed(0)}, ${this.centerY.toFixed(0)})`);
   }
 
   protected showWarning(): void {

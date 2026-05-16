@@ -113,7 +113,6 @@ export class SaveManager {
       if (saved) {
         const parsed = typeof saved === 'string' ? JSON.parse(saved) : saved;
         this.data = this.deepMerge(this.getDefaultData(), parsed);
-        console.log('[SaveManager] 存档加载成功');
         eventBus.emit(GameEvents.SAVE_LOADED, this.data);
         return true;
       }
@@ -128,7 +127,6 @@ export class SaveManager {
       this.data.lastSaveTime = Date.now();
       await this.platform.setStorage(this.STORAGE_KEY, JSON.stringify(this.data));
       this.isDirty = false;
-      console.log('[SaveManager] 存档保存成功');
       eventBus.emit(GameEvents.SAVE_SAVED, this.data);
       return true;
     } catch (error) {
@@ -375,7 +373,6 @@ export class SaveManager {
       }
       this.data = this.deepMerge(this.getDefaultData(), parsed);
       await this.save();
-      console.log('[SaveManager] 存档导入成功');
       eventBus.emit(GameEvents.SAVE_IMPORTED, this.data);
       return true;
     } catch (error) {

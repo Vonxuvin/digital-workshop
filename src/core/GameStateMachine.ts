@@ -81,7 +81,6 @@ export class GameStateMachine {
       }
     });
 
-    console.log(`[StateMachine] ${from} -> ${to}`);
     return true;
   }
 

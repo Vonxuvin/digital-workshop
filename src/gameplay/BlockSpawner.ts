@@ -93,7 +93,6 @@ export class BlockSpawner {
       }
     }
 
-    console.log(`[BlockSpawner] 投放方块 ${value}${isRainbowBlock ? '(彩虹)' : ''}, 下一个: ${this.currentValue}`);
     eventBus.emit(GameEvents.BLOCK_DROPPED);
 
     if (this.onBlockDropped) {
@@ -185,7 +184,6 @@ export class BlockSpawner {
       this.obstacleBlocks.push(block);
       this.mergeSystem.registerObstacle(block);
     });
-    console.log(`[BlockSpawner] 生成 ${obstacles.length} 个障碍物`);
   }
 
   removeBlock(block: Block): void {
