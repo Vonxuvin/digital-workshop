@@ -164,7 +164,6 @@ export class GameHUD extends Container {
       const success = this.propSystem.useProp(type);
       if (success) {
         this.updatePropButtons();
-        eventBus.emit(GameEvents.PROPS_USED, { type });
       }
     }
   }
@@ -181,7 +180,6 @@ export class GameHUD extends Container {
     const success = this.propSystem.useProp(this.selectedProp, { x, y });
     if (success) {
       this.updatePropButtons();
-      eventBus.emit(GameEvents.PROPS_USED, { type: this.selectedProp, x, y });
     }
     
     this.exitPropTargetMode();
