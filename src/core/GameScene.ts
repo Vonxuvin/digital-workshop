@@ -155,7 +155,14 @@ export class GameScene {
     this.setupContainer();
     this.resetGame();
     this.gameStartTime = Date.now();
+    this.initLevelState(config);
 
+    if (this.tutorialManager) {
+      this.tutorialManager.startTutorial(config.id, this.app.screen.width, this.app.screen.height);
+    }
+  }
+
+  private initLevelState(config: LevelConfig): void {
     this.modifierManager.setContainerSize(this.containerWidth, this.containerHeight, this.containerOffsetX);
     this.modifierManager.setStageContainer(this.app.stage);
     if (config.modifiers && config.modifiers.length > 0) {
@@ -172,10 +179,6 @@ export class GameScene {
       this.gameHUD.setObjectiveProgress(this.levelSystem.getProgress());
     }
     this.gameHUD.updatePropButtons();
-
-    if (this.tutorialManager) {
-      this.tutorialManager.startTutorial(config.id, this.app.screen.width, this.app.screen.height);
-    }
   }
 
   resetGame(): void {
@@ -199,20 +202,7 @@ export class GameScene {
     this.resetGame();
     this.propSystem.reset();
     this.propEffectHandler.initializeProps();
-    this.physics.start();
-    this.levelSystem?.start();
-    this.drawContainerWalls();
-    this.blockSpawner.spawnObstacles(this.currentLevelConfig!.obstacles, this.containerWidth, this.groundY, this.containerOffsetX);
-    this.startAutoSpawn();
-    if (this.currentLevelConfig?.modifiers) {
-      this.modifierManager.setContainerSize(this.containerWidth, this.containerHeight, this.containerOffsetX);
-      this.modifierManager.setStageContainer(this.app.stage);
-      this.modifierManager.loadFromLevelConfig(this.currentLevelConfig.modifiers);
-      this.modifierManager.startAll();
-    }
-    if (this.levelSystem) {
-      this.gameHUD.setObjectiveProgress(this.levelSystem.getProgress());
-    }
+    this.initLevelState(this.currentLevelConfig);
   }
 
   pause(): void {

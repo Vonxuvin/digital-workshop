@@ -55,16 +55,19 @@ export class Block extends Container {
   private config: BlockConfig;
   private sprite: Sprite;
   private _destroyed: boolean = false;
-  public readonly isRainbow: boolean;
-  public readonly isObstacle: boolean;
+  private _isRainbow: boolean;
+  private _isObstacle: boolean;
   private obstacleOverlay: Graphics | null = null;
+
+  get isRainbow(): boolean { return this._isRainbow; }
+  get isObstacle(): boolean { return this._isObstacle; }
 
   constructor(body: Matter.Body, value: number, isRainbow: boolean = false, isObstacle: boolean = false) {
     super();
     this.body = body;
     this.value = value;
-    this.isRainbow = isRainbow;
-    this.isObstacle = isObstacle;
+    this._isRainbow = isRainbow;
+    this._isObstacle = isObstacle;
     this.config = getBlockConfig(value);
 
     const cache = BlockTextureCache.getInstance();
@@ -80,26 +83,39 @@ export class Block extends Container {
     this.addChild(this.sprite);
 
     if (isObstacle) {
-      this.obstacleOverlay = new Graphics();
-      this.obstacleOverlay.rect(
-        -this.config.radius - 2,
-        -this.config.radius - 2,
-        (this.config.radius + 2) * 2,
-        (this.config.radius + 2) * 2,
-      );
-      this.obstacleOverlay.stroke({ width: 2, color: 0x666666, alpha: 0.7 });
-
-      this.obstacleOverlay.moveTo(-this.config.radius * 0.6, -this.config.radius * 0.6);
-      this.obstacleOverlay.lineTo(this.config.radius * 0.6, this.config.radius * 0.6);
-      this.obstacleOverlay.moveTo(this.config.radius * 0.6, -this.config.radius * 0.6);
-      this.obstacleOverlay.lineTo(-this.config.radius * 0.6, this.config.radius * 0.6);
-      this.obstacleOverlay.stroke({ width: 1.5, color: 0x666666, alpha: 0.5 });
-
-      this.addChild(this.obstacleOverlay);
-      this.alpha = 0.7;
+      this.createObstacleOverlay();
     }
 
     this.syncFromBody();
+  }
+
+  private createObstacleOverlay(): void {
+    this.obstacleOverlay = new Graphics();
+    this.obstacleOverlay.rect(
+      -this.config.radius - 2,
+      -this.config.radius - 2,
+      (this.config.radius + 2) * 2,
+      (this.config.radius + 2) * 2,
+    );
+    this.obstacleOverlay.stroke({ width: 2, color: 0x666666, alpha: 0.7 });
+
+    this.obstacleOverlay.moveTo(-this.config.radius * 0.6, -this.config.radius * 0.6);
+    this.obstacleOverlay.lineTo(this.config.radius * 0.6, this.config.radius * 0.6);
+    this.obstacleOverlay.moveTo(this.config.radius * 0.6, -this.config.radius * 0.6);
+    this.obstacleOverlay.lineTo(-this.config.radius * 0.6, this.config.radius * 0.6);
+    this.obstacleOverlay.stroke({ width: 1.5, color: 0x666666, alpha: 0.5 });
+
+    this.addChild(this.obstacleOverlay);
+    this.alpha = 0.7;
+  }
+
+  private removeObstacleOverlay(): void {
+    if (this.obstacleOverlay) {
+      this.removeChild(this.obstacleOverlay);
+      this.obstacleOverlay.destroy();
+      this.obstacleOverlay = null;
+    }
+    this.alpha = 1;
   }
 
   syncFromBody(force: boolean = false): void {
@@ -141,8 +157,8 @@ export class Block extends Container {
   reinit(body: Matter.Body, value: number, isRainbow: boolean = false, isObstacle: boolean = false): void {
     this.body = body;
     this.value = value;
-    (this as any).isRainbow = isRainbow;
-    (this as any).isObstacle = isObstacle;
+    this._isRainbow = isRainbow;
+    this._isObstacle = isObstacle;
     this.config = getBlockConfig(value);
     this._destroyed = false;
 
@@ -155,32 +171,10 @@ export class Block extends Container {
     this.sprite.width = textureSize;
     this.sprite.height = textureSize;
 
-    if (this.obstacleOverlay) {
-      this.removeChild(this.obstacleOverlay);
-      this.obstacleOverlay.destroy();
-      this.obstacleOverlay = null;
-    }
+    this.removeObstacleOverlay();
 
     if (isObstacle) {
-      this.obstacleOverlay = new Graphics();
-      this.obstacleOverlay.rect(
-        -this.config.radius - 2,
-        -this.config.radius - 2,
-        (this.config.radius + 2) * 2,
-        (this.config.radius + 2) * 2,
-      );
-      this.obstacleOverlay.stroke({ width: 2, color: 0x666666, alpha: 0.7 });
-
-      this.obstacleOverlay.moveTo(-this.config.radius * 0.6, -this.config.radius * 0.6);
-      this.obstacleOverlay.lineTo(this.config.radius * 0.6, this.config.radius * 0.6);
-      this.obstacleOverlay.moveTo(this.config.radius * 0.6, -this.config.radius * 0.6);
-      this.obstacleOverlay.lineTo(-this.config.radius * 0.6, this.config.radius * 0.6);
-      this.obstacleOverlay.stroke({ width: 1.5, color: 0x666666, alpha: 0.5 });
-
-      this.addChild(this.obstacleOverlay);
-      this.alpha = 0.7;
-    } else {
-      this.alpha = 1;
+      this.createObstacleOverlay();
     }
 
     this.visible = true;
