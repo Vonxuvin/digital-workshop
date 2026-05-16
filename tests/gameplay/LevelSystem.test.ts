@@ -111,7 +111,7 @@ describe('LevelSystem', () => {
     expect(handler).toHaveBeenCalled();
   });
 
-  it('should NOT emit game:timeout for non-survival levels with timeLimit', () => {
+  it('should emit game:timeout for non-survival levels with timeLimit when time runs out', () => {
     const timedConfig: LevelConfig = {
       id: 5, name: '限时关卡', objective: { type: 'score', target: 9999, timeLimit: 5 },
       container: { width: 400, height: 600, shape: 'rectangle' },
@@ -123,7 +123,7 @@ describe('LevelSystem', () => {
     const handler = vi.fn();
     eventBus.on('game:timeout', handler);
     ls.update(5000);
-    expect(handler).not.toHaveBeenCalled();
+    expect(handler).toHaveBeenCalled();
     eventBus.off('game:timeout', handler);
   });
 

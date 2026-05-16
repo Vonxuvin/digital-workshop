@@ -46,14 +46,14 @@ describe('H-1: EventBus 事件名一致性 - AudioManager 事件监听修复', (
     expect(playSpy).toHaveBeenCalled();
   });
 
-  it('FIXED: game:over 事件触发 gameOver 音效', () => {
+  it('FIXED: game:over 事件不再由 AudioManager 直接监听（由 SceneManager 负责播放音效）', () => {
     eventBus.emit('game:over');
-    expect(playSpy).toHaveBeenCalledWith('gameOver');
+    expect(playSpy).not.toHaveBeenCalledWith('gameOver');
   });
 
-  it('FIXED: level:completed 事件触发 levelComplete 音效', () => {
+  it('FIXED: level:completed 事件不再由 AudioManager 直接监听（由 SceneManager 负责播放音效）', () => {
     eventBus.emit('level:completed', { levelId: 1, score: 500, time: 30, highestMergeValue: 16 });
-    expect(playSpy).toHaveBeenCalledWith('levelComplete');
+    expect(playSpy).not.toHaveBeenCalledWith('levelComplete');
   });
 
   it('FIXED: 旧事件名 gameplay:blockSpawn 不再触发监听', () => {
@@ -218,7 +218,7 @@ describe('H-11: Level 5 timeLimit 冲突修复', () => {
     expect(ls.isLevelCompleted()).toBe(true);
   });
 
-  it('FIXED: score + timeLimit 组合不再触发 game:timeout（仅 survival 类型检查 timeLimit）', () => {
+  it('FIXED: score + timeLimit 组合超时触发 game:timeout（非 survival 类型超时也触发失败）', () => {
     const config: LevelConfig = {
       id: 99,
       name: '限时得分',
@@ -235,7 +235,7 @@ describe('H-11: Level 5 timeLimit 冲突修复', () => {
 
     ls.update(5000);
 
-    expect(timeoutHandler).not.toHaveBeenCalled();
+    expect(timeoutHandler).toHaveBeenCalled();
     eventBus.off('game:timeout', timeoutHandler);
   });
 
