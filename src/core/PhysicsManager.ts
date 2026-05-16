@@ -21,6 +21,7 @@ const DEFAULT_PHYSICS_CONFIG: PhysicsConfig = {
 export class PhysicsManager {
   private engine: Matter.Engine;
   private bodies: Map<number, Matter.Body> = new Map();
+  private bodyToId: Map<Matter.Body, number> = new Map();
   private idCounter = 0;
   private running = false;
   private readonly fixedStep = 1000 / 60;
@@ -42,6 +43,7 @@ export class PhysicsManager {
   }
 
   start(): void {
+    if (this.running) return;
     this.running = true;
   }
 
@@ -125,6 +127,7 @@ export class PhysicsManager {
     });
     body.label = `block_${++this.idCounter}`;
     this.bodies.set(this.idCounter, body);
+    this.bodyToId.set(body, this.idCounter);
     Matter.Composite.add(this.engine.world, body);
     return body;
   }
@@ -135,17 +138,19 @@ export class PhysicsManager {
       friction: 0.8,
       ...options,
     });
+    body.label = `block_${++this.idCounter}`;
+    this.bodies.set(this.idCounter, body);
+    this.bodyToId.set(body, this.idCounter);
     Matter.Composite.add(this.engine.world, body);
     return body;
   }
 
   removeBody(body: Matter.Body): void {
     Matter.Composite.remove(this.engine.world, body);
-    for (const [id, b] of this.bodies) {
-      if (b === body) {
-        this.bodies.delete(id);
-        break;
-      }
+    const id = this.bodyToId.get(body);
+    if (id !== undefined) {
+      this.bodies.delete(id);
+      this.bodyToId.delete(body);
     }
   }
 
