@@ -77,18 +77,18 @@ export class BlockPreview extends Container {
 
   private drawTrail(x: number, targetY: number): void {
     this.trailGraphics.clear();
-    const startY = 0;
+    const relativeY = targetY - this.y;
 
-    this.trailGraphics.moveTo(x, startY);
-    this.trailGraphics.lineTo(x, targetY - this.radius);
+    this.trailGraphics.moveTo(0, 0);
+    this.trailGraphics.lineTo(0, relativeY - this.radius);
     this.trailGraphics.stroke({ width: 1.5, color: 0xffffff, alpha: 0.25 });
 
-    let dashY = startY;
+    let dashY = 0;
     let drawDash = true;
-    while (dashY < targetY - this.radius) {
+    while (dashY < relativeY - this.radius) {
       if (drawDash) {
-        this.trailGraphics.moveTo(x, dashY);
-        this.trailGraphics.lineTo(x, Math.min(dashY + BlockPreview.DASH_LENGTH, targetY - this.radius));
+        this.trailGraphics.moveTo(0, dashY);
+        this.trailGraphics.lineTo(0, Math.min(dashY + BlockPreview.DASH_LENGTH, relativeY - this.radius));
         this.trailGraphics.stroke({ width: 2, color: 0xffffff, alpha: 0.35 });
       }
       dashY += BlockPreview.DASH_LENGTH + BlockPreview.DASH_GAP;
@@ -103,7 +103,7 @@ export class BlockPreview extends Container {
     this.landingMarker.stroke({ width: 1.5, color: 0xffffff, alpha: 0.3 });
 
     this.landingMarker.x = 0;
-    this.landingMarker.y = 0;
+    this.landingMarker.y = this.groundY > 0 ? this.groundY - this.y : 0;
   }
 
   updatePosition(x: number): void {
