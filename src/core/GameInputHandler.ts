@@ -6,6 +6,14 @@ import { GameHUD } from '../ui/hud/GameHUD';
 import { Application } from 'pixi.js';
 
 export class GameInputHandler {
+  private static readonly KEYBOARD_DROP_Y = 100;
+  private static readonly CONTAINER_OFFSET_DROP_Y = 80;
+  private static readonly NO_OFFSET_DROP_Y = 60;
+  private static readonly MIN_DROP_Y = 60;
+  private static readonly DEFAULT_CONTAINER_HALF = 300;
+  private static readonly TOUCH_OFFSET_RATIO = 0.05;
+  private static readonly DEFAULT_SCREEN_HEIGHT = 600;
+
   private app: Application;
   private input: InputManager;
   private gameScene: GameScene;
@@ -87,7 +95,7 @@ export class GameInputHandler {
         const currentState = this.stateMachine.getCurrentState();
         if (currentState === 'playing' && this.gameScene.getBlockSpawner().getCanDrop()) {
           const centerX = this.app.screen.width / 2;
-          const dropY = this.calculateDropY(100);
+          const dropY = this.calculateDropY(GameInputHandler.KEYBOARD_DROP_Y);
           this.gameScene.dropBlockWithShrinkCheck(centerX, dropY, this.gameScene.getBlockSpawner().getCurrentValue());
           this.gameScene.getBlockSpawner().startCooldown();
           this.gameScene.getPreview().setNextValue(this.gameScene.getBlockSpawner().getCurrentValue());
@@ -99,17 +107,17 @@ export class GameInputHandler {
 
   private calculateDropY(touchY: number): number {
     const touchOffsetY = this.getTouchOffsetY();
-    const offset = this.gameScene.getContainerOffsetX() > 0 ? 80 : 60;
+    const offset = this.gameScene.getContainerOffsetX() > 0 ? GameInputHandler.CONTAINER_OFFSET_DROP_Y : GameInputHandler.NO_OFFSET_DROP_Y;
     const maxDropY = this.gameScene.getContainerHeight() > 0
       ? this.gameScene.getContainerHeight() * 0.5
-      : 300;
-    return Math.max(60, Math.min(touchY - touchOffsetY, maxDropY));
+      : GameInputHandler.DEFAULT_CONTAINER_HALF;
+    return Math.max(GameInputHandler.MIN_DROP_Y, Math.min(touchY - touchOffsetY, maxDropY));
   }
 
   private getTouchOffsetY(): number {
     const dpr = window.devicePixelRatio || 1;
-    const screenHeight = this.app.screen.height || 600;
-    return Math.round(screenHeight * 0.05 * dpr);
+    const screenHeight = this.app.screen.height || GameInputHandler.DEFAULT_SCREEN_HEIGHT;
+    return Math.round(screenHeight * GameInputHandler.TOUCH_OFFSET_RATIO * dpr);
   }
 
   syncInputScale(): void {
