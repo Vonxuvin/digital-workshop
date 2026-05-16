@@ -3,7 +3,6 @@ import { PhysicsManager } from '../core/PhysicsManager';
 import { MergeSystem } from '../gameplay/MergeSystem';
 import { PropSystem } from '../gameplay/props/PropSystem';
 import { PropType } from '../gameplay/props/Prop';
-import { RainbowProp } from '../gameplay/props/RainbowProp';
 import { LevelConfig } from '../gameplay/LevelSystem';
 import { Container } from 'pixi.js';
 import { eventBus, GameEvents } from '../utils/EventBus';
@@ -65,7 +64,7 @@ export class BlockSpawner {
     const isRainbowBlock = this.rainbowRemaining > 0;
     const block = this.blockPool.acquire(body, value, isRainbowBlock);
     if (isRainbowBlock) {
-      const rainbowProp = this.propSystem.getProp(PropType.RAINBOW) as RainbowProp;
+      const rainbowProp = this.propSystem.getProp(PropType.RAINBOW);
       if (rainbowProp) {
         rainbowProp.consumeRainbowBlock();
       } else {
@@ -84,8 +83,8 @@ export class BlockSpawner {
     this.currentValue = this.getRandomValue();
 
     if (this.luckyMode) {
-      const luckyProp = this.propSystem.getProp(PropType.LUCKY) as any;
-      if (luckyProp && typeof luckyProp.consumeLuckyDrop === 'function') {
+      const luckyProp = this.propSystem.getProp(PropType.LUCKY);
+      if (luckyProp) {
         luckyProp.consumeLuckyDrop();
         if (!luckyProp.isLuckyActive()) {
           this.luckyMode = false;

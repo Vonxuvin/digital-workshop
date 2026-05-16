@@ -7,6 +7,14 @@ import { ShrinkProp } from './ShrinkProp';
 import { LuckyProp } from './LuckyProp';
 import { PhysicsManager } from '../../core/PhysicsManager';
 
+interface PropTypeMap {
+  [PropType.BOMB]: BombProp;
+  [PropType.RAINBOW]: RainbowProp;
+  [PropType.FREEZE]: FreezeProp;
+  [PropType.SHRINK]: ShrinkProp;
+  [PropType.LUCKY]: LuckyProp;
+}
+
 export class PropSystem {
   private static instance: PropSystem | null = null;
   private props: Map<PropType, Prop> = new Map();
@@ -21,7 +29,7 @@ export class PropSystem {
     this.physicsManager = physicsManager;
     this.props.forEach((prop) => {
       if (prop instanceof FreezeProp) {
-        (prop as FreezeProp).setPhysicsManager(physicsManager);
+        prop.setPhysicsManager(physicsManager);
       }
     });
   }
@@ -51,7 +59,7 @@ export class PropSystem {
       if (config) {
         const propInstance = this.createPropInstance(prop.type, config);
         if (propInstance instanceof FreezeProp && this.physicsManager) {
-          (propInstance as FreezeProp).setPhysicsManager(this.physicsManager);
+          propInstance.setPhysicsManager(this.physicsManager);
         }
         this.props.set(prop.type, propInstance);
       }
@@ -93,8 +101,8 @@ export class PropSystem {
     return success;
   }
 
-  getProp(type: PropType): Prop | undefined {
-    return this.props.get(type);
+  getProp<T extends PropType>(type: T): PropTypeMap[T] | undefined {
+    return this.props.get(type) as PropTypeMap[T] | undefined;
   }
 
   getAllProps(): { type: PropType; config: PropConfig; remaining: number }[] {

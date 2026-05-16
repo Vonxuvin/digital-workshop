@@ -5,9 +5,6 @@ import { PhysicsManager } from './PhysicsManager';
 import { GameEffectManager } from './GameEffectManager';
 import { PropSystem } from '../gameplay/props/PropSystem';
 import { PropType } from '../gameplay/props/Prop';
-import { FreezeProp } from '../gameplay/props/FreezeProp';
-import { ShrinkProp } from '../gameplay/props/ShrinkProp';
-import { BombProp } from '../gameplay/props/BombProp';
 import { ScoreSystem } from '../gameplay/ScoreSystem';
 import { WarningLine } from '../ui/components/WarningLine';
 import { LevelSystem } from '../gameplay/LevelSystem';
@@ -62,7 +59,7 @@ export class PropEffectHandler {
   }
 
   handleBombExplode(data: { x: number; y: number; radius: number }): void {
-    const bombProp = this.propSystem.getProp(PropType.BOMB) as BombProp;
+    const bombProp = this.propSystem.getProp(PropType.BOMB);
     if (!bombProp) {
       console.error('[PropEffectHandler] BombProp 未找到');
       return;
@@ -195,7 +192,7 @@ export class PropEffectHandler {
       { type: PropType.SHRINK, count: 2 },
       { type: PropType.LUCKY, count: 2 },
     ]);
-    const freezeProp = this.propSystem.getProp(PropType.FREEZE) as FreezeProp;
+    const freezeProp = this.propSystem.getProp(PropType.FREEZE);
     if (freezeProp) {
       freezeProp.setPhysicsManager(this.physics);
     }
@@ -241,18 +238,18 @@ export class PropEffectHandler {
   }
 
   pause(): void {
-    const freezeProp = this.propSystem.getProp(PropType.FREEZE) as FreezeProp;
+    const freezeProp = this.propSystem.getProp(PropType.FREEZE);
     if (freezeProp) {
       freezeProp.pause();
     }
-    const shrinkProp = this.propSystem.getProp(PropType.SHRINK) as ShrinkProp;
+    const shrinkProp = this.propSystem.getProp(PropType.SHRINK);
     if (shrinkProp) {
       shrinkProp.pause();
     }
   }
 
   resume(): void {
-    const freezeProp = this.propSystem.getProp(PropType.FREEZE) as FreezeProp;
+    const freezeProp = this.propSystem.getProp(PropType.FREEZE);
     const isFrozen = freezeProp?.isCurrentlyFrozen() ?? false;
     if (!isFrozen) {
       this.physics.start();
@@ -260,7 +257,7 @@ export class PropEffectHandler {
     if (freezeProp) {
       freezeProp.resume();
     }
-    const shrinkProp = this.propSystem.getProp(PropType.SHRINK) as ShrinkProp;
+    const shrinkProp = this.propSystem.getProp(PropType.SHRINK);
     if (shrinkProp) {
       shrinkProp.resume();
     }

@@ -454,7 +454,7 @@ describe('Props Integration Tests', () => {
       ]);
       propSystem.initialize([{ type: PropType.FREEZE, count: 3 }]);
 
-      const freezeProp = propSystem.getProp(PropType.FREEZE) as FreezeProp;
+      const freezeProp = propSystem.getProp(PropType.FREEZE);
       freezeProp!.setPhysicsManager(physics);
 
       const result = propSystem.useProp(PropType.FREEZE);
