@@ -20,10 +20,10 @@ import { PlatformAdapter } from '../platform/PlatformAdapter';
 import { AnimationManager } from '../utils/AnimationManager';
 import { PerformanceMonitor } from '../utils/PerformanceMonitor';
 import { PropSystem } from '../gameplay/props/PropSystem';
-import { PropType } from '../gameplay/props/Prop';
 import { ModifierManager } from '../gameplay/modifiers/ModifierManager';
 import { SaveManager } from './SaveManager';
 import { LevelLoader } from './LevelLoader';
+import { AdManager } from './AdManager';
 import { BlockTextureCache } from '../utils/BlockTextureCache';
 import { GameScene } from './GameScene';
 import { GameEventRouter } from './GameEventRouter';
@@ -31,8 +31,9 @@ import { SceneManager } from './SceneManager';
 import { TutorialOverlay } from '../ui/TutorialOverlay';
 import { TutorialManager } from './TutorialManager';
 import { TimeManager } from '../utils/TimeManager';
+import { GameInputHandler } from './GameInputHandler';
+import { PropsConfigLoader } from './PropsConfigLoader';
 import { eventBus } from '../utils/EventBus';
-import propsData from '../data/props/props.json';
 
 export class Game {
   private static instance: Game | null = null;
@@ -59,16 +60,16 @@ export class Game {
   private gameScene!: GameScene;
   private sceneManager!: SceneManager;
   private eventRouter!: GameEventRouter;
+  private gameInputHandler!: GameInputHandler;
   private resizeTimer: ReturnType<typeof setTimeout> | null = null;
   private fpsDisplayEnabled = false;
   private fpsDisplay: Text | null = null;
   private boundHandleResize: (() => void) | null = null;
   private boundUpdate: (() => void) | null = null;
-  private boundKeydown: ((e: KeyboardEvent) => void) | null = null;
-  private static readonly TOUCH_OFFSET_Y = 30;
   private tutorialOverlay!: TutorialOverlay;
   private tutorialManager!: TutorialManager;
   private platform!: PlatformAdapter;
+  private adManager!: AdManager;
   private loadingScreen: LoadingScreen | null = null;
   private gameSceneInitialized = false;
 
@@ -121,6 +122,7 @@ export class Game {
       const platform = createPlatformAdapter();
       await platform.init();
       this.platform = platform;
+      this.adManager = new AdManager(platform);
       const systemInfo = await platform.getSystemInfo();
 
       await this.saveManager.init();
@@ -190,7 +192,7 @@ export class Game {
         this.audioManager.init().catch((audioErr) => {
           console.warn('[Game] 音频初始化失败，游戏将以静音模式运行:', audioErr);
         }),
-        this.loadLevelConfig().catch((configErr) => {
+        PropsConfigLoader.load(this.propSystem).catch((configErr) => {
           console.warn('[Game] 关卡配置加载失败，使用默认配置:', configErr);
         }),
         this.levelLoader.discoverAndLoadAllLevels().catch((levelErr) => {
@@ -222,7 +224,16 @@ export class Game {
       this.gameScene.initializeProps();
       this.gameScene.setupContainer();
       this.setupUI();
-      this.setupInput();
+      this.gameInputHandler = new GameInputHandler(
+        this.app,
+        this.input,
+        this.gameScene,
+        this.sceneManager,
+        this.stateMachine,
+        this.gameHUD,
+        this.canvas,
+      );
+      this.gameInputHandler.setup();
       this.gameScene.addPreviewToStage();
       this.gameScene.addHUDToStage();
 
@@ -252,7 +263,7 @@ export class Game {
       this.boundHandleResize = this.handleResize.bind(this);
       window.addEventListener('resize', this.boundHandleResize);
 
-      this.setupKeyboard();
+      this.gameInputHandler.setupKeyboard();
 
       this.loadingScreen.updateProgress(0.8);
 
@@ -299,6 +310,7 @@ export class Game {
       this.resultScreen,
       this.levelSelectScreen,
       this.levelLoader,
+      this.adManager,
     );
     this.sceneManager.registerScreens([
       { name: 'mainMenu', screen: mainMenu },
@@ -309,116 +321,6 @@ export class Game {
     ]);
   }
 
-  private setupInput(): void {
-    this.syncInputScale();
-
-    this.input.onDown((state) => {
-      if (!this.gameScene.getBlockSpawner().getCanDrop() || !this.sceneManager.isPlaying()) return;
-      if (this.gameScene.getBombTargetMode()) {
-        this.gameHUD.showCrosshair(state.position.x, state.position.y);
-        return;
-      }
-      const dropY = this.calculateDropY(state.position.y);
-      this.gameScene.getPreview().show(this.gameScene.getBlockSpawner().getCurrentValue(), state.position.x, dropY);
-    });
-
-    this.input.onMove((state) => {
-      if (state.isDown && this.gameScene.getBombTargetMode() && this.sceneManager.isPlaying()) {
-        this.gameHUD.updateCrosshair(state.position.x, state.position.y);
-        return;
-      }
-      if (state.isDown && this.gameScene.getPreview().visible && this.sceneManager.isPlaying() && !this.gameScene.getBombTargetMode()) {
-        this.gameScene.getPreview().updatePosition(state.position.x);
-      }
-    });
-
-    this.input.onUp(() => {
-      if (this.gameScene.getBombTargetMode() && this.sceneManager.isPlaying()) {
-        const pos = this.input.getState().position;
-        this.gameScene.usePropAtPosition(pos.x, pos.y);
-        this.gameHUD.hideCrosshair();
-        return;
-      }
-      if (this.gameScene.getPreview().visible && this.gameScene.getBlockSpawner().getCanDrop() && this.sceneManager.isPlaying()) {
-        const targetX = this.gameScene.getPreview().getTargetX();
-        const dropY = this.gameScene.getPreview().y;
-        this.gameScene.dropBlockWithShrinkCheck(targetX, dropY, this.gameScene.getBlockSpawner().getCurrentValue());
-        this.gameScene.getPreview().hide();
-        this.gameScene.getBlockSpawner().startCooldown();
-        this.gameScene.getPreview().setNextValue(this.gameScene.getBlockSpawner().getCurrentValue());
-      }
-    });
-  }
-
-  private setupKeyboard(): void {
-    this.boundKeydown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        const currentState = this.stateMachine.getCurrentState();
-        if (currentState === 'playing') {
-          this.sceneManager.pauseGame();
-        } else if (currentState === 'paused') {
-          this.sceneManager.resumeGame();
-        }
-      } else if (e.key === ' ') {
-        const currentState = this.stateMachine.getCurrentState();
-        if (currentState === 'playing' && this.gameScene.getBlockSpawner().getCanDrop()) {
-          const centerX = this.app.screen.width / 2;
-          const dropY = this.calculateDropY(100);
-          this.gameScene.dropBlockWithShrinkCheck(centerX, dropY, this.gameScene.getBlockSpawner().getCurrentValue());
-          this.gameScene.getBlockSpawner().startCooldown();
-          this.gameScene.getPreview().setNextValue(this.gameScene.getBlockSpawner().getCurrentValue());
-        }
-      }
-    };
-    window.addEventListener('keydown', this.boundKeydown);
-  }
-
-  private calculateDropY(touchY: number): number {
-    const offset = this.gameScene.getContainerOffsetX() > 0 ? 80 : 60;
-    const maxDropY = this.gameScene.getContainerHeight() > 0
-      ? this.gameScene.getContainerHeight() * 0.5
-      : 300;
-    return Math.max(60, Math.min(touchY - Game.TOUCH_OFFSET_Y, maxDropY));
-  }
-
-  private syncInputScale(): void {
-    const rect = this.canvas.getBoundingClientRect();
-    const rendererWidth = this.app.screen.width;
-    const rendererHeight = this.app.screen.height;
-    if (rect.width > 0 && rect.height > 0) {
-      this.input.setScale(rendererWidth / rect.width, rendererHeight / rect.height);
-    }
-  }
-
-  private async loadLevelConfig(): Promise<void> {
-    try {
-      if (propsData && (propsData as any).props) {
-        await this.propSystem.loadConfig((propsData as any).props);
-        return;
-      }
-    } catch (e) {
-      console.warn('[Game] 静态导入道具配置失败，尝试fetch加载:', e);
-    }
-
-    try {
-      const response = await fetch('/src/data/props/props.json');
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      const data = await response.json();
-      await this.propSystem.loadConfig(data.props || []);
-    } catch (e) {
-      console.warn('[Game] 加载道具配置失败，使用默认配置:', e);
-      await this.propSystem.loadConfig([
-        { id: 'prop_bomb', type: PropType.BOMB, name: '炸弹', description: '销毁指定区域内所有方块', icon: 'bomb', maxCount: 3, cooldown: 1000, price: 50 },
-        { id: 'prop_rainbow', type: PropType.RAINBOW, name: '彩虹方块', description: '可与任意数字合成', icon: 'rainbow', maxCount: 3, cooldown: 1000, price: 80 },
-        { id: 'prop_freeze', type: PropType.FREEZE, name: '冻结', description: '暂停物理模拟5秒', icon: 'freeze', maxCount: 3, cooldown: 1000, price: 60 },
-        { id: 'prop_shrink', type: PropType.SHRINK, name: '缩小射线', description: '将所有方块缩小30%', icon: 'shrink', maxCount: 2, cooldown: 2000, price: 100 },
-        { id: 'prop_lucky', type: PropType.LUCKY, name: '幸运投放', description: '接下来3次投放必出高数字', icon: 'lucky', maxCount: 2, cooldown: 2000, price: 120 },
-      ]);
-    }
-  }
-
   private handleResize(): void {
     if (typeof window === 'undefined') return;
     if (this.resizeTimer) clearTimeout(this.resizeTimer);
@@ -426,7 +328,7 @@ export class Game {
       this.app.renderer.resize(window.innerWidth, window.innerHeight);
       this.gameScene.handleResize();
       this.uiManager.handleResize(this.app.screen.width, this.app.screen.height);
-      this.syncInputScale();
+      this.gameInputHandler.syncInputScale();
       this.gameHUD.layout(this.app.screen.width, this.app.screen.height);
       this.tutorialManager.resize(this.app.screen.width, this.app.screen.height);
     }, 300);
@@ -498,6 +400,7 @@ export class Game {
   getPhysics() { return this.gameScene?.getPhysics(); }
   getMergeSystem(): MergeSystem { return this.mergeSystem; }
   getPlatformAdapter(): PlatformAdapter { return this.platform; }
+  getAdManager(): AdManager { return this.adManager; }
   getPerformanceMonitor(): PerformanceMonitor { return this.performanceMonitor; }
   getLevelLoader(): LevelLoader { return this.levelLoader; }
   getSaveManager(): SaveManager { return this.saveManager; }
@@ -524,9 +427,8 @@ export class Game {
       this.app.ticker.remove(this.boundUpdate);
       this.boundUpdate = null;
     }
-    if (this.boundKeydown) {
-      window.removeEventListener('keydown', this.boundKeydown);
-      this.boundKeydown = null;
+    if (this.gameInputHandler) {
+      this.gameInputHandler.destroy();
     }
     if (this.gameSceneInitialized) {
       this.eventRouter.destroy();

@@ -1,4 +1,4 @@
-import { Application, Graphics } from 'pixi.js';
+import { Application } from 'pixi.js';
 import { PhysicsManager } from './PhysicsManager';
 import { ScoreSystem } from '../gameplay/ScoreSystem';
 import { LevelSystem, LevelConfig } from '../gameplay/LevelSystem';
@@ -13,7 +13,7 @@ import { ModifierManager } from '../gameplay/modifiers/ModifierManager';
 import { PropSystem } from '../gameplay/props/PropSystem';
 import { PropEffectHandler } from './PropEffectHandler';
 import { PerformanceMonitor } from '../utils/PerformanceMonitor';
-import Matter from 'matter-js';
+import { ContainerRenderer } from './ContainerRenderer';
 import { TutorialManager } from './TutorialManager';
 import { TimeManager } from '../utils/TimeManager';
 
@@ -36,14 +36,12 @@ export class GameScene {
   private scoreSystem: ScoreSystem;
   private levelSystem: LevelSystem | null = null;
   private currentLevelConfig: LevelConfig | null = null;
-  private warningLine: WarningLine | null = null;
-  private containerWalls: Graphics | null = null;
-  private physicsWalls: Matter.Body[] = [];
   private gameHUD: GameHUD;
   private modifierManager: ModifierManager;
   private propSystem: PropSystem;
   private propEffectHandler!: PropEffectHandler;
   private performanceMonitor: PerformanceMonitor;
+  private containerRenderer: ContainerRenderer;
   private physicsAccumulator = 0;
   private gameStartTime: number = 0;
   private containerWidth: number = 0;
@@ -74,6 +72,7 @@ export class GameScene {
     this.modifierManager = modifierManager;
     this.propSystem = propSystem;
     this.performanceMonitor = performanceMonitor;
+    this.containerRenderer = new ContainerRenderer(app, physics);
     this.groundY = 550;
     this.tutorialManager = tutorialManager || null;
     this.timeManager = TimeManager.getInstance();
@@ -89,6 +88,7 @@ export class GameScene {
     });
     this.mergeSystem.setBlockPool(this.blockSpawner.getBlockPool());
     this.effectManager = new GameEffectManager(this.app.stage);
+    this.effectManager.setPerformanceMonitor(this.performanceMonitor);
     this.propEffectHandler = new PropEffectHandler(
       this.blockSpawner,
       this.mergeSystem,
@@ -104,79 +104,43 @@ export class GameScene {
     const screenW = this.app.screen.width;
     const screenH = this.app.screen.height;
 
-    if (this.currentLevelConfig) {
-      this.containerWidth = Math.min(this.currentLevelConfig.container.width, screenW);
-      this.containerHeight = Math.min(this.currentLevelConfig.container.height, screenH);
-    } else {
-      this.containerWidth = screenW;
-      this.containerHeight = screenH;
-    }
-    this.containerOffsetX = (screenW - this.containerWidth) / 2;
-    this.groundY = this.containerHeight - 50;
+    this.containerRenderer.setup(
+      this.currentLevelConfig,
+      screenW,
+      screenH,
+      this.preview,
+      this.blockSpawner,
+      this.propEffectHandler,
+      this.scoreSystem,
+    );
 
-    this.rebuildPhysicsWalls();
-
-    if (this.warningLine) {
-      this.app.stage.removeChild(this.warningLine);
-      this.warningLine.destroy();
-    }
-    const warningConfig = this.currentLevelConfig?.warning;
-    this.warningLine = new WarningLine(this.containerHeight, this.containerWidth, warningConfig);
-    this.warningLine.x = this.containerOffsetX;
-    this.warningLine.y = this.groundY * 0.8;
-    this.warningLine.visible = false;
-    this.app.stage.addChild(this.warningLine);
-    this.propEffectHandler.setWarningLine(this.warningLine);
-    this.propEffectHandler.setScoreSystem(this.scoreSystem);
-    this.preview.setGroundY(this.groundY);
-    this.preview.setBounds(this.containerOffsetX, this.containerOffsetX + this.containerWidth);
-    this.blockSpawner.setContainerBounds(this.containerWidth, this.containerOffsetX);
+    this.containerWidth = this.containerRenderer.getContainerWidth();
+    this.containerHeight = this.containerRenderer.getContainerHeight();
+    this.containerOffsetX = this.containerRenderer.getContainerOffsetX();
+    this.groundY = this.containerRenderer.getGroundY();
   }
 
   rebuildPhysicsWalls(): void {
-    for (const wall of this.physicsWalls) {
-      this.physics.removeBody(wall);
-    }
-    this.physicsWalls = [];
-
-    const w = this.containerWidth || this.app.screen.width;
-    const h = this.containerHeight || this.app.screen.height;
-    const offsetX = this.containerOffsetX || 0;
-
-    const ground = this.physics.createRectangle(offsetX + w / 2, this.groundY + 25, w, 50);
-    ground.label = 'ground';
-    const leftWall = this.physics.createRectangle(offsetX - 22, h / 2, 50, h);
-    leftWall.label = 'wall_left';
-    const rightWall = this.physics.createRectangle(offsetX + w + 22, h / 2, 50, h);
-    rightWall.label = 'wall_right';
-
-    this.physicsWalls = [ground, leftWall, rightWall];
+    this.containerRenderer.rebuildPhysicsWalls();
   }
 
   handleResize(): void {
     const screenW = this.app.screen.width;
     const screenH = this.app.screen.height;
 
-    if (this.currentLevelConfig) {
-      this.containerWidth = Math.min(this.currentLevelConfig.container.width, screenW);
-      this.containerHeight = Math.min(this.currentLevelConfig.container.height, screenH);
-    } else {
-      this.containerWidth = screenW;
-      this.containerHeight = screenH;
-    }
-    this.containerOffsetX = (screenW - this.containerWidth) / 2;
-    this.groundY = this.containerHeight - 50;
+    this.containerRenderer.handleResize(
+      this.currentLevelConfig,
+      screenW,
+      screenH,
+      this.preview,
+      this.blockSpawner,
+      this.gameHUD,
+    );
 
-    this.rebuildPhysicsWalls();
-    this.drawContainerWalls();
-    this.blockSpawner.setContainerBounds(this.containerWidth, this.containerOffsetX);
-
-    if (this.warningLine) {
-      this.warningLine.y = this.groundY * 0.8;
-    }
-    if (this.gameHUD) {
-      this.gameHUD.layout(screenW, screenH);
-    }
+    this.containerWidth = this.containerRenderer.getContainerWidth();
+    this.containerHeight = this.containerRenderer.getContainerHeight();
+    this.containerOffsetX = this.containerRenderer.getContainerOffsetX();
+    this.groundY = this.containerRenderer.getGroundY();
   }
 
   loadLevel(config: LevelConfig): void {
@@ -219,8 +183,8 @@ export class GameScene {
     this.clearEverything();
     this.scoreSystem.reset();
     this.gameHUD.reset();
-    this.warningLine?.reset();
-    this.warningLine?.setDisabled(false);
+    this.containerRenderer.getWarningLine()?.reset();
+    this.containerRenderer.getWarningLine()?.setDisabled(false);
     this.levelSystem?.reset();
     this.propEffectHandler.reset();
     this.blockSpawner.reset();
@@ -287,11 +251,7 @@ export class GameScene {
   }
 
   clearContainerWalls(): void {
-    if (this.containerWalls) {
-      this.app.stage.removeChild(this.containerWalls);
-      this.containerWalls.destroy();
-      this.containerWalls = null;
-    }
+    this.containerRenderer.clearContainerWalls();
   }
 
   handleBlockMerged(data: BlockMergedData): void {
@@ -380,9 +340,10 @@ export class GameScene {
       this.gameHUD.setObjectiveProgress(this.levelSystem.getProgress());
     }
 
-    if (this.warningLine) {
+    const warningLine = this.containerRenderer.getWarningLine();
+    if (warningLine) {
       if (this.levelSystem && this.levelSystem.isLevelCompleted()) {
-        this.warningLine.setDisabled(true);
+        warningLine.setDisabled(true);
       }
       const blocks = this.blockSpawner.getBlocks();
       this.warningLineData.length = blocks.length;
@@ -396,7 +357,7 @@ export class GameScene {
         d.radius = b.getConfig().radius;
         d.speed = Math.sqrt(b.body.velocity.x ** 2 + b.body.velocity.y ** 2);
       }
-      this.warningLine.update(this.warningLineData, deltaMS);
+      warningLine.update(this.warningLineData, deltaMS);
     }
 
     this.effectManager.cleanup();
@@ -425,33 +386,7 @@ export class GameScene {
   }
 
   private drawContainerWalls(): void {
-    this.clearContainerWalls();
-    const w = this.containerWidth || this.app.screen.width;
-    const offsetX = this.containerOffsetX || 0;
-
-    this.containerWalls = new Graphics();
-    this.containerWalls.rect(offsetX, this.groundY, w, 50);
-    this.containerWalls.fill({ color: 0x2d2d44 });
-    this.containerWalls.rect(offsetX, 0, 6, this.groundY);
-    this.containerWalls.fill({ color: 0x4a4a6a });
-    this.containerWalls.rect(offsetX + w - 6, 0, 6, this.groundY);
-    this.containerWalls.fill({ color: 0x4a4a6a });
-    this.containerWalls.moveTo(offsetX, 0);
-    this.containerWalls.lineTo(offsetX, this.groundY);
-    this.containerWalls.stroke({ width: 2, color: 0x6a6a8a });
-    this.containerWalls.moveTo(offsetX + 6, 0);
-    this.containerWalls.lineTo(offsetX + 6, this.groundY);
-    this.containerWalls.stroke({ width: 1, color: 0x5a5a7a });
-    this.containerWalls.moveTo(offsetX + w - 6, 0);
-    this.containerWalls.lineTo(offsetX + w - 6, this.groundY);
-    this.containerWalls.stroke({ width: 1, color: 0x5a5a7a });
-    this.containerWalls.moveTo(offsetX + w, 0);
-    this.containerWalls.lineTo(offsetX + w, this.groundY);
-    this.containerWalls.stroke({ width: 2, color: 0x6a6a8a });
-    this.containerWalls.moveTo(offsetX, this.groundY);
-    this.containerWalls.lineTo(offsetX + w, this.groundY);
-    this.containerWalls.stroke({ width: 2, color: 0x6a6a8a });
-    this.app.stage.addChild(this.containerWalls);
+    this.containerRenderer.drawContainerWalls();
   }
 
   private startAutoSpawn(): void {
@@ -482,7 +417,7 @@ export class GameScene {
   getCurrentLevelConfig(): LevelConfig | null { return this.currentLevelConfig; }
   getGameHUD(): GameHUD { return this.gameHUD; }
   getPreview(): BlockPreview { return this.preview; }
-  getWarningLine(): WarningLine | null { return this.warningLine; }
+  getWarningLine(): WarningLine | null { return this.containerRenderer.getWarningLine(); }
   getGameStartTime(): number { return this.gameStartTime; }
   getPerformanceMonitor(): PerformanceMonitor { return this.performanceMonitor; }
   getEffectManager(): GameEffectManager { return this.effectManager; }
@@ -499,9 +434,10 @@ export class GameScene {
   }
 
   checkWarningLine(): boolean {
-    if (!this.warningLine) return false;
+    const warningLine = this.containerRenderer.getWarningLine();
+    if (!warningLine) return false;
     const blocks = this.blockSpawner.getBlocks();
-    return blocks.some(b => b.y <= (this.warningLine?.y ?? Infinity));
+    return blocks.some(b => b.y <= (warningLine?.y ?? Infinity));
   }
 
   checkGameOver(): boolean {
@@ -509,8 +445,9 @@ export class GameScene {
   }
 
   setWarningLineVisible(visible: boolean): void {
-    if (this.warningLine) {
-      this.warningLine.visible = visible;
+    const warningLine = this.containerRenderer.getWarningLine();
+    if (warningLine) {
+      warningLine.visible = visible;
     }
   }
 
@@ -534,15 +471,7 @@ export class GameScene {
     this.effectManager.destroy();
     this.propEffectHandler.reset();
     this.levelSystem?.destroy();
-    if (this.warningLine) {
-      this.warningLine.destroy();
-      this.warningLine = null;
-    }
-    this.clearContainerWalls();
-    for (const wall of this.physicsWalls) {
-      this.physics.removeBody(wall);
-    }
-    this.physicsWalls = [];
+    this.containerRenderer.destroy();
     this.warningLineData.length = 0;
     this.physics.stop();
   }
