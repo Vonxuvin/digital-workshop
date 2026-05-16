@@ -397,13 +397,6 @@ export class GameScene {
 
   dropBlockWithShrinkCheck(x: number, y: number, value: number): void {
     this.blockSpawner.dropBlock(x, y, value);
-    if (this.propEffectHandler.isShrinkActive()) {
-      const blocks = this.blockSpawner.getBlocks();
-      const lastBlock = blocks[blocks.length - 1];
-      if (lastBlock) {
-        this.propEffectHandler.applyShrinkToBlock(lastBlock);
-      }
-    }
   }
 
   getContainerOffsetX(): number { return this.containerOffsetX; }
