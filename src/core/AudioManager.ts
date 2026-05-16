@@ -35,12 +35,26 @@ export class AudioManager {
     return AudioManager.instance;
   }
 
+  private boundListeners: Map<string, (...args: any[]) => void> = new Map();
+
   private setupEventListeners(): void {
-    eventBus.on(GameEvents.BLOCK_DROPPED, () => this.playSfx('spawn'));
-    eventBus.on(GameEvents.BLOCK_MERGED, (data) => this.playMergeSound(data.newValue));
-    eventBus.on(GameEvents.SCORE_UPDATED, (data) => this.playComboSound(data.chainCount));
-    eventBus.on(GameEvents.PROPS_USED, (data) => this.playPropSound(data.type));
-    eventBus.on(GameEvents.UI_BUTTON_CLICK, () => this.playSfx('click'));
+    const onBlockDropped = () => this.playSfx('spawn');
+    const onBlockMerged = (data: any) => this.playMergeSound(data.newValue);
+    const onScoreUpdated = (data: any) => this.playComboSound(data.chainCount);
+    const onPropsUsed = (data: any) => this.playPropSound(data.type);
+    const onButtonClick = () => this.playSfx('click');
+
+    eventBus.on(GameEvents.BLOCK_DROPPED, onBlockDropped);
+    eventBus.on(GameEvents.BLOCK_MERGED, onBlockMerged);
+    eventBus.on(GameEvents.SCORE_UPDATED, onScoreUpdated);
+    eventBus.on(GameEvents.PROPS_USED, onPropsUsed);
+    eventBus.on(GameEvents.UI_BUTTON_CLICK, onButtonClick);
+
+    this.boundListeners.set(GameEvents.BLOCK_DROPPED, onBlockDropped);
+    this.boundListeners.set(GameEvents.BLOCK_MERGED, onBlockMerged);
+    this.boundListeners.set(GameEvents.SCORE_UPDATED, onScoreUpdated);
+    this.boundListeners.set(GameEvents.PROPS_USED, onPropsUsed);
+    this.boundListeners.set(GameEvents.UI_BUTTON_CLICK, onButtonClick);
   }
 
   async init(): Promise<void> {
@@ -267,6 +281,10 @@ export class AudioManager {
   }
 
   destroy(): void {
+    for (const [event, listener] of this.boundListeners) {
+      eventBus.off(event, listener);
+    }
+    this.boundListeners.clear();
     this.stopAll();
     this.sounds.clear();
     this.volumes.clear();
