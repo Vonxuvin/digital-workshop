@@ -2,13 +2,14 @@ import * as PIXI from 'pixi.js';
 import gsap from 'gsap';
 import { TimeManager } from '../../utils/TimeManager';
 import { AnimationManager } from '../../utils/AnimationManager';
+import { IEffect } from './IEffect';
 
 interface SnowflakeData {
   text: PIXI.Text;
   speed: number;
 }
 
-export class FreezeEffect extends PIXI.Container {
+export class FreezeEffect extends PIXI.Container implements IEffect {
   private overlay!: PIXI.Graphics;
   private containerWidth: number;
   private containerHeight: number;

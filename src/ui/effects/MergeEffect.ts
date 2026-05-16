@@ -2,6 +2,7 @@ import * as PIXI from 'pixi.js';
 import gsap from 'gsap';
 import { GraphicsPool } from '../../utils/GraphicsPool';
 import { TimeManager } from '../../utils/TimeManager';
+import { IEffect } from './IEffect';
 
 export interface MergeEffectOptions {
   x: number;
@@ -10,7 +11,7 @@ export interface MergeEffectOptions {
   newNumber: number;
 }
 
-export class MergeEffect extends PIXI.Container {
+export class MergeEffect extends PIXI.Container implements IEffect {
   public allComplete: boolean = false;
   private timeline: gsap.core.Timeline | null = null;
   private pooledObjects: PIXI.Graphics[] = [];

@@ -2,6 +2,7 @@ import { Container } from 'pixi.js';
 import { MergeEffect } from '../ui/effects/MergeEffect';
 import { ExplosionEffect } from '../ui/effects/ExplosionEffect';
 import { FreezeEffect } from '../ui/effects/FreezeEffect';
+import { IEffect } from '../ui/effects/IEffect';
 import { GraphicsPool } from '../utils/GraphicsPool';
 import { PerformanceMonitor } from '../utils/PerformanceMonitor';
 
@@ -12,7 +13,7 @@ const MAX_TOTAL_PARTICLES_LOW = 30;
 
 export class GameEffectManager {
   private stage: Container;
-  private effects: any[] = [];
+  private effects: IEffect[] = [];
   private freezeEffect: FreezeEffect | null = null;
   private _graphicsPool: GraphicsPool;
   private totalActiveParticles = 0;
@@ -92,8 +93,8 @@ export class GameEffectManager {
 
   cleanup(): void {
     this.effects = this.effects.filter(effect => {
-      if ((effect as any).destroyed) return false;
-      if ((effect as any).allComplete) return false;
+      if (effect.destroyed) return false;
+      if (effect.allComplete) return false;
       return true;
     });
     if (this.effects.length === 0) {
@@ -112,7 +113,7 @@ export class GameEffectManager {
     this.graphicsPool.releaseAll();
   }
 
-  getEffects(): any[] {
+  getEffects(): IEffect[] {
     const all = [...this.effects];
     if (this.freezeEffect) all.push(this.freezeEffect);
     return all;
