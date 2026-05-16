@@ -366,7 +366,7 @@ export class GameScene {
 
   calculateStars(score: number, levelId: number): number {
     const config = this.levelSystem?.getConfig();
-    if (config?.rewards?.stars) {
+    if (config?.rewards?.stars && config.rewards.stars.length >= 3) {
       const thresholds = config.rewards.stars;
       if (score >= thresholds[2]) return 3;
       if (score >= thresholds[1]) return 2;
