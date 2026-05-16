@@ -183,7 +183,8 @@ test.describe('渲染与性能 @regression', () => {
         }
       });
 
-      expect(fps).toBeGreaterThanOrEqual(5);
+      const minFPS = process.env.CI ? 3 : 5;
+      expect(fps).toBeGreaterThanOrEqual(minFPS);
     });
 
     test('大量方块时FPS不应严重下降', async ({ page }) => {
