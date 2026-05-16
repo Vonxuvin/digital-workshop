@@ -157,12 +157,20 @@ export class SaveManager {
         completed: false,
       };
     }
-    return this.data.levelProgress[levelId];
+    return { ...this.data.levelProgress[levelId] };
+  }
+
+  setLevelProgress(levelId: number, progress: Partial<LevelProgress>): void {
+    const current = this.data.levelProgress[levelId];
+    if (current) {
+      Object.assign(current, progress);
+      this.markDirty();
+    }
   }
 
   unlockLevel(levelId: number): void {
     const progress = this.getLevelProgress(levelId);
-    progress.unlocked = true;
+    this.data.levelProgress[levelId].unlocked = true;
     this.markDirty();
     eventBus.emit(GameEvents.LEVEL_UNLOCKED, levelId);
   }
@@ -174,27 +182,39 @@ export class SaveManager {
     stars: number,
     completed: boolean
   ): void {
-    const progress = this.getLevelProgress(levelId);
-    progress.attempts++;
-    if (score > progress.highScore) {
-      progress.highScore = score;
+    const progress = this.data.levelProgress[levelId];
+    if (!progress) {
+      this.data.levelProgress[levelId] = {
+        levelId,
+        unlocked: false,
+        stars: 0,
+        highScore: 0,
+        bestTime: 0,
+        attempts: 0,
+        completed: false,
+      };
     }
-    if (time > 0 && (progress.bestTime === 0 || time < progress.bestTime)) {
-      progress.bestTime = time;
+    const p = this.data.levelProgress[levelId];
+    p.attempts++;
+    if (score > p.highScore) {
+      p.highScore = score;
     }
-    if (stars > progress.stars) {
-      const newStars = stars - progress.stars;
+    if (time > 0 && (p.bestTime === 0 || time < p.bestTime)) {
+      p.bestTime = time;
+    }
+    if (stars > p.stars) {
+      const newStars = stars - p.stars;
       this.data.totalStars += newStars;
-      progress.stars = stars;
+      p.stars = stars;
       eventBus.emit(GameEvents.STARS_EARNED, newStars);
     }
-    if (completed && !progress.completed) {
-      progress.completed = true;
+    if (completed && !p.completed) {
+      p.completed = true;
       const nextLevelId = levelId + 1;
       this.unlockLevel(nextLevelId);
     }
     this.markDirty();
-    eventBus.emit(GameEvents.LEVEL_PROGRESS_UPDATED, { levelId, progress });
+    eventBus.emit(GameEvents.LEVEL_PROGRESS_UPDATED, { levelId, progress: p });
   }
 
   updateStatistics(mergeValue: number, comboCount: number, playTime: number): void {
@@ -205,8 +225,6 @@ export class SaveManager {
     }
     if (comboCount > this.data.playStatistics.longestCombo) {
       this.data.playStatistics.longestCombo = comboCount;
-    }
-    if (comboCount > this.data.playStatistics.maxCombo) {
       this.data.playStatistics.maxCombo = comboCount;
     }
     this.markDirty();
@@ -214,14 +232,36 @@ export class SaveManager {
 
   addCoins(amount: number): void {
     this.data.coins += amount;
+    if (this.data.coins < 0) this.data.coins = 0;
     this.markDirty();
     eventBus.emit(GameEvents.COINS_CHANGED, this.data.coins);
   }
 
+  spendCoins(amount: number): boolean {
+    if (amount < 0 || this.data.coins < amount) {
+      return false;
+    }
+    this.data.coins -= amount;
+    this.markDirty();
+    eventBus.emit(GameEvents.COINS_CHANGED, this.data.coins);
+    return true;
+  }
+
   addDiamonds(amount: number): void {
     this.data.diamonds += amount;
+    if (this.data.diamonds < 0) this.data.diamonds = 0;
     this.markDirty();
     eventBus.emit(GameEvents.DIAMONDS_CHANGED, this.data.diamonds);
+  }
+
+  spendDiamonds(amount: number): boolean {
+    if (amount < 0 || this.data.diamonds < amount) {
+      return false;
+    }
+    this.data.diamonds -= amount;
+    this.markDirty();
+    eventBus.emit(GameEvents.DIAMONDS_CHANGED, this.data.diamonds);
+    return true;
   }
 
   updateSettings(
@@ -262,9 +302,13 @@ export class SaveManager {
 
   startAutoSave(intervalMs: number = 30000): void {
     this.stopAutoSave();
-    this.autoSaveInterval = setInterval(() => {
+    this.autoSaveInterval = setInterval(async () => {
       if (this.isDirty) {
-        this.save();
+        try {
+          await this.save();
+        } catch (error) {
+          console.error('[SaveManager] 自动保存失败:', error);
+        }
       }
     }, intervalMs);
   }
@@ -287,7 +331,6 @@ export class SaveManager {
     if (!source || typeof source !== 'object') return target;
     const result = { ...target };
     for (const key of Object.keys(source)) {
-      if (!(key in result)) continue;
       const sourceVal = source[key];
       const targetVal = (result as any)[key];
       if (
@@ -296,6 +339,8 @@ export class SaveManager {
         typeof sourceVal === 'object' && !Array.isArray(sourceVal)
       ) {
         (result as any)[key] = this.deepMerge(targetVal, sourceVal);
+      } else if (key in result) {
+        (result as any)[key] = sourceVal;
       } else {
         (result as any)[key] = sourceVal;
       }
@@ -310,7 +355,14 @@ export class SaveManager {
   async importSave(saveData: string): Promise<boolean> {
     try {
       const parsed = JSON.parse(saveData);
-      if (typeof parsed.totalScore !== 'number' || !parsed.levelProgress || typeof parsed.levelProgress !== 'object') {
+      if (
+        typeof parsed.totalScore !== 'number' ||
+        !parsed.levelProgress || typeof parsed.levelProgress !== 'object' ||
+        typeof parsed.coins !== 'number' ||
+        typeof parsed.diamonds !== 'number' ||
+        !parsed.settings || typeof parsed.settings !== 'object' ||
+        !parsed.playStatistics || typeof parsed.playStatistics !== 'object'
+      ) {
         throw new Error('无效的存档数据');
       }
       this.data = this.deepMerge(this.getDefaultData(), parsed);
@@ -327,5 +379,7 @@ export class SaveManager {
   destroy(): void {
     this.stopAutoSave();
     this.data = this.getDefaultData();
+    this.initialized = false;
+    SaveManager.instance = null;
   }
 }
