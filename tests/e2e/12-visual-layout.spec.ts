@@ -289,7 +289,7 @@ test.describe('视觉布局 @regression', () => {
         }
       });
 
-      expect(supportsColor).toBeDefined();
+      expect(supportsColor).toBeTruthy();
     });
 
     test('警戒线应支持透明度参数', async ({ page }) => {
@@ -310,7 +310,7 @@ test.describe('视觉布局 @regression', () => {
         }
       });
 
-      expect(supportsAlpha).toBeDefined();
+      expect(supportsAlpha).toBeTruthy();
     });
 
     test('警戒线应在游戏场景中可见', async ({ page }) => {

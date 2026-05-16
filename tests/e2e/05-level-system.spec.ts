@@ -371,7 +371,7 @@ test.describe('关卡系统 @regression', () => {
         }
       });
 
-      expect(scoreNoTimeout).toBeDefined();
+      expect(scoreNoTimeout).toBeTruthy();
     });
 
     test('LevelSystem 应支持 checkWinCondition', async ({ page }) => {

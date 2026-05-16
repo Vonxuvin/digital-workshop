@@ -224,6 +224,10 @@ export class LevelSystem {
     return this.isCompleted;
   }
 
+  getObjectiveType(): ObjectiveType {
+    return this.config.objective.type;
+  }
+
   getHighestMergeValue(): number {
     return this.highestMergeValue;
   }

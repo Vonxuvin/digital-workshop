@@ -385,7 +385,7 @@ test.describe('玩法边界 @full', () => {
         }
       });
 
-      expect(hasShrinkModifier).toBeDefined();
+      expect(hasShrinkModifier).toBeTruthy();
     });
 
     test('ShrinkModifier 应支持 activate/deactivate', async ({ page }) => {

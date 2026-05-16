@@ -489,6 +489,10 @@ export class GameScene {
   getModifierManager(): ModifierManager { return this.modifierManager; }
   getPropEffectHandler(): PropEffectHandler { return this.propEffectHandler; }
 
+  getShrinkModifier(): import('../gameplay/modifiers/ShrinkModifier').ShrinkModifier | undefined {
+    return this.modifierManager.getModifier('shrink') as import('../gameplay/modifiers/ShrinkModifier').ShrinkModifier | undefined;
+  }
+
   getContainer(): { width: number; height: number } {
     return { width: this.containerWidth, height: this.containerHeight };
   }

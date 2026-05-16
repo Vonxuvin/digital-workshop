@@ -28,6 +28,9 @@ export class WarningLine extends Container {
   private disabled = false;
   private config: WarningConfig;
 
+  private currentColor: number = 0xff4444;
+  private currentAlpha: number = 0.8;
+
   constructor(containerHeight: number, containerWidth: number = 800, config?: Partial<WarningConfig>) {
     super();
     this.containerHeight = containerHeight;
@@ -59,6 +62,8 @@ export class WarningLine extends Container {
   }
 
   private drawLine(color: number = 0xff4444, alpha: number = 0.8): void {
+    this.currentColor = color;
+    this.currentAlpha = alpha;
     this.graphics.clear();
 
     this.graphics.moveTo(0, 0);
@@ -165,5 +170,25 @@ export class WarningLine extends Container {
       this.drawLine(0xff4444, 0.8);
       this.countdownText.visible = false;
     }
+  }
+
+  getGraphics(): Graphics {
+    return this.graphics;
+  }
+
+  setColor(color: number): void {
+    this.drawLine(color, this.currentAlpha);
+  }
+
+  getColor(): number {
+    return this.currentColor;
+  }
+
+  setAlpha(alpha: number): void {
+    this.drawLine(this.currentColor, alpha);
+  }
+
+  getAlpha(): number {
+    return this.currentAlpha;
   }
 }
