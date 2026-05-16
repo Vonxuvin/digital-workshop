@@ -1,0 +1,54 @@
+{
+  "id": 24,
+  "name": "障碍迷宫",
+  "objective": {
+    "type": "clear_obstacle",
+    "target": 12
+  },
+  "container": {
+    "width": 400,
+    "height": 600,
+    "shape": "rectangle"
+  },
+  "spawn": {
+    "availableNumbers": [1, 2, 4, 8, 16],
+    "spawnInterval": 0
+  },
+  "obstacles": [
+    { "x": 80, "y": 180, "value": 32 },
+    { "x": 320, "y": 180, "value": 32 },
+    { "x": 200, "y": 140, "value": 64 },
+    { "x": 80, "y": 320, "value": 16 },
+    { "x": 320, "y": 320, "value": 16 },
+    { "x": 200, "y": 280, "value": 32 },
+    { "x": 120, "y": 420, "value": 8 },
+    { "x": 280, "y": 420, "value": 8 },
+    { "x": 200, "y": 380, "value": 16 },
+    { "x": 80, "y": 500, "value": 4 },
+    { "x": 320, "y": 500, "value": 4 },
+    { "x": 200, "y": 480, "value": 8 }
+  ],
+  "modifiers": [
+    {
+      "type": "rotate",
+      "enabled": true,
+      "rotationSpeed": 10,
+      "maxAngle": 10,
+      "oscillate": true,
+      "duration": 180
+    },
+    {
+      "type": "paddle",
+      "enabled": true,
+      "side": "right",
+      "extendDuration": 2,
+      "retractDuration": 1,
+      "extendLength": 70,
+      "triggerInterval": 5,
+      "yPosition": 370
+    }
+  ],
+  "rewards": {
+    "stars": [6, 9, 12]
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "id": 28,
+  "name": "终极清除",
+  "objective": {
+    "type": "clear_obstacle",
+    "target": 15
+  },
+  "container": {
+    "width": 400,
+    "height": 600,
+    "shape": "rectangle"
+  },
+  "spawn": {
+    "availableNumbers": [1, 2, 4, 8, 16, 32],
+    "spawnInterval": 0
+  },
+  "obstacles": [
+    { "x": 60, "y": 160, "value": 64 },
+    { "x": 340, "y": 160, "value": 64 },
+    { "x": 200, "y": 120, "value": 128 },
+    { "x": 60, "y": 300, "value": 32 },
+    { "x": 340, "y": 300, "value": 32 },
+    { "x": 200, "y": 260, "value": 64 },
+    { "x": 100, "y": 400, "value": 16 },
+    { "x": 300, "y": 400, "value": 16 },
+    { "x": 200, "y": 360, "value": 32 },
+    { "x": 60, "y": 480, "value": 8 },
+    { "x": 340, "y": 480, "value": 8 },
+    { "x": 200, "y": 450, "value": 16 },
+    { "x": 120, "y": 540, "value": 4 },
+    { "x": 280, "y": 540, "value": 4 },
+    { "x": 200, "y": 520, "value": 8 }
+  ],
+  "modifiers": [
+    {
+      "type": "rotate",
+      "enabled": true,
+      "rotationSpeed": 15,
+      "maxAngle": 12,
+      "oscillate": true,
+      "duration": 200
+    },
+    {
+      "type": "paddle",
+      "enabled": true,
+      "side": "right",
+      "extendDuration": 1.8,
+      "retractDuration": 0.9,
+      "extendLength": 90,
+      "triggerInterval": 4,
+      "yPosition": 380
+    },
+    {
+      "type": "shrink",
+      "enabled": true,
+      "targetWidth": 200,
+      "shrinkSpeed": 9,
+      "minWidth": 180,
+      "triggerInterval": 40,
+      "startDelay": 20
+    }
+  ],
+  "rewards": {
+    "stars": [8, 12, 15]
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "id": 26,
+  "name": "狂风暴雨",
+  "objective": {
+    "type": "score",
+    "target": 20000
+  },
+  "container": {
+    "width": 400,
+    "height": 600,
+    "shape": "rectangle"
+  },
+  "spawn": {
+    "availableNumbers": [1, 2, 4, 8, 16, 32, 64],
+    "spawnInterval": 0
+  },
+  "modifiers": [
+    {
+      "type": "paddle",
+      "enabled": true,
+      "side": "left",
+      "extendDuration": 1.5,
+      "retractDuration": 0.8,
+      "extendLength": 100,
+      "triggerInterval": 3,
+      "yPosition": 340
+    },
+    {
+      "type": "paddle",
+      "enabled": true,
+      "side": "right",
+      "extendDuration": 1.5,
+      "retractDuration": 0.8,
+      "extendLength": 100,
+      "triggerInterval": 3.5,
+      "yPosition": 400
+    },
+    {
+      "type": "rotate",
+      "enabled": true,
+      "rotationSpeed": 18,
+      "maxAngle": 15,
+      "oscillate": true,
+      "duration": 220
+    }
+  ],
+  "rewards": {
+    "stars": [12000, 16000, 20000]
+  }
+}

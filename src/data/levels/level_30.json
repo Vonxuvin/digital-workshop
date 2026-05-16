@@ -1,0 +1,59 @@
+{
+  "id": 30,
+  "name": "终极试炼",
+  "objective": {
+    "type": "score",
+    "target": 30000
+  },
+  "container": {
+    "width": 400,
+    "height": 600,
+    "shape": "rectangle"
+  },
+  "spawn": {
+    "availableNumbers": [1, 2, 4, 8, 16, 32, 64, 128],
+    "spawnInterval": 0
+  },
+  "modifiers": [
+    {
+      "type": "paddle",
+      "enabled": true,
+      "side": "left",
+      "extendDuration": 1.2,
+      "retractDuration": 0.6,
+      "extendLength": 110,
+      "triggerInterval": 2.5,
+      "yPosition": 330
+    },
+    {
+      "type": "paddle",
+      "enabled": true,
+      "side": "right",
+      "extendDuration": 1.2,
+      "retractDuration": 0.6,
+      "extendLength": 110,
+      "triggerInterval": 2.8,
+      "yPosition": 410
+    },
+    {
+      "type": "rotate",
+      "enabled": true,
+      "rotationSpeed": 22,
+      "maxAngle": 18,
+      "oscillate": true,
+      "duration": 280
+    },
+    {
+      "type": "shrink",
+      "enabled": true,
+      "targetWidth": 160,
+      "shrinkSpeed": 12,
+      "minWidth": 140,
+      "triggerInterval": 30,
+      "startDelay": 15
+    }
+  ],
+  "rewards": {
+    "stars": [18000, 24000, 30000]
+  }
+}

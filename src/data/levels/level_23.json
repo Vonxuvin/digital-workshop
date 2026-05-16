@@ -1,0 +1,41 @@
+{
+  "id": 23,
+  "name": "高分冲刺",
+  "objective": {
+    "type": "score",
+    "target": 15000
+  },
+  "container": {
+    "width": 400,
+    "height": 600,
+    "shape": "rectangle"
+  },
+  "spawn": {
+    "availableNumbers": [1, 2, 4, 8, 16, 32],
+    "spawnInterval": 0
+  },
+  "modifiers": [
+    {
+      "type": "paddle",
+      "enabled": true,
+      "side": "left",
+      "extendDuration": 1.5,
+      "retractDuration": 0.8,
+      "extendLength": 90,
+      "triggerInterval": 3.5,
+      "yPosition": 360
+    },
+    {
+      "type": "shrink",
+      "enabled": true,
+      "targetWidth": 220,
+      "shrinkSpeed": 7,
+      "minWidth": 200,
+      "triggerInterval": 50,
+      "startDelay": 25
+    }
+  ],
+  "rewards": {
+    "stars": [9000, 12000, 15000]
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "id": 21,
+  "name": "三重合奏",
+  "objective": {
+    "type": "score",
+    "target": 10000
+  },
+  "container": {
+    "width": 400,
+    "height": 600,
+    "shape": "rectangle"
+  },
+  "spawn": {
+    "availableNumbers": [1, 2, 4, 8, 16, 32],
+    "spawnInterval": 0
+  },
+  "modifiers": [
+    {
+      "type": "paddle",
+      "enabled": true,
+      "side": "left",
+      "extendDuration": 2,
+      "retractDuration": 1,
+      "extendLength": 70,
+      "triggerInterval": 5,
+      "yPosition": 340
+    },
+    {
+      "type": "paddle",
+      "enabled": true,
+      "side": "right",
+      "extendDuration": 2.5,
+      "retractDuration": 1.5,
+      "extendLength": 60,
+      "triggerInterval": 6,
+      "yPosition": 400
+    },
+    {
+      "type": "rotate",
+      "enabled": true,
+      "rotationSpeed": 10,
+      "maxAngle": 8,
+      "oscillate": true,
+      "duration": 150
+    }
+  ],
+  "rewards": {
+    "stars": [6000, 8000, 10000]
+  }
+}

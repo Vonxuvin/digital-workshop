@@ -1,0 +1,59 @@
+{
+  "id": 29,
+  "name": "登峰造极",
+  "objective": {
+    "type": "target_merge",
+    "target": 512
+  },
+  "container": {
+    "width": 380,
+    "height": 600,
+    "shape": "rectangle"
+  },
+  "spawn": {
+    "availableNumbers": [1, 2, 4, 8, 16, 32, 64, 128],
+    "spawnInterval": 0
+  },
+  "modifiers": [
+    {
+      "type": "paddle",
+      "enabled": true,
+      "side": "left",
+      "extendDuration": 1.5,
+      "retractDuration": 0.8,
+      "extendLength": 100,
+      "triggerInterval": 3,
+      "yPosition": 340
+    },
+    {
+      "type": "paddle",
+      "enabled": true,
+      "side": "right",
+      "extendDuration": 1.5,
+      "retractDuration": 0.8,
+      "extendLength": 100,
+      "triggerInterval": 3.5,
+      "yPosition": 400
+    },
+    {
+      "type": "rotate",
+      "enabled": true,
+      "rotationSpeed": 20,
+      "maxAngle": 15,
+      "oscillate": true,
+      "duration": 250
+    },
+    {
+      "type": "shrink",
+      "enabled": true,
+      "targetWidth": 180,
+      "shrinkSpeed": 10,
+      "minWidth": 160,
+      "triggerInterval": 35,
+      "startDelay": 20
+    }
+  ],
+  "rewards": {
+    "stars": [256, 384, 512]
+  }
+}

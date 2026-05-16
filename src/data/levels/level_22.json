@@ -1,0 +1,40 @@
+{
+  "id": 22,
+  "name": "极限收缩",
+  "objective": {
+    "type": "survival",
+    "target": 75,
+    "timeLimit": 75
+  },
+  "container": {
+    "width": 400,
+    "height": 600,
+    "shape": "rectangle"
+  },
+  "spawn": {
+    "availableNumbers": [1, 2, 4, 8, 16],
+    "spawnInterval": 2
+  },
+  "modifiers": [
+    {
+      "type": "shrink",
+      "enabled": true,
+      "targetWidth": 150,
+      "shrinkSpeed": 10,
+      "minWidth": 130,
+      "triggerInterval": 30,
+      "startDelay": 15
+    },
+    {
+      "type": "rotate",
+      "enabled": true,
+      "rotationSpeed": 8,
+      "maxAngle": 6,
+      "oscillate": true,
+      "duration": 120
+    }
+  ],
+  "rewards": {
+    "stars": [25, 50, 75]
+  }
+}

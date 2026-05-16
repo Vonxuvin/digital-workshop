@@ -1,0 +1,40 @@
+{
+  "id": 20,
+  "name": "摇摆容器",
+  "objective": {
+    "type": "target_merge",
+    "target": 128
+  },
+  "container": {
+    "width": 400,
+    "height": 600,
+    "shape": "rectangle"
+  },
+  "spawn": {
+    "availableNumbers": [1, 2, 4, 8, 16, 32],
+    "spawnInterval": 0
+  },
+  "modifiers": [
+    {
+      "type": "rotate",
+      "enabled": true,
+      "rotationSpeed": 15,
+      "maxAngle": 12,
+      "oscillate": true,
+      "duration": 200
+    },
+    {
+      "type": "paddle",
+      "enabled": true,
+      "side": "left",
+      "extendDuration": 2,
+      "retractDuration": 1,
+      "extendLength": 80,
+      "triggerInterval": 4,
+      "yPosition": 360
+    }
+  ],
+  "rewards": {
+    "stars": [64, 96, 128]
+  }
+}

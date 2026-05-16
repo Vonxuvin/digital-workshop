@@ -1,0 +1,30 @@
+{
+  "id": 16,
+  "name": "精准合成",
+  "objective": {
+    "type": "target_merge",
+    "target": 64
+  },
+  "container": {
+    "width": 380,
+    "height": 600,
+    "shape": "rectangle"
+  },
+  "spawn": {
+    "availableNumbers": [1, 2, 4, 8, 16],
+    "spawnInterval": 0
+  },
+  "modifiers": [
+    {
+      "type": "rotate",
+      "enabled": true,
+      "rotationSpeed": 8,
+      "maxAngle": 6,
+      "oscillate": true,
+      "duration": 120
+    }
+  ],
+  "rewards": {
+    "stars": [32, 48, 64]
+  }
+}

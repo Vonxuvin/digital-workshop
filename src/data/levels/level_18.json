@@ -1,0 +1,40 @@
+{
+  "id": 18,
+  "name": "双重干扰",
+  "objective": {
+    "type": "score",
+    "target": 6000
+  },
+  "container": {
+    "width": 400,
+    "height": 600,
+    "shape": "rectangle"
+  },
+  "spawn": {
+    "availableNumbers": [1, 2, 4, 8, 16],
+    "spawnInterval": 0
+  },
+  "modifiers": [
+    {
+      "type": "paddle",
+      "enabled": true,
+      "side": "left",
+      "extendDuration": 2,
+      "retractDuration": 1,
+      "extendLength": 70,
+      "triggerInterval": 5,
+      "yPosition": 350
+    },
+    {
+      "type": "rotate",
+      "enabled": true,
+      "rotationSpeed": 12,
+      "maxAngle": 8,
+      "oscillate": true,
+      "duration": 100
+    }
+  ],
+  "rewards": {
+    "stars": [3600, 4800, 6000]
+  }
+}

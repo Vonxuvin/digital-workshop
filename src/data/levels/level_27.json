@@ -1,0 +1,50 @@
+{
+  "id": 27,
+  "name": "绝境求生",
+  "objective": {
+    "type": "survival",
+    "target": 90,
+    "timeLimit": 90
+  },
+  "container": {
+    "width": 350,
+    "height": 600,
+    "shape": "rectangle"
+  },
+  "spawn": {
+    "availableNumbers": [1, 2, 4, 8, 16, 32],
+    "spawnInterval": 1.8
+  },
+  "modifiers": [
+    {
+      "type": "shrink",
+      "enabled": true,
+      "targetWidth": 140,
+      "shrinkSpeed": 12,
+      "minWidth": 120,
+      "triggerInterval": 25,
+      "startDelay": 10
+    },
+    {
+      "type": "rotate",
+      "enabled": true,
+      "rotationSpeed": 14,
+      "maxAngle": 12,
+      "oscillate": true,
+      "duration": 200
+    },
+    {
+      "type": "paddle",
+      "enabled": true,
+      "side": "left",
+      "extendDuration": 2,
+      "retractDuration": 1,
+      "extendLength": 80,
+      "triggerInterval": 4,
+      "yPosition": 360
+    }
+  ],
+  "rewards": {
+    "stars": [30, 60, 90]
+  }
+}

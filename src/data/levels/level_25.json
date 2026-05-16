@@ -1,0 +1,49 @@
+{
+  "id": 25,
+  "name": "中级里程碑",
+  "objective": {
+    "type": "target_merge",
+    "target": 256
+  },
+  "container": {
+    "width": 400,
+    "height": 600,
+    "shape": "rectangle"
+  },
+  "spawn": {
+    "availableNumbers": [1, 2, 4, 8, 16, 32, 64],
+    "spawnInterval": 0
+  },
+  "modifiers": [
+    {
+      "type": "paddle",
+      "enabled": true,
+      "side": "left",
+      "extendDuration": 2,
+      "retractDuration": 1,
+      "extendLength": 80,
+      "triggerInterval": 4,
+      "yPosition": 350
+    },
+    {
+      "type": "rotate",
+      "enabled": true,
+      "rotationSpeed": 12,
+      "maxAngle": 10,
+      "oscillate": true,
+      "duration": 160
+    },
+    {
+      "type": "shrink",
+      "enabled": true,
+      "targetWidth": 200,
+      "shrinkSpeed": 8,
+      "minWidth": 180,
+      "triggerInterval": 45,
+      "startDelay": 30
+    }
+  ],
+  "rewards": {
+    "stars": [128, 192, 256]
+  }
+}

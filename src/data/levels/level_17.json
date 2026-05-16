@@ -1,0 +1,32 @@
+{
+  "id": 17,
+  "name": "窄道求生",
+  "objective": {
+    "type": "survival",
+    "target": 60,
+    "timeLimit": 60
+  },
+  "container": {
+    "width": 300,
+    "height": 600,
+    "shape": "rectangle"
+  },
+  "spawn": {
+    "availableNumbers": [1, 2, 4, 8],
+    "spawnInterval": 2.5
+  },
+  "modifiers": [
+    {
+      "type": "shrink",
+      "enabled": true,
+      "targetWidth": 180,
+      "shrinkSpeed": 6,
+      "minWidth": 160,
+      "triggerInterval": 40,
+      "startDelay": 20
+    }
+  ],
+  "rewards": {
+    "stars": [20, 40, 60]
+  }
+}
