@@ -468,7 +468,7 @@ export class GameHUD extends Container {
   }
 
   destroy(): void {
-    eventBus.off('score:updated', this.onScoreUpdatedBound);
+    eventBus.off(GameEvents.SCORE_UPDATED, this.onScoreUpdatedBound);
     if (this.scoreTween) {
       this.scoreTween.kill();
       this.scoreTween = null;

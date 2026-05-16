@@ -221,23 +221,23 @@ export class TutorialManager {
 
   private removeListeners(): void {
     if (this.boundOnDrop) {
-      eventBus.off('block:dropped', this.boundOnDrop);
+      eventBus.off(GameEvents.BLOCK_DROPPED, this.boundOnDrop);
       this.boundOnDrop = null;
     }
     if (this.boundOnMerge) {
-      eventBus.off('block:merged', this.boundOnMerge);
+      eventBus.off(GameEvents.BLOCK_MERGED, this.boundOnMerge);
       this.boundOnMerge = null;
     }
     if (this.boundOnWarning) {
-      eventBus.off('warning:started', this.boundOnWarning);
+      eventBus.off(GameEvents.WARNING_STARTED, this.boundOnWarning);
       this.boundOnWarning = null;
     }
     if (this.boundOnPropUsed) {
-      eventBus.off('props:used', this.boundOnPropUsed);
+      eventBus.off(GameEvents.PROPS_USED, this.boundOnPropUsed);
       this.boundOnPropUsed = null;
     }
     if (this.boundOnObstacleCleared) {
-      eventBus.off('obstacle:cleared', this.boundOnObstacleCleared);
+      eventBus.off(GameEvents.OBSTACLE_CLEARED, this.boundOnObstacleCleared);
       this.boundOnObstacleCleared = null;
     }
   }

@@ -247,8 +247,8 @@ export class LevelSystem {
   }
 
   destroy(): void {
-    eventBus.off('score:updated', this.onScoreUpdatedBound);
-    eventBus.off('block:merged', this.onBlockMergedBound);
-    eventBus.off('obstacle:cleared', this.onObstacleClearedBound);
+    eventBus.off(GameEvents.SCORE_UPDATED, this.onScoreUpdatedBound);
+    eventBus.off(GameEvents.BLOCK_MERGED, this.onBlockMergedBound);
+    eventBus.off(GameEvents.OBSTACLE_CLEARED, this.onObstacleClearedBound);
   }
 }
