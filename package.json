@@ -10,6 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:integration": "vitest run tests/integration/ --reporter=verbose",
+    "test:integration:coverage": "vitest run tests/integration/ --coverage --reporter=verbose",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
