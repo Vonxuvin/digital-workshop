@@ -118,13 +118,17 @@ export class Game {
 
   async init(): Promise<void> {
     try {
+      console.log('[Game] init: step 1 - createPlatformAdapter');
       const platform = createPlatformAdapter();
       await platform.init();
       this.platform = platform;
+      console.log('[Game] init: step 2 - getSystemInfo');
       const systemInfo = await platform.getSystemInfo();
 
+      console.log('[Game] init: step 3 - saveManager.init');
       await this.saveManager.init();
       this.saveManager.startAutoSave();
+      console.log('[Game] init: step 4 - app.init');
 
       const dpr = systemInfo.pixelRatio || (typeof window !== 'undefined' ? window.devicePixelRatio : 1) || 1;
 
@@ -143,7 +147,9 @@ export class Game {
 
       try {
         await this.app.init(initOptions);
+        console.log('[Game] init: step 5 - app.init succeeded');
       } catch (initErr: any) {
+        console.error('[Game] init: app.init FAILED:', initErr?.message);
         if (initErr?.message?.includes('CanvasRenderer is not yet implemented') ||
             initErr?.message?.includes('No available renderer')) {
           console.warn('[Game] WebGL/WebGPU 渲染器初始化失败，这是沙盒环境的已知限制');
@@ -169,11 +175,13 @@ export class Game {
       }
 
       this.uiManager = new UIManager(this.app);
+      console.log('[Game] init: step 6 - UIManager created');
 
       this.loadingScreen = new LoadingScreen();
       this.uiManager.registerScreen('loading', this.loadingScreen);
       this.stateMachine.transition('loading');
       this.uiManager.showScreen('loading');
+      console.log('[Game] init: step 7 - LoadingScreen shown');
 
       this.tutorialOverlay = new TutorialOverlay();
       this.tutorialManager = new TutorialManager(this.tutorialOverlay, this.saveManager);
@@ -182,9 +190,11 @@ export class Game {
       const textureCache = BlockTextureCache.getInstance();
       textureCache.setApp(this.app);
       textureCache.preloadMinimal([1, 2, 4, 8]);
+      console.log('[Game] init: step 8 - preloadMinimal done');
 
       this.loadingScreen.updateProgress(0.2);
 
+      console.log('[Game] init: step 9 - Promise.all start');
       await Promise.all([
         this.audioManager.init().catch((audioErr) => {
           console.warn('[Game] 音频初始化失败，游戏将以静音模式运行:', audioErr);
@@ -196,6 +206,7 @@ export class Game {
           console.warn('[Game] 关卡数据预加载失败:', levelErr);
         }),
       ]);
+      console.log('[Game] init: step 10 - Promise.all done');
 
       this.loadingScreen.updateProgress(0.4);
 
@@ -213,6 +224,7 @@ export class Game {
       );
       this.gameScene.init();
       this.gameSceneInitialized = true;
+      console.log('[Game] init: step 11 - GameScene created');
 
       this.gameHUD.layout(this.app.screen.width, this.app.screen.height);
 
@@ -224,6 +236,7 @@ export class Game {
       this.setupInput();
       this.gameScene.addPreviewToStage();
       this.gameScene.addHUDToStage();
+      console.log('[Game] init: step 12 - GameScene setup done');
 
       this.eventRouter = new GameEventRouter(
         this.gameScene,
@@ -263,7 +276,7 @@ export class Game {
       this.stateMachine.transition('menu');
       this.uiManager.showScreen('mainMenu');
 
-      console.log('[Game] 初始化完成');
+      console.log('[Game] init: COMPLETE - all steps done');
     } catch (err) {
       console.error('[Game] 初始化失败:', err);
       console.error('[Game] 错误详情:', JSON.stringify(err, null, 2));
