@@ -195,6 +195,7 @@ export class GameScene {
   }
 
   restartLevel(): void {
+    if (!this.currentLevelConfig) return;
     this.setupContainer();
     this.resetGame();
     this.propSystem.reset();
