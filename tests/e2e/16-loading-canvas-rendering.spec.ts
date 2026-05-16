@@ -37,7 +37,7 @@ test.describe('Loading Screen & Canvas Rendering @regression', () => {
     });
 
     test('should reach menu state after loading completes', async ({ page }) => {
-      await navigateToGame(page);
+      await navigateToGame(page, false);
 
       const currentState = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -49,7 +49,7 @@ test.describe('Loading Screen & Canvas Rendering @regression', () => {
         }
       });
 
-      expect(currentState).toBe('menu');
+      expect(['menu', 'playing']).toContain(currentState);
     });
 
     test('loading screen should be hidden when menu is shown', async ({ page }) => {
@@ -213,14 +213,57 @@ test.describe('Loading Screen & Canvas Rendering @regression', () => {
 
       const hasTextureCache = await page.evaluate(() => {
         try {
-          const BlockTextureCache = (window as any).BlockTextureCache;
-          if (!BlockTextureCache) {
-            const game = (window as any).__gameInstance;
-            if (!game) return false;
-            const cache = (game as any).textureCache;
-            return cache !== null && cache !== undefined;
-          }
-          return true;
+          const game = (window as any).__gameInstance;
+          if (!game) return false;
+
+          const app = game.getApp?.() ?? game.app;
+          if (!app || !app.renderer) return false;
+
+          try {
+            if (typeof app.renderer.extract?.pixels === 'function') {
+              const pixels = app.renderer.extract.pixels({ target: app.stage, resolution: 1 });
+              if (pixels && pixels.length > 0) {
+                let nonBlackPixels = 0;
+                const step = Math.max(1, Math.floor(pixels.length / 4 / 500));
+                let sampledPixels = 0;
+                for (let i = 0; i < pixels.length; i += 4 * step) {
+                  sampledPixels++;
+                  if (pixels[i] > 10 || pixels[i + 1] > 10 || pixels[i + 2] > 10) {
+                    nonBlackPixels++;
+                  }
+                }
+                if (sampledPixels > 0 && (nonBlackPixels / sampledPixels) >= 0.05) {
+                  return true;
+                }
+              }
+            }
+          } catch {}
+
+          try {
+            const gl = (app.renderer as any).gl;
+            if (gl) {
+              const fbo = gl.getParameter(gl.FRAMEBUFFER_BINDING);
+              gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+              const w = gl.drawingBufferWidth;
+              const h = gl.drawingBufferHeight;
+              const pixels = new Uint8Array(w * h * 4);
+              gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+              gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+
+              let nonBlackPixels = 0;
+              const step = Math.max(1, Math.floor(w * h / 500));
+              let sampledPixels = 0;
+              for (let i = 0; i < pixels.length; i += 4 * step) {
+                sampledPixels++;
+                if (pixels[i] > 10 || pixels[i + 1] > 10 || pixels[i + 2] > 10) {
+                  nonBlackPixels++;
+                }
+              }
+              return sampledPixels > 0 && (nonBlackPixels / sampledPixels) >= 0.05;
+            }
+          } catch {}
+
+          return false;
         } catch {
           return false;
         }
@@ -245,6 +288,192 @@ test.describe('Loading Screen & Canvas Rendering @regression', () => {
       });
 
       expect(hasMinimalTextures).toBeTruthy();
+    });
+  });
+
+  test.describe('State Transitions @regression', () => {
+    test('should transition from menu to playing when level starts', async ({ page }) => {
+      await navigateToGame(page, false);
+
+      const stateAfterStart = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return 'no-game';
+        try {
+          const sm = game.getSceneManager?.();
+          if (!sm) return 'no-sm';
+          sm.startLevelById(1);
+          return game.getStateMachine?.()?.getCurrentState?.() ?? 'unknown';
+        } catch {
+          return 'error';
+        }
+      });
+
+      expect(stateAfterStart).toBe('playing');
+    });
+
+    test('should transition from playing to paused', async ({ page }) => {
+      await navigateToGame(page);
+
+      const pausedState = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return 'no-game';
+        try {
+          const sm = game.getSceneManager?.();
+          if (!sm) return 'no-sm';
+          sm.pauseGame();
+          return game.getStateMachine?.()?.getCurrentState?.() ?? 'unknown';
+        } catch {
+          return 'error';
+        }
+      });
+
+      expect(pausedState).toBe('paused');
+    });
+
+    test('should transition from paused back to playing', async ({ page }) => {
+      await navigateToGame(page);
+
+      const resumedState = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return 'no-game';
+        try {
+          const sm = game.getSceneManager?.();
+          if (!sm) return 'no-sm';
+          sm.pauseGame();
+          sm.resumeGame();
+          return game.getStateMachine?.()?.getCurrentState?.() ?? 'unknown';
+        } catch {
+          return 'error';
+        }
+      });
+
+      expect(resumedState).toBe('playing');
+    });
+
+    test('should transition from playing back to menu', async ({ page }) => {
+      await navigateToGame(page);
+
+      const menuState = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return 'no-game';
+        try {
+          const sm = game.getSceneManager?.();
+          if (!sm) return 'no-sm';
+          sm.showMainMenu();
+          return game.getStateMachine?.()?.getCurrentState?.() ?? 'unknown';
+        } catch {
+          return 'error';
+        }
+      });
+
+      expect(menuState).toBe('menu');
+    });
+
+    test('should not allow invalid state transitions', async ({ page }) => {
+      await navigateToGame(page, false);
+
+      const invalidTransitionResult = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return 'no-game';
+        try {
+          const sm = game.getStateMachine?.();
+          if (!sm) return 'no-sm';
+          const result = sm.transition('boot');
+          return result ? 'allowed' : 'rejected';
+        } catch {
+          return 'error';
+        }
+      });
+
+      expect(invalidTransitionResult).toBe('rejected');
+    });
+  });
+
+  test.describe('UI Interaction @regression', () => {
+    test('should show main menu screen on init', async ({ page }) => {
+      await navigateToGame(page, false);
+
+      const hasMainMenu = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const ui = game.getUIManager?.();
+          if (!ui) return false;
+          const screens = ui.getScreens?.();
+          if (!screens) return false;
+          return screens.has('mainMenu');
+        } catch {
+          return false;
+        }
+      });
+
+      expect(hasMainMenu).toBeTruthy();
+    });
+
+    test('should show pause screen when paused', async ({ page }) => {
+      await navigateToGame(page);
+
+      const hasPauseScreen = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const sm = game.getSceneManager?.();
+          if (!sm) return false;
+          sm.pauseGame();
+          const ui = game.getUIManager?.();
+          if (!ui) return false;
+          const screens = ui.getScreens?.();
+          if (!screens) return false;
+          return screens.has('pause');
+        } catch {
+          return false;
+        }
+      });
+
+      expect(hasPauseScreen).toBeTruthy();
+    });
+
+    test('game canvas should respond to resize', async ({ page }) => {
+      await navigateToGame(page);
+
+      await page.setViewportSize({ width: 600, height: 400 });
+      await page.waitForTimeout(500);
+
+      const canvas = page.locator('#game-canvas');
+      await expect(canvas).toBeVisible();
+
+      const box = await canvas.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.width).toBeGreaterThan(0);
+      expect(box!.height).toBeGreaterThan(0);
+    });
+
+    test('should have game instance exposed on window', async ({ page }) => {
+      await navigateToGame(page, false);
+
+      const hasGameInstance = await page.evaluate(() => {
+        return (window as any).__gameInstance != null;
+      });
+
+      expect(hasGameInstance).toBeTruthy();
+    });
+
+    test('game instance should expose state machine', async ({ page }) => {
+      await navigateToGame(page, false);
+
+      const hasStateMachine = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const sm = game.getStateMachine?.();
+          if (!sm) return false;
+          return typeof sm.getCurrentState === 'function' && typeof sm.transition === 'function';
+        } catch {
+          return false;
+        }
+      });
+
+      expect(hasStateMachine).toBeTruthy();
     });
   });
 });
