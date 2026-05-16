@@ -1,5 +1,5 @@
 import { eventBus, GameEvents } from '../../utils/EventBus';
-import { Prop, PropConfig, PropType } from './Prop';
+import { Prop, PropConfig, PropType, PropTarget } from './Prop';
 import { BombProp } from './BombProp';
 import { RainbowProp } from './RainbowProp';
 import { FreezeProp } from './FreezeProp';
@@ -46,9 +46,9 @@ export class PropSystem {
     return PropSystem.instance;
   }
 
-  async loadConfig(configData: any[]): Promise<void> {
+  async loadConfig(configData: PropConfig[]): Promise<void> {
     for (const config of configData) {
-      this.propsConfig.set(config.type, config as PropConfig);
+      this.propsConfig.set(config.type, config);
     }
   }
 
@@ -84,7 +84,7 @@ export class PropSystem {
     }
   }
 
-  useProp(type: PropType, target?: any): boolean {
+  useProp(type: PropType, target?: PropTarget): boolean {
     if (this.isPaused) return false;
     
     const prop = this.props.get(type);

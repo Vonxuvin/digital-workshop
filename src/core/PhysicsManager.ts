@@ -27,7 +27,7 @@ export class PhysicsManager {
   private readonly fixedStep = 1000 / 60;
   private readonly maxVelocity = 20;
   private physicsConfig: PhysicsConfig;
-  private collisionCallbackMap: Map<(pair: Matter.Pair) => void, (event: any) => void> = new Map();
+  private collisionCallbackMap: Map<(pair: Matter.Pair) => void, (event: Matter.IEventCollision<Matter.Engine>) => void> = new Map();
 
   constructor() {
     this.physicsConfig = { ...DEFAULT_PHYSICS_CONFIG };
@@ -166,7 +166,7 @@ export class PhysicsManager {
   }
 
   onCollisionStart(callback: (pair: Matter.Pair) => void): void {
-    const wrapper = (event: any) => {
+    const wrapper = (event: Matter.IEventCollision<Matter.Engine>) => {
       event.pairs.forEach(callback);
     };
     this.collisionCallbackMap.set(callback, wrapper);

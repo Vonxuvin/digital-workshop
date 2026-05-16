@@ -1,8 +1,12 @@
 import { PropSystem } from '../gameplay/props/PropSystem';
-import { PropType } from '../gameplay/props/Prop';
+import { PropType, PropConfig } from '../gameplay/props/Prop';
 import propsData from '../data/props/props.json';
 
-const DEFAULT_PROPS = [
+interface PropsFileData {
+  props: PropConfig[];
+}
+
+const DEFAULT_PROPS: PropConfig[] = [
   { id: 'prop_bomb', type: PropType.BOMB, name: '炸弹', description: '销毁指定区域内所有方块', icon: 'bomb', maxCount: 3, cooldown: 1000, price: 50 },
   { id: 'prop_rainbow', type: PropType.RAINBOW, name: '彩虹方块', description: '可与任意数字合成', icon: 'rainbow', maxCount: 3, cooldown: 1000, price: 80 },
   { id: 'prop_freeze', type: PropType.FREEZE, name: '冻结', description: '暂停物理模拟5秒', icon: 'freeze', maxCount: 3, cooldown: 1000, price: 60 },
@@ -13,8 +17,8 @@ const DEFAULT_PROPS = [
 export class PropsConfigLoader {
   static async load(propSystem: PropSystem): Promise<void> {
     try {
-      if (propsData && (propsData as any).props) {
-        await propSystem.loadConfig((propsData as any).props);
+      if (propsData && (propsData as PropsFileData).props) {
+        await propSystem.loadConfig((propsData as PropsFileData).props);
         return;
       }
     } catch (e) {

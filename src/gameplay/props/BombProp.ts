@@ -1,4 +1,4 @@
-import { Prop, PropConfig } from './Prop';
+import { Prop, PropConfig, PropTarget } from './Prop';
 import { eventBus, GameEvents } from '../../utils/EventBus';
 import { Block } from '../Block';
 
@@ -12,7 +12,7 @@ export class BombProp extends Prop {
     super(config);
   }
 
-  use(target?: { x: number; y: number }): boolean {
+  use(target?: PropTarget): boolean {
     if (!this.canUse()) return false;
     
     if (!target) {

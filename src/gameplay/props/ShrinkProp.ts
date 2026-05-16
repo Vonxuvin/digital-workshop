@@ -1,4 +1,4 @@
-import { Prop, PropConfig } from './Prop';
+import { Prop, PropConfig, PropTarget } from './Prop';
 import { eventBus, GameEvents } from '../../utils/EventBus';
 import { AnimationManager } from '../../utils/AnimationManager';
 
@@ -15,7 +15,7 @@ export class ShrinkProp extends Prop {
     super(config);
   }
 
-  use(target?: any): boolean {
+  use(target?: PropTarget): boolean {
     if (!this.canUse()) return false;
 
     this.usedCount++;

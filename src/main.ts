@@ -1,6 +1,12 @@
 import 'pixi.js/browser';
 import { Game } from './core/Game';
 
+declare global {
+  interface Window {
+    __gameInstance?: Game;
+  }
+}
+
 async function init() {
   const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
   if (!canvas) {
@@ -8,7 +14,7 @@ async function init() {
     return;
   }
   const game = new Game(canvas);
-  (window as any).__gameInstance = game;
+  window.__gameInstance = game;
   await game.init();
 }
 

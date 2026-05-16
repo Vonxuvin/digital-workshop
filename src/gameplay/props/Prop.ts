@@ -17,6 +17,8 @@ export interface PropConfig {
   price: number;
 }
 
+export type PropTarget = { x: number; y: number } | undefined;
+
 export abstract class Prop {
   protected config: PropConfig;
   protected usedCount: number = 0;
@@ -26,7 +28,7 @@ export abstract class Prop {
     this.config = config;
   }
 
-  abstract use(target?: any): boolean;
+  abstract use(target?: PropTarget): boolean;
 
   canUse(): boolean {
     if (this._destroyed) return false;

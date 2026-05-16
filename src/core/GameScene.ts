@@ -11,6 +11,7 @@ import { GameHUD } from '../ui/hud/GameHUD';
 import { GameEffectManager } from './GameEffectManager';
 import { ModifierManager } from '../gameplay/modifiers/ModifierManager';
 import { PropSystem } from '../gameplay/props/PropSystem';
+import { PropType } from '../gameplay/props/Prop';
 import { PropEffectHandler } from './PropEffectHandler';
 import { PerformanceMonitor } from '../utils/PerformanceMonitor';
 import { ContainerRenderer } from './ContainerRenderer';
@@ -283,7 +284,7 @@ export class GameScene {
     this.propEffectHandler.handleLuckyDeactivate();
   }
 
-  handlePropTargetMode(data: { type?: any; enabled: boolean }): void {
+  handlePropTargetMode(data: { type?: PropType; enabled: boolean }): void {
     this.propEffectHandler.handlePropTargetMode(data);
   }
 

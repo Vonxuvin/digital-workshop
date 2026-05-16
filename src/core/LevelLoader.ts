@@ -1,7 +1,7 @@
 import { LevelConfig } from '../gameplay/LevelSystem';
 import { createPlatformAdapter } from '../platform/PlatformFactory';
 
-const levelModules = import.meta.glob('/src/data/levels/level_*.json') as Record<string, () => Promise<any>>;
+const levelModules = import.meta.glob('/src/data/levels/level_*.json') as Record<string, () => Promise<{ default?: LevelData } & LevelData>>;
 
 interface LevelDataObjective {
   type: string;

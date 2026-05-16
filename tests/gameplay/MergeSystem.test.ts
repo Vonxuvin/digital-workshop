@@ -264,8 +264,7 @@ describe('MergeSystem', () => {
     it('彩虹方块应与任意值方块合成', () => {
       const body1 = physics.createCircle(200, 300, 20, { density: 0.001 });
       body1.label = 'rainbow_1';
-      const rainbowBlock = new Block(body1, 2);
-      (rainbowBlock as any).isRainbow = true;
+      const rainbowBlock = new Block(body1, 2, true);
 
       const body2 = physics.createCircle(220, 300, 20, { density: 0.001 });
       body2.label = 'other_1';
@@ -282,13 +281,11 @@ describe('MergeSystem', () => {
     it('彩虹方块与彩虹方块可以合成', () => {
       const body1 = physics.createCircle(200, 300, 20, { density: 0.001 });
       body1.label = 'rainbow_a';
-      const rainbowBlock1 = new Block(body1, 2);
-      (rainbowBlock1 as any).isRainbow = true;
+      const rainbowBlock1 = new Block(body1, 2, true);
 
       const body2 = physics.createCircle(220, 300, 20, { density: 0.001 });
       body2.label = 'rainbow_b';
-      const rainbowBlock2 = new Block(body2, 4);
-      (rainbowBlock2 as any).isRainbow = true;
+      const rainbowBlock2 = new Block(body2, 4, true);
 
       mergeSystem.registerBlock(rainbowBlock1);
       mergeSystem.registerBlock(rainbowBlock2);
@@ -451,8 +448,7 @@ describe('MergeSystem', () => {
 
       const body2 = physics.createCircle(220, 300, 20, { density: 0.001 });
       body2.label = 'rainbow_rb2';
-      const rainbowBlock = new Block(body2, 2);
-      (rainbowBlock as any).isRainbow = true;
+      const rainbowBlock = new Block(body2, 2, true);
 
       mergeSystem.registerBlock(normalBlock);
       mergeSystem.registerBlock(rainbowBlock);

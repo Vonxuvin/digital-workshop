@@ -1,4 +1,4 @@
-import { Prop, PropConfig } from './Prop';
+import { Prop, PropConfig, PropTarget } from './Prop';
 import { eventBus, GameEvents } from '../../utils/EventBus';
 
 export class LuckyProp extends Prop {
@@ -12,7 +12,7 @@ export class LuckyProp extends Prop {
     super(config);
   }
 
-  use(target?: any): boolean {
+  use(target?: PropTarget): boolean {
     if (!this.canUse()) return false;
 
     this.usedCount++;

@@ -333,25 +333,25 @@ export class SaveManager {
     eventBus.emit(GameEvents.SAVE_RESET, this.data);
   }
 
-  private deepMerge<T extends Record<string, any>>(target: T, source: any): T {
+  private deepMerge<T extends object>(target: T, source: Record<string, unknown>): T {
     if (!source || typeof source !== 'object') return target;
-    const result = { ...target };
+    const result = { ...target } as Record<string, unknown>;
     for (const key of Object.keys(source)) {
       const sourceVal = source[key];
-      const targetVal = (result as any)[key];
+      const targetVal = result[key];
       if (
         targetVal && sourceVal &&
         typeof targetVal === 'object' && !Array.isArray(targetVal) &&
         typeof sourceVal === 'object' && !Array.isArray(sourceVal)
       ) {
-        (result as any)[key] = this.deepMerge(targetVal, sourceVal);
+        result[key] = this.deepMerge(targetVal as Record<string, unknown>, sourceVal as Record<string, unknown>);
       } else if (key in result) {
-        (result as any)[key] = sourceVal;
+        result[key] = sourceVal;
       } else {
-        (result as any)[key] = sourceVal;
+        result[key] = sourceVal;
       }
     }
-    return result;
+    return result as T;
   }
 
   exportSave(): string {

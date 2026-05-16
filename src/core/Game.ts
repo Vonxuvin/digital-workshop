@@ -147,9 +147,10 @@ export class Game {
 
       try {
         await this.app.init(initOptions);
-      } catch (initErr: any) {
-        if (initErr?.message?.includes('CanvasRenderer is not yet implemented') ||
-            initErr?.message?.includes('No available renderer')) {
+      } catch (initErr: unknown) {
+        const errMsg = initErr instanceof Error ? initErr.message : String(initErr);
+        if (errMsg.includes('CanvasRenderer is not yet implemented') ||
+            errMsg.includes('No available renderer')) {
           console.warn('[Game] WebGL/WebGPU 渲染器初始化失败，这是沙盒环境的已知限制');
           console.warn('[Game] 游戏将在降级模式下运行');
           if (this.stateMachine.getCurrentState() === 'boot') {
