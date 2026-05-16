@@ -7,7 +7,7 @@ test.describe('输入与交互 @smoke', () => {
       await navigateToGame(page);
 
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
 
       const before = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -41,7 +41,7 @@ test.describe('输入与交互 @smoke', () => {
       await navigateToGame(page);
 
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
 
       await clickCanvasAt(page, 0.25, 0.3);
       await waitForStable(page, 500);
@@ -67,7 +67,7 @@ test.describe('输入与交互 @smoke', () => {
       await navigateToGame(page);
 
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
 
       for (let i = 0; i < 5; i++) {
         await clickCanvasCenter(page);
@@ -136,7 +136,7 @@ test.describe('输入与交互 @smoke', () => {
       await navigateToGame(page);
 
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
 
       await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -167,7 +167,7 @@ test.describe('输入与交互 @smoke', () => {
       await navigateToGame(page);
 
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
 
       await dropBlocks(page, 3);
       await waitForStable(page);
@@ -202,7 +202,7 @@ test.describe('输入与交互 @smoke', () => {
       await navigateToGame(page);
 
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
 
       await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -246,7 +246,7 @@ test.describe('输入与交互 @smoke', () => {
       await navigateToGame(page);
 
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
 
       await page.keyboard.press('Escape');
       await page.waitForTimeout(500);
@@ -269,7 +269,7 @@ test.describe('输入与交互 @smoke', () => {
       await navigateToGame(page);
 
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
 
       await page.keyboard.press('ArrowLeft');
       await page.waitForTimeout(200);
@@ -288,7 +288,7 @@ test.describe('输入与交互 @smoke', () => {
       await navigateToGame(page);
 
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
 
       const before = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -324,7 +324,7 @@ test.describe('输入与交互 @smoke', () => {
       await navigateToGame(page);
 
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
 
       const canvas = page.locator('#game-canvas');
       const box = await canvas.boundingBox();
@@ -382,7 +382,7 @@ test.describe('输入与交互 @smoke', () => {
       await navigateToGame(page);
 
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
 
       const before = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -422,7 +422,7 @@ test.describe('输入与交互 @smoke', () => {
       await navigateToGame(page);
 
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
 
       await clickCanvasCenter(page);
       await page.waitForTimeout(100);

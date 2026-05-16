@@ -191,7 +191,7 @@ test.describe('音效与特效 @regression', () => {
     test('方块合并应触发粒子效果', async ({ page }) => {
       await navigateToGame(page);
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
       await dropBlocks(page, 10, 500);
       await waitForStable(page, 3000);
 
@@ -214,7 +214,7 @@ test.describe('音效与特效 @regression', () => {
     test('连击应触发特效', async ({ page }) => {
       await navigateToGame(page);
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
       await dropBlocks(page, 10, 400);
       await waitForStable(page, 3000);
 
@@ -238,7 +238,7 @@ test.describe('音效与特效 @regression', () => {
     test('频繁触发音效不应导致性能下降', async ({ page }) => {
       await navigateToGame(page);
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
       await dropBlocks(page, 15, 300);
       await waitForStable(page, 3000);
 

@@ -180,7 +180,7 @@ test.describe('视觉布局 @regression', () => {
     test('方块应在容器范围内', async ({ page }) => {
       await navigateToGame(page);
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
       await dropBlocks(page, 5);
       await waitForStable(page);
 
@@ -204,7 +204,7 @@ test.describe('视觉布局 @regression', () => {
     test('方块大小应一致', async ({ page }) => {
       await navigateToGame(page);
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
       await dropBlocks(page, 5);
       await waitForStable(page);
 
@@ -227,7 +227,7 @@ test.describe('视觉布局 @regression', () => {
     test('方块间距应均匀', async ({ page }) => {
       await navigateToGame(page);
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
       await dropBlocks(page, 5);
       await waitForStable(page);
 

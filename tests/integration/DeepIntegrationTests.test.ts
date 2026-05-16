@@ -856,7 +856,7 @@ describe('Deep Integration Tests', () => {
         sm.transition('playing');
         sm.transition('gameover');
         expect(sm.canTransition('menu')).toBe(true);
-        expect(sm.canTransition('playing')).toBe(false);
+        expect(sm.canTransition('playing')).toBe(true);
         expect(sm.canTransition('paused')).toBe(false);
         expect(sm.canTransition('gameover')).toBe(false);
         expect(sm.canTransition('levelComplete')).toBe(false);

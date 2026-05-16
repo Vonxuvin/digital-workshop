@@ -231,9 +231,7 @@ test.describe('UI界面 @regression', () => {
       await navigateToGame(page);
 
       const playing = await isGamePlaying(page);
-      if (!playing) {
-        return;
-      }
+      expect(playing).toBe(true);
 
       await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -342,9 +340,7 @@ test.describe('UI界面 @regression', () => {
       await navigateToGame(page);
 
       const playing = await isGamePlaying(page);
-      if (!playing) {
-        return;
-      }
+      expect(playing).toBe(true);
 
       await page.evaluate(() => {
         const game = (window as any).__gameInstance;

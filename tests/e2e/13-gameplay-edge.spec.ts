@@ -7,7 +7,7 @@ test.describe('玩法边界 @full', () => {
       await navigateToGame(page);
 
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
 
       for (let i = 0; i < 20; i++) {
         await clickCanvasCenter(page);
@@ -28,7 +28,7 @@ test.describe('玩法边界 @full', () => {
       await navigateToGame(page);
 
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
 
       await clickCanvasCenter(page);
       await page.waitForTimeout(100);
@@ -71,7 +71,7 @@ test.describe('玩法边界 @full', () => {
       await navigateToGame(page);
 
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
 
       await dropBlocks(page, 20, 300);
       await waitForStable(page, 5000);
@@ -94,7 +94,7 @@ test.describe('玩法边界 @full', () => {
       await navigateToGame(page);
 
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
 
       await dropBlocks(page, 5);
       await waitForStable(page);
@@ -156,7 +156,7 @@ test.describe('玩法边界 @full', () => {
       await navigateToGame(page);
 
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
 
       const score = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -215,7 +215,7 @@ test.describe('玩法边界 @full', () => {
       await navigateToGame(page);
 
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
 
       for (let i = 0; i < 3; i++) {
         await page.evaluate(() => {
@@ -241,7 +241,7 @@ test.describe('玩法边界 @full', () => {
       await navigateToGame(page);
 
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
 
       await dropBlocks(page, 5);
       await waitForStable(page);
@@ -275,7 +275,7 @@ test.describe('玩法边界 @full', () => {
       await navigateToGame(page);
 
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
 
       await dropBlocks(page, 5);
       await waitForStable(page);

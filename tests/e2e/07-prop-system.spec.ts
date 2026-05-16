@@ -117,7 +117,7 @@ test.describe('道具系统 @regression', () => {
     test('道具使用后数量应减少', async ({ page }) => {
       await navigateToGame(page);
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
 
       const propSystem = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -161,7 +161,7 @@ test.describe('道具系统 @regression', () => {
     test('炸弹道具应清除方块', async ({ page }) => {
       await navigateToGame(page);
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
       await dropBlocks(page, 5);
       await waitForStable(page);
 
@@ -224,7 +224,7 @@ test.describe('道具系统 @regression', () => {
     test('使用道具后物理应继续运行', async ({ page }) => {
       await navigateToGame(page);
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
       await dropBlocks(page, 5);
       await waitForStable(page);
 
@@ -246,7 +246,7 @@ test.describe('道具系统 @regression', () => {
     test('道具效果不应破坏物理稳定性', async ({ page }) => {
       await navigateToGame(page);
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
       await dropBlocks(page, 10, 400);
       await waitForStable(page, 2000);
 
@@ -269,7 +269,7 @@ test.describe('道具系统 @regression', () => {
     test('道具效果应正确计分', async ({ page }) => {
       await navigateToGame(page);
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
       await dropBlocks(page, 5);
       await waitForStable(page);
 
@@ -291,7 +291,7 @@ test.describe('道具系统 @regression', () => {
     test('幸运倍率道具应正确应用', async ({ page }) => {
       await navigateToGame(page);
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
 
       const hasLuckyMultiplier = await page.evaluate(() => {
         const game = (window as any).__gameInstance;

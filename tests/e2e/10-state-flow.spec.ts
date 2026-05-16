@@ -89,7 +89,7 @@ test.describe('状态流转 @smoke', () => {
     test('playing → paused转换应成功', async ({ page }) => {
       await navigateToGame(page);
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
 
       await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -119,7 +119,7 @@ test.describe('状态流转 @smoke', () => {
     test('paused → playing转换应成功', async ({ page }) => {
       await navigateToGame(page);
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
 
       await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -246,7 +246,7 @@ test.describe('状态流转 @smoke', () => {
     test('重复暂停不应导致错误', async ({ page }) => {
       await navigateToGame(page);
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
 
       let noError = true;
       try {
@@ -269,7 +269,7 @@ test.describe('状态流转 @smoke', () => {
     test('重复恢复不应导致错误', async ({ page }) => {
       await navigateToGame(page);
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
 
       let noError = true;
       try {
@@ -311,7 +311,7 @@ test.describe('状态流转 @smoke', () => {
     test('应能重新开始游戏', async ({ page }) => {
       await navigateToGame(page);
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
       await dropBlocks(page, 5);
       await waitForStable(page);
 

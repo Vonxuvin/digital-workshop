@@ -152,11 +152,11 @@ describe('GameStateMachine', () => {
       expect(sm.canTransition('gameover')).toBe(false);
     });
 
-    it('gameover can only transition to menu', () => {
+    it('gameover can transition to menu and playing', () => {
       sm.transition('playing');
       sm.transition('gameover');
       expect(sm.canTransition('menu')).toBe(true);
-      expect(sm.canTransition('playing')).toBe(false);
+      expect(sm.canTransition('playing')).toBe(true);
       expect(sm.canTransition('paused')).toBe(false);
     });
 

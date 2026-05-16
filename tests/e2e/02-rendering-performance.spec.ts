@@ -105,7 +105,7 @@ test.describe('渲染与性能 @regression', () => {
     test('方块应正确渲染', async ({ page }) => {
       await navigateToGame(page);
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
       await dropBlocks(page, 3);
       await waitForStable(page);
 
@@ -128,7 +128,7 @@ test.describe('渲染与性能 @regression', () => {
     test('方块应显示数字文本', async ({ page }) => {
       await navigateToGame(page);
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
       await dropBlocks(page, 3);
       await waitForStable(page);
 
@@ -190,7 +190,7 @@ test.describe('渲染与性能 @regression', () => {
     test('大量方块时FPS不应严重下降', async ({ page }) => {
       await navigateToGame(page);
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
       await dropBlocks(page, 15, 400);
       await waitForStable(page, 3000);
 
@@ -213,7 +213,7 @@ test.describe('渲染与性能 @regression', () => {
     test('场景切换后旧资源应被释放', async ({ page }) => {
       await navigateToGame(page);
       const playing = await isGamePlaying(page);
-      if (!playing) return;
+      expect(playing).toBe(true);
       await dropBlocks(page, 5);
       await waitForStable(page);
 
