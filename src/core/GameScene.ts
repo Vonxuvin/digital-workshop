@@ -431,7 +431,15 @@ export class GameScene {
     const warningLine = this.containerRenderer.getWarningLine();
     if (!warningLine) return false;
     const blocks = this.blockSpawner.getBlocks();
-    return blocks.some(b => b.y <= (warningLine?.y ?? Infinity));
+    return blocks.some(b => {
+      if (b.y <= (warningLine?.y ?? Infinity)) {
+        const body = b.body;
+        if (body && Math.abs(body.velocity.y) < 1) {
+          return true;
+        }
+      }
+      return false;
+    });
   }
 
   checkGameOver(): boolean {
