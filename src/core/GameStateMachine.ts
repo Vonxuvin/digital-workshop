@@ -10,18 +10,20 @@ const VALID_TRANSITIONS: Record<GameState, GameState[]> = {
   'menu': ['playing'],
   'playing': ['paused', 'gameover', 'levelComplete', 'menu'],
   'paused': ['playing', 'menu'],
-  'gameover': ['menu'],
+  'gameover': ['menu', 'playing'],
   'levelComplete': ['menu', 'playing'],
 };
 
 export class GameStateMachine {
   private currentState: GameState;
+  private readonly initialState: GameState;
   private stateHistory: GameState[] = [];
   private listeners: Map<GameState, StateCallback[]> = new Map();
   private globalListeners: StateCallback[] = [];
 
   constructor(initialState: GameState = 'menu') {
     this.currentState = initialState;
+    this.initialState = initialState;
   }
 
   onEnter(state: GameState, callback: StateCallback): void {
@@ -97,16 +99,18 @@ export class GameStateMachine {
     return VALID_TRANSITIONS[this.currentState]?.includes(to) || false;
   }
 
+  /** @deprecated 使用 transition() 代替 */
   transitionTo(to: GameState): boolean {
     return this.transition(to);
   }
 
+  /** @deprecated 使用 canTransition() 代替 */
   canTransitionTo(to: GameState): boolean {
     return this.canTransition(to);
   }
 
   reset(): void {
-    this.currentState = 'menu';
+    this.currentState = this.initialState;
     this.stateHistory = [];
   }
 }
