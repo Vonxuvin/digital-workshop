@@ -372,10 +372,15 @@ test.describe('玩法边界 @full', () => {
     test('ShrinkModifier 应支持 containerOffsetX', async ({ page }) => {
       await navigateToGame(page);
 
-      const hasShrinkModifier = await page.evaluate(() => {
+      const hasShrinkModifier = await page.evaluate(async () => {
         const game = (window as any).__gameInstance;
         if (!game) return false;
         try {
+          const sm = game.getSceneManager?.();
+          if (sm && typeof sm.startLevelById === 'function') {
+            sm.startLevelById(8);
+            await new Promise(r => setTimeout(r, 2000));
+          }
           const scene = game.getGameScene?.();
           if (!scene) return false;
           const modifier = scene.getShrinkModifier?.();
@@ -391,10 +396,15 @@ test.describe('玩法边界 @full', () => {
     test('ShrinkModifier 应支持 activate/deactivate', async ({ page }) => {
       await navigateToGame(page);
 
-      const canToggle = await page.evaluate(() => {
+      const canToggle = await page.evaluate(async () => {
         const game = (window as any).__gameInstance;
         if (!game) return false;
         try {
+          const sm = game.getSceneManager?.();
+          if (sm && typeof sm.startLevelById === 'function') {
+            sm.startLevelById(8);
+            await new Promise(r => setTimeout(r, 2000));
+          }
           const scene = game.getGameScene?.();
           if (!scene) return false;
           const modifier = scene.getShrinkModifier?.();
@@ -412,10 +422,15 @@ test.describe('玩法边界 @full', () => {
     test('ShrinkModifier getType 应返回 shrink', async ({ page }) => {
       await navigateToGame(page);
 
-      const typeCorrect = await page.evaluate(() => {
+      const typeCorrect = await page.evaluate(async () => {
         const game = (window as any).__gameInstance;
         if (!game) return false;
         try {
+          const sm = game.getSceneManager?.();
+          if (sm && typeof sm.startLevelById === 'function') {
+            sm.startLevelById(8);
+            await new Promise(r => setTimeout(r, 2000));
+          }
           const scene = game.getGameScene?.();
           if (!scene) return false;
           const modifier = scene.getShrinkModifier?.();

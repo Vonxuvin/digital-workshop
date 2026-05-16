@@ -22,8 +22,6 @@ test.describe('状态流转 @smoke', () => {
 
     test('初始状态应为menu', async ({ page }) => {
       await navigateToGame(page, false);
-      const playing = await isGamePlaying(page);
-      if (!playing) return;
 
       const currentState = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -36,7 +34,7 @@ test.describe('状态流转 @smoke', () => {
         }
       });
 
-      expect(currentState).toBe('playing');
+      expect(currentState).toBe('menu');
     });
 
     test('状态机应支持状态查询', async ({ page }) => {
@@ -62,8 +60,6 @@ test.describe('状态流转 @smoke', () => {
   test.describe('状态转换 @smoke', () => {
     test('menu → playing转换应成功', async ({ page }) => {
       await navigateToGame(page, false);
-      const playing = await isGamePlaying(page);
-      if (!playing) return;
 
       await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -87,7 +83,7 @@ test.describe('状态流转 @smoke', () => {
         }
       });
 
-      expect(currentState).toBeTruthy();
+      expect(currentState).toBe('playing');
     });
 
     test('playing → paused转换应成功', async ({ page }) => {
