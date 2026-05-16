@@ -319,6 +319,14 @@ export class TutorialManager {
     return this.active;
   }
 
+  getSteps(): TutorialStep[] {
+    return this.steps;
+  }
+
+  getCurrentStepIndex(): number {
+    return this.currentStepIndex;
+  }
+
   resize(screenWidth: number, screenHeight: number): void {
     this.screenWidth = screenWidth;
     this.screenHeight = screenHeight;

@@ -1,17 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ComboDisplay } from '../../src/ui/components/ComboDisplay';
+import { AnimationManager } from '../../src/utils/AnimationManager';
 
 describe('ComboDisplay', () => {
   let comboDisplay: ComboDisplay;
 
   beforeEach(() => {
-    vi.useFakeTimers();
+    AnimationManager.resetInstance();
     comboDisplay = new ComboDisplay();
   });
 
   afterEach(() => {
     comboDisplay.destroy();
-    vi.useRealTimers();
+    AnimationManager.resetInstance();
   });
 
   it('should create without error', () => {
@@ -51,5 +52,38 @@ describe('ComboDisplay', () => {
     expect(comboDisplay.getCurrentCombo()).toBe(7);
     comboDisplay.showCombo(1);
     expect(comboDisplay.getCurrentCombo()).toBe(0);
+  });
+
+  it('should use AnimationManager setTimeout for display timer (FIX-8)', () => {
+    const animManager = AnimationManager.getInstance();
+    const setTimeoutSpy = vi.spyOn(animManager, 'setTimeout');
+    comboDisplay.showCombo(3);
+    expect(setTimeoutSpy).toHaveBeenCalled();
+    setTimeoutSpy.mockRestore();
+  });
+
+  it('should clear display timer via AnimationManager on hide (FIX-8)', () => {
+    const animManager = AnimationManager.getInstance();
+    const clearTimeoutSpy = vi.spyOn(animManager, 'clearTimeout');
+    comboDisplay.showCombo(3);
+    comboDisplay.hide();
+    expect(clearTimeoutSpy).toHaveBeenCalled();
+    clearTimeoutSpy.mockRestore();
+  });
+
+  it('should clear display timer via AnimationManager on destroy (FIX-8)', () => {
+    const animManager = AnimationManager.getInstance();
+    const clearTimeoutSpy = vi.spyOn(animManager, 'clearTimeout');
+    comboDisplay.showCombo(3);
+    comboDisplay.destroy();
+    expect(clearTimeoutSpy).toHaveBeenCalled();
+    clearTimeoutSpy.mockRestore();
+  });
+
+  it('should fade out after display duration via AnimationManager', () => {
+    const animManager = AnimationManager.getInstance();
+    comboDisplay.showCombo(3);
+    expect(comboDisplay.visible).toBe(true);
+    animManager.update(2500);
   });
 });

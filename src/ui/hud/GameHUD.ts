@@ -30,6 +30,7 @@ export class GameHUD extends Container {
   private propTargetMode = false;
   private screenWidth = 0;
   private screenHeight = 0;
+  private _currentButtonSize = 60;
 
   get scoreText(): Text { return this._scoreText; }
   get levelText(): Text { return this._levelText; }
@@ -38,6 +39,9 @@ export class GameHUD extends Container {
   get objectiveBar(): UIProgressBar { return this._objectiveBar; }
   get comboDisplay(): ComboDisplay | null { return this._comboDisplay; }
   get propButtons(): Map<PropType, PropButton> { return this._propButtons; }
+  get propsContainerX(): number { return this._propsContainer?.x ?? 0; }
+  get propsBarWidth(): number { return this._propsContainer?.width ?? 0; }
+  get currentButtonSize(): number { return this._currentButtonSize; }
 
   getObjectiveBar(): UIProgressBar { return this._objectiveBar; }
 
@@ -408,6 +412,7 @@ export class GameHUD extends Container {
     }
 
     const propsBarWidth = 3 * buttonSize + 2 * buttonGap;
+    this._currentButtonSize = buttonSize;
     this._propsContainer.x = screenWidth - propsBarWidth - 10;
     this._propsContainer.y = 15;
 

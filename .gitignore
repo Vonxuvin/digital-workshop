@@ -42,3 +42,6 @@ project.private.config.json
 # Playwright
 test-results/
 playwright-report/
+
+# Coverage
+coverage/

@@ -146,6 +146,8 @@ export class PropButton extends PIXI.Container {
     this.countLabel.text = `x${count}`;
     if (count <= 0) {
       this.setDisabled();
+    } else {
+      this.setEnabled();
     }
   }
 
