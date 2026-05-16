@@ -26,7 +26,7 @@ export class PropEffectHandler {
   private bombTargetMode = false;
   private shrinkActive = false;
   private shrinkFactor = 1;
-  private originalBodyData: Map<string, { position: Matter.Vector; scale: number; circleRadius: number | undefined }> = new Map();
+  private originalBodyData: Map<string, { originalCircleRadius: number | undefined; currentScale: number }> = new Map();
 
   constructor(
     blockSpawner: BlockSpawner,
@@ -102,9 +102,8 @@ export class PropEffectHandler {
     for (const block of blocks) {
       if (block.isDestroyed || !block.body) continue;
       this.originalBodyData.set(block.body.label, {
-        position: { x: block.body.position.x, y: block.body.position.y },
-        scale: data.factor,
-        circleRadius: block.body.circleRadius,
+        originalCircleRadius: block.body.circleRadius,
+        currentScale: data.factor,
       });
       block.scale.set(data.factor);
       Matter.Body.scale(block.body, data.factor, data.factor);
@@ -122,10 +121,10 @@ export class PropEffectHandler {
       if (block.isDestroyed || !block.body) continue;
       const original = this.originalBodyData.get(block.body.label);
       if (original) {
-        const inverseScale = 1 / original.scale;
+        const inverseScale = 1 / original.currentScale;
         Matter.Body.scale(block.body, inverseScale, inverseScale);
-        if (original.circleRadius !== undefined && block.body.circleRadius !== undefined) {
-          block.body.circleRadius = original.circleRadius;
+        if (original.originalCircleRadius !== undefined) {
+          block.body.circleRadius = original.originalCircleRadius;
         }
       } else {
         const inverseScale = 1 / this.shrinkFactor;
@@ -217,9 +216,8 @@ export class PropEffectHandler {
     if (!this.shrinkActive || block.isDestroyed || !block.body) return;
     const factor = this.shrinkFactor;
     this.originalBodyData.set(block.body.label, {
-      position: { x: block.body.position.x, y: block.body.position.y },
-      scale: factor,
-      circleRadius: block.body.circleRadius,
+      originalCircleRadius: block.body.circleRadius,
+      currentScale: factor,
     });
     block.scale.set(factor);
     Matter.Body.scale(block.body, factor, factor);
