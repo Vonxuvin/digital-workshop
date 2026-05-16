@@ -45,6 +45,7 @@ export class ScoreSystem {
   }
 
   addMergeScore(value: number, isCombo: boolean = false): void {
+    if (value <= 0) return;
     const configEntry = SCORE_CONFIGS[value];
     let baseScore: number;
     let chainMultiplierFromTable: number;

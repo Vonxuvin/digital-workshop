@@ -6,6 +6,7 @@ export class ScoreObjectiveChecker extends ObjectiveChecker {
   }
 
   getProgress(context: ObjectiveContext): number {
+    if (context.targetValue <= 0) return 1;
     return Math.min(context.currentScore / context.targetValue, 1);
   }
 }
