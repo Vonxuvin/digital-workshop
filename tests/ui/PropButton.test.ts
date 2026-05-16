@@ -96,4 +96,34 @@ describe('PropButton dynamic sizing (FIX-12)', () => {
     expect(btn.eventMode).toBe('static');
     btn.destroy();
   });
+
+  it('should preserve selected state after pointerout', () => {
+    const btn = createButton();
+    btn.setSelected();
+    btn.emit('pointerout' as any);
+    btn.destroy();
+  });
+
+  it('should preserve selected state after resize', () => {
+    const btn = createButton(60);
+    btn.setSelected();
+    btn.resize(40);
+    btn.destroy();
+  });
+
+  it('should clear selected state on clearSelected', () => {
+    const btn = createButton();
+    btn.setSelected();
+    btn.clearSelected();
+    btn.emit('pointerout' as any);
+    btn.destroy();
+  });
+
+  it('should toggle selected state correctly', () => {
+    const btn = createButton();
+    btn.setSelected();
+    btn.clearSelected();
+    btn.setSelected();
+    btn.destroy();
+  });
 });

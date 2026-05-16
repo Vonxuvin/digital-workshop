@@ -86,4 +86,25 @@ describe('ComboDisplay', () => {
     expect(comboDisplay.visible).toBe(true);
     animManager.update(2500);
   });
+
+  it('should kill fadeTween before new showCombo', () => {
+    comboDisplay.showCombo(3);
+    expect(comboDisplay.visible).toBe(true);
+    comboDisplay.showCombo(5);
+    expect(comboDisplay.visible).toBe(true);
+    expect(comboDisplay.getCurrentCombo()).toBe(5);
+  });
+
+  it('should handle rapid showCombo calls without error', () => {
+    for (let i = 2; i <= 10; i++) {
+      comboDisplay.showCombo(i);
+    }
+    expect(comboDisplay.visible).toBe(true);
+  });
+
+  it('should handle show then rapid hide', () => {
+    comboDisplay.showCombo(5);
+    comboDisplay.hide();
+    expect(comboDisplay.visible).toBe(false);
+  });
 });

@@ -117,6 +117,33 @@ describe('MainMenuScreen', () => {
     screen.hide();
   });
 
+  it('should reinitialize on dimension change', () => {
+    screen.show(800, 600);
+    expect((screen as any).initialized).toBe(true);
+    screen.show(1024, 768);
+    expect((screen as any).currentScreenWidth).toBe(1024);
+    expect((screen as any).currentScreenHeight).toBe(768);
+  });
+
+  it('should use nullish coalescing for zero values', () => {
+    screen.show(0, 0);
+    expect((screen as any).currentScreenWidth).toBe(0);
+    expect((screen as any).currentScreenHeight).toBe(0);
+  });
+
+  it('should have correct button count after reinitialize', () => {
+    screen.show(800, 600);
+    const buttons = (screen as any).allButtons;
+    expect(buttons.length).toBe(3);
+  });
+
+  it('should handle multiple show with same dimensions', () => {
+    screen.show(800, 600);
+    screen.hide();
+    screen.show(800, 600);
+    expect((screen as any).initialized).toBe(true);
+  });
+
   it('should update sound icon on toggle', () => {
     screen.show();
     const soundToggleButton = (screen as any).soundToggleButton;

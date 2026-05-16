@@ -99,4 +99,18 @@ describe('ResultScreen', () => {
     screen.setResult({ isWin: true, score: 1000, stars: 3, levelId: 1 });
     expect(() => screen.destroy()).not.toThrow();
   });
+
+  it('should position nextButton at x=400 for win result', () => {
+    screen.setCallbacks(() => {}, () => {}, () => {}, () => {});
+    screen.setResult({ isWin: true, score: 1000, stars: 3, levelId: 1 });
+    expect(screen.nextButton).not.toBeNull();
+    expect(screen.nextButton!.x).toBe(400);
+  });
+
+  it('should handle repeated setResult calls', () => {
+    screen.setCallbacks(() => {}, () => {}, () => {}, () => {});
+    screen.setResult({ isWin: true, score: 500, stars: 2, levelId: 1 });
+    screen.setResult({ isWin: false, score: 100, stars: 0, levelId: 1 });
+    expect(() => screen.destroy()).not.toThrow();
+  });
 });

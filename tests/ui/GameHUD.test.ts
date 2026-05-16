@@ -147,6 +147,26 @@ describe('GameHUD', () => {
     }
   });
 
+  it('should destroy all prop buttons on destroy', () => {
+    const buttons = hud.propButtons;
+    expect(buttons.size).toBeGreaterThan(0);
+    const destroyed = vi.fn();
+    buttons.forEach((btn) => {
+      vi.spyOn(btn, 'destroy').mockImplementation(destroyed);
+    });
+    hud.destroy();
+    expect(destroyed).toHaveBeenCalled();
+  });
+
+  it('should layout correctly on different screen sizes', () => {
+    hud.layout(1024, 768);
+    expect((hud as any).screenWidth).toBe(1024);
+    expect((hud as any).screenHeight).toBe(768);
+    hud.layout(375, 667);
+    expect((hud as any).screenWidth).toBe(375);
+    expect((hud as any).screenHeight).toBe(667);
+  });
+
   it('should show combo display when chainCount > 1', () => {
     hud.layout(800, 600);
     const comboDisplay = hud.comboDisplay;
