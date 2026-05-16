@@ -456,12 +456,6 @@ export class LevelLoader {
         const config = await this.loadLevel(id);
         if (!config) break;
       }
-      return;
-    }
-
-    let id = 1;
-    while (this.levelConfigs.has(id)) {
-      id++;
     }
   }
 
