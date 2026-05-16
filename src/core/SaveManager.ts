@@ -142,7 +142,7 @@ export class SaveManager {
   }
 
   getData(): PlayerData {
-    return { ...this.data };
+    return JSON.parse(JSON.stringify(this.data));
   }
 
   getLevelProgress(levelId: number): LevelProgress {
