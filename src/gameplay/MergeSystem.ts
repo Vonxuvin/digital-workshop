@@ -69,23 +69,36 @@ export class MergeSystem {
       const [labelA, blockA] = blockEntries[i];
       if (blockA.isDestroyed || this.mergingBodies.has(labelA)) continue;
 
-      for (let j = i + 1; j < blockEntries.length; j++) {
-        const [labelB, blockB] = blockEntries[j];
-        if (blockB.isDestroyed || this.mergingBodies.has(labelB)) continue;
+      const radiusA = blockA.body.circleRadius || 20;
+      const searchRadius = radiusA * 4;
+      const posA = blockA.body.position;
+
+      const nearbyBodies = this.physics.getBodiesInArea(
+        posA.x - searchRadius,
+        posA.y - searchRadius,
+        posA.x + searchRadius,
+        posA.y + searchRadius,
+      );
+
+      for (const otherBody of nearbyBodies) {
+        if (otherBody === blockA.body || otherBody.isStatic) continue;
+        const blockB = this.blocks.get(otherBody.label);
+        if (!blockB || blockB.isDestroyed) continue;
+        if (this.mergingBodies.has(otherBody.label)) continue;
         if (blockA.value !== blockB.value) continue;
 
-        const pairKey = this.getPairKey(labelA, labelB);
+        const pairKey = this.getPairKey(labelA, otherBody.label);
         if (checkedPairs.has(pairKey)) continue;
         checkedPairs.add(pairKey);
 
         const dist = Matter.Vector.magnitude(
-          Matter.Vector.sub(blockA.body.position, blockB.body.position)
+          Matter.Vector.sub(posA, otherBody.position)
         );
-        const touchDist = (blockA.body.circleRadius || 20) + (blockB.body.circleRadius || 20) + 2;
+        const touchDist = radiusA + (otherBody.circleRadius || 20) + 2;
 
         if (dist <= touchDist) {
           this.mergingBodies.add(labelA);
-          this.mergingBodies.add(labelB);
+          this.mergingBodies.add(otherBody.label);
           this.mergeBlocks(blockA, blockB);
           break;
         }
