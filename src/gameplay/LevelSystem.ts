@@ -162,12 +162,14 @@ export class LevelSystem {
     eventBus.emit(GameEvents.LEVEL_COMPLETED, eventData);
   }
 
+  private timerStopped = false;
+
   stopTimer(): void {
-    this.isPaused = true;
+    this.timerStopped = true;
   }
 
   update(deltaMS: number): void {
-    if (this.isPaused || this.isCompleted) return;
+    if (this.isPaused || this.isCompleted || this.timerStopped) return;
 
     if (this.config.objective.timeLimit !== undefined && this.config.objective.timeLimit !== null) {
       this.timerElapsed += deltaMS;
@@ -246,6 +248,7 @@ export class LevelSystem {
     this.timerElapsed = 0;
     this.isCompleted = false;
     this.isPaused = false;
+    this.timerStopped = false;
     this.highestMergeValue = 0;
   }
 
