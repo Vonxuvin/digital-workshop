@@ -5,12 +5,12 @@ type StateCallback = (from: GameState, to: GameState) => void;
 const MAX_HISTORY_SIZE = 100;
 
 const VALID_TRANSITIONS: Record<GameState, GameState[]> = {
-  'boot': ['loading'],
+  'boot': ['loading', 'menu'],
   'loading': ['menu'],
   'menu': ['playing'],
   'playing': ['paused', 'gameover', 'levelComplete', 'menu'],
   'paused': ['playing', 'menu'],
-  'gameover': ['menu', 'playing'],
+  'gameover': ['menu', 'playing', 'loading'],
   'levelComplete': ['menu', 'playing'],
 };
 
