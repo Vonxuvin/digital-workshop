@@ -161,11 +161,19 @@ export class SaveManager {
   }
 
   setLevelProgress(levelId: number, progress: Partial<LevelProgress>): void {
-    const current = this.data.levelProgress[levelId];
-    if (current) {
-      Object.assign(current, progress);
-      this.markDirty();
+    if (!this.data.levelProgress[levelId]) {
+      this.data.levelProgress[levelId] = {
+        levelId,
+        unlocked: false,
+        stars: 0,
+        highScore: 0,
+        bestTime: 0,
+        attempts: 0,
+        completed: false,
+      };
     }
+    Object.assign(this.data.levelProgress[levelId], progress);
+    this.markDirty();
   }
 
   unlockLevel(levelId: number): void {

@@ -76,7 +76,6 @@ export class ScoreSystem {
       baseScore,
       chainMultiplier,
     });
-    console.log(`[ScoreSystem] score:updated`, { totalScore: this.score, earnedScore: finalScore, chainCount: this.chainCount });
   }
 
   update(deltaMS: number): void {
@@ -101,14 +100,17 @@ export class ScoreSystem {
     return this.score;
   }
 
+  /** @deprecated 使用 getScore() 代替 */
   getCurrentScore(): number {
     return this.score;
   }
 
+  /** @deprecated 使用 getScore() 代替 */
   getTotalScore(): number {
     return this.score;
   }
 
+  /** @deprecated 使用 getCombo() 代替 */
   getChainCount(): number {
     return this.chainCount;
   }

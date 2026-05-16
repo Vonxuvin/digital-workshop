@@ -16,7 +16,6 @@ export class AdManager {
   private platform: PlatformAdapter;
   private config: AdConfig;
   private isShowingRewardedVideo = false;
-  private rewardedVideoCallback: ((success: boolean) => void) | null = null;
 
   constructor(platform: PlatformAdapter, config?: Partial<AdConfig>) {
     this.platform = platform;

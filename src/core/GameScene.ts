@@ -442,10 +442,6 @@ export class GameScene {
     });
   }
 
-  checkGameOver(): boolean {
-    return this.checkWarningLine();
-  }
-
   setWarningLineVisible(visible: boolean): void {
     const warningLine = this.containerRenderer.getWarningLine();
     if (warningLine) {

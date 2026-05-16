@@ -3,6 +3,68 @@ import { createPlatformAdapter } from '../platform/PlatformFactory';
 
 const levelModules = import.meta.glob('/src/data/levels/level_*.json') as Record<string, () => Promise<any>>;
 
+interface LevelDataObjective {
+  type: string;
+  target: number;
+  timeLimit?: number;
+}
+
+interface LevelDataContainer {
+  width: number;
+  height: number;
+  shape?: string;
+}
+
+interface LevelDataSpawn {
+  availableNumbers: number[];
+  spawnInterval?: number;
+}
+
+interface LevelDataObstacle {
+  x: number;
+  y: number;
+  value: number;
+}
+
+interface LevelDataRewards {
+  stars?: number[];
+  blueprintFragments?: number;
+}
+
+interface LevelData {
+  id: number;
+  name: string;
+  objective: LevelDataObjective;
+  container: LevelDataContainer;
+  spawn: LevelDataSpawn;
+  modifiers?: unknown[];
+  obstacles?: LevelDataObstacle[];
+  rewards?: LevelDataRewards;
+  [key: string]: unknown;
+}
+
+interface WxEnv {
+  USER_DATA_PATH?: string;
+}
+
+interface WxFileSystemManager {
+  readFileSync(filePath: string, encoding: string): string;
+}
+
+interface WxGlobal {
+  getFileSystemManager(): WxFileSystemManager;
+  env?: WxEnv;
+}
+
+interface NodeRequire {
+  (module: string): unknown;
+}
+
+declare global {
+  var require: NodeRequire | undefined;
+  var wx: WxGlobal | undefined;
+}
+
 export interface ValidationResult {
   valid: boolean;
   errors: string[];
@@ -29,7 +91,7 @@ export class LevelLoader {
     return LevelLoader.instance;
   }
 
-  private async loadJSON(url: string): Promise<any> {
+  private async loadJSON(url: string): Promise<LevelData | null> {
     try {
       if (typeof fetch !== 'undefined') {
         const response = await fetch(url);
@@ -38,7 +100,7 @@ export class LevelLoader {
           if (contentType != null && !contentType.includes('application/json') && !contentType.includes('text/plain')) {
             return null;
           }
-          return await response.json();
+          return (await response.json()) as LevelData;
         }
       }
     } catch (e) {
@@ -48,7 +110,7 @@ export class LevelLoader {
     try {
       const platform = createPlatformAdapter();
       await platform.init();
-      const data = await platform.getStorage<any>(url);
+      const data = await platform.getStorage<LevelData>(url);
       if (data) return data;
     } catch (e) {
       console.warn(`[LevelLoader] 平台存储加载失败(${url}):`, e);
@@ -66,7 +128,7 @@ export class LevelLoader {
     const moduleLoader = levelModules[moduleKey];
     if (moduleLoader) {
       const moduleData = await moduleLoader();
-      const data = moduleData.default || moduleData;
+      const data = (moduleData.default || moduleData) as LevelData;
       const validation = this.validateConfig(data);
       if (validation.valid) {
         const config = this.parseLevelConfig(data);
@@ -97,29 +159,30 @@ export class LevelLoader {
     return config;
   }
 
-  private async loadLevelFile(fileName: string): Promise<any | null> {
+  private async loadLevelFile(fileName: string): Promise<LevelData | null> {
     const url = `/src/data/levels/${fileName}`;
     const fetched = await this.loadJSON(url);
     if (fetched) return fetched;
 
     try {
-      if (typeof (globalThis as any).require === 'function') {
-        const data = (globalThis as any).require(`../data/levels/${fileName}`);
-        return data?.default || data;
+      if (typeof globalThis.require === 'function') {
+        const data = globalThis.require(`../data/levels/${fileName}`);
+        const record = data as Record<string, unknown>;
+        return (record?.default || record) as LevelData | null;
       }
     } catch (e) {
       console.warn(`[LevelLoader] require加载失败(${fileName}):`, e);
     }
 
     try {
-      const wxGlobal = (globalThis as any).wx;
+      const wxGlobal = globalThis.wx;
       if (wxGlobal && wxGlobal.getFileSystemManager) {
         const fs = wxGlobal.getFileSystemManager();
         const basePath = wxGlobal.env?.USER_DATA_PATH || '';
         const filePath = `${basePath}/data/levels/${fileName}`;
         try {
           const content = fs.readFileSync(filePath, 'utf-8');
-          return JSON.parse(content);
+          return JSON.parse(content) as LevelData;
         } catch (e) {
           console.warn(`[LevelLoader] 微信文件系统读取失败(${filePath}):`, e);
         }
@@ -131,7 +194,7 @@ export class LevelLoader {
     return null;
   }
 
-  loadFromData(levelId: number, data: any): LevelConfig | null {
+  loadFromData(levelId: number, data: LevelData): LevelConfig | null {
     const validation = this.validateConfig(data);
     if (!validation.valid) {
       console.error(`[LevelLoader] 关卡 ${levelId} 数据校验失败:`, validation.errors);
@@ -146,7 +209,7 @@ export class LevelLoader {
     return config;
   }
 
-  validateConfig(data: any): ValidationResult {
+  validateConfig(data: LevelData): ValidationResult {
     const errors: string[] = [];
 
     if (!data || typeof data !== 'object') {
@@ -309,7 +372,7 @@ export class LevelLoader {
     return { valid: errors.length === 0, errors };
   }
 
-  private parseLevelConfig(data: any): LevelConfig | null {
+  private parseLevelConfig(data: LevelData): LevelConfig | null {
     const validation = this.validateConfig(data);
     if (!validation.valid) return null;
 
@@ -378,7 +441,7 @@ export class LevelLoader {
 
   enableHotReload(callback?: (levelId: number, config: LevelConfig) => void): void {
     if (typeof globalThis === 'undefined') return;
-    const globalWindow = globalThis as any;
+    const globalWindow = globalThis as unknown as { location?: { hostname?: string } };
     const hostname = globalWindow.location?.hostname;
     if (!hostname || (hostname !== 'localhost' && hostname !== '127.0.0.1')) return;
 
@@ -390,7 +453,7 @@ export class LevelLoader {
         try {
           const response = await fetch(`/src/data/levels/level_${String(levelId).padStart(2, '0')}.json?t=${Date.now()}`);
           if (!response.ok) continue;
-          const data = await response.json();
+          const data = (await response.json()) as LevelData;
           const validation = this.validateConfig(data);
           if (!validation.valid) continue;
           const config = this.parseLevelConfig(data);
@@ -436,7 +499,7 @@ export class LevelLoader {
         const levelId = parseInt(match[1], 10);
         if (!this.levelConfigs.has(levelId)) {
           const module = await moduleLoader();
-          const data = module?.default || module;
+          const data = (module?.default || module) as LevelData | null;
           if (data) {
             const validation = this.validateConfig(data);
             if (validation.valid) {

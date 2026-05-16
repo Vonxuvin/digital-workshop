@@ -231,11 +231,11 @@ describe('TC-004: 新手引导验证', () => {
     });
 
     it('教程在 attempts < 3 时均显示', () => {
-      saveManager.getLevelProgress(1).attempts = 1;
+      saveManager.setLevelProgress(1, { attempts: 1 });
       tutorialManager = new TutorialManager(overlay, saveManager);
       expect(tutorialManager.shouldShowTutorial(1)).toBe(true);
 
-      saveManager.getLevelProgress(1).attempts = 2;
+      saveManager.setLevelProgress(1, { attempts: 2 });
       expect(tutorialManager.shouldShowTutorial(1)).toBe(true);
     });
   });
@@ -296,13 +296,13 @@ describe('TC-004: 新手引导验证', () => {
 
   describe('TC-004-04: 重新进入已通关关卡不再显示教程', () => {
     it('已完成的关卡不显示教程', () => {
-      saveManager.getLevelProgress(1).completed = true;
+      saveManager.setLevelProgress(1, { completed: true });
       tutorialManager = new TutorialManager(overlay, saveManager);
       expect(tutorialManager.shouldShowTutorial(1)).toBe(false);
     });
 
     it('attempts >= 5 时不显示教程', () => {
-      saveManager.getLevelProgress(1).attempts = 5;
+      saveManager.setLevelProgress(1, { attempts: 5 });
       tutorialManager = new TutorialManager(overlay, saveManager);
       expect(tutorialManager.shouldShowTutorial(1)).toBe(false);
     });

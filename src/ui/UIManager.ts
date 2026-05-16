@@ -4,6 +4,7 @@ import { GameState } from '../core/GameStateMachine';
 export abstract class Screen extends Container {
   abstract show(screenWidth?: number, screenHeight?: number): void;
   abstract hide(): void;
+  resize?(_width: number, _height: number): void;
 }
 
 export type LayerName = 'background' | 'main' | 'popup' | 'overlay' | 'toast';
@@ -18,6 +19,7 @@ export class UIManager {
   private popupQueue: Screen[] = [];
   private modalOverlay: Graphics;
   private currentPopup: Screen | null = null;
+  private modalOverlayDrawn = false;
 
   constructor(app: Application) {
     this.app = app;
@@ -112,14 +114,13 @@ export class UIManager {
 
   /** 确保 modalOverlay 已经绘制完成 */
   private ensureModalOverlayDrawn(): void {
-    // 检查是否已经绘制过了（通过内部标志位）
-    if ((this.modalOverlay as any)._drawn) {
+    if (this.modalOverlayDrawn) {
       return;
     }
     this.modalOverlay.clear();
     this.modalOverlay.rect(0, 0, this.app.screen.width, this.app.screen.height);
     this.modalOverlay.fill({ color: 0x000000, alpha: 0.5 });
-    (this.modalOverlay as any)._drawn = true;
+    this.modalOverlayDrawn = true;
   }
 
   getPopupQueueLength(): number {
@@ -131,10 +132,10 @@ export class UIManager {
   }
 
   handleResize(width: number, height: number): void {
-    if (this.currentScreen && 'resize' in this.currentScreen) {
-      (this.currentScreen as any).resize(width, height);
+    if (this.currentScreen && this.currentScreen.resize) {
+      this.currentScreen.resize(width, height);
     }
-    (this.modalOverlay as any)._drawn = false;
+    this.modalOverlayDrawn = false;
     if (this.modalOverlay.visible) {
       this.ensureModalOverlayDrawn();
     }
@@ -142,16 +143,16 @@ export class UIManager {
 
   destroy(): void {
     for (const screen of this.screens.values()) {
-      if ((screen as any).destroy) (screen as any).destroy();
+      screen.destroy();
     }
     this.screens.clear();
     this.currentScreen = null;
     if (this.currentPopup) {
-      if ((this.currentPopup as any).destroy) (this.currentPopup as any).destroy();
+      this.currentPopup.destroy();
       this.currentPopup = null;
     }
     for (const queuedPopup of this.popupQueue) {
-      if ((queuedPopup as any).destroy) (queuedPopup as any).destroy();
+      queuedPopup.destroy();
     }
     this.popupQueue = [];
     for (const layer of this.layers.values()) {

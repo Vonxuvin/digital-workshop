@@ -3,7 +3,7 @@ import { Application, Text } from 'pixi.js';
 import { PhysicsManager } from './PhysicsManager';
 import { InputManager } from './InputManager';
 import { ScoreSystem } from '../gameplay/ScoreSystem';
-import { GameStateMachine } from './GameStateMachine';
+import { GameStateMachine, GameState } from './GameStateMachine';
 import { AudioManager } from './AudioManager';
 import { BlockPreview } from '../gameplay/BlockPreview';
 import { MergeSystem } from '../gameplay/MergeSystem';
@@ -66,7 +66,7 @@ export class Game {
   private fpsDisplay: Text | null = null;
   private boundHandleResize: (() => void) | null = null;
   private boundUpdate: (() => void) | null = null;
-  private boundStateChange: ((from: any, to: any) => void) | null = null;
+  private boundStateChange: ((from: GameState, to: GameState) => void) | null = null;
   private tutorialOverlay!: TutorialOverlay;
   private tutorialManager!: TutorialManager;
   private platform!: PlatformAdapter;
@@ -131,7 +131,7 @@ export class Game {
 
       const dpr = systemInfo.pixelRatio || (typeof window !== 'undefined' ? window.devicePixelRatio : 1) || 1;
 
-      const initOptions: any = {
+      const initOptions: Partial<import('pixi.js').ApplicationOptions> = {
         canvas: this.canvas,
         backgroundColor: 0x1a1a2e,
         antialias: true,
@@ -161,12 +161,12 @@ export class Game {
               this.uiManager = new UIManager(this.app);
             }
             this.uiManager.showScreen('mainMenu');
-          } catch (_) {}
+          } catch (e) { console.warn('[Game] 降级模式UI初始化失败:', e); }
           try {
             if (!this.sceneManager) {
               this.setupUI();
             }
-          } catch (_) {}
+          } catch (e) { console.warn('[Game] 降级模式场景初始化失败:', e); }
           return;
         }
         throw initErr;
@@ -292,12 +292,12 @@ export class Game {
           this.uiManager = new UIManager(this.app);
         }
         this.uiManager.showScreen('mainMenu');
-      } catch (_) {}
+      } catch (e) { console.warn('[Game] 错误恢复UI初始化失败:', e); }
       try {
         if (!this.sceneManager) {
           this.setupUI();
         }
-      } catch (_) {}
+      } catch (e) { console.warn('[Game] 错误恢复场景初始化失败:', e); }
     }
   }
 

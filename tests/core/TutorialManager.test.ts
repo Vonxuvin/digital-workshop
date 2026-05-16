@@ -13,6 +13,12 @@ class MockSaveManager {
     return this.progress.get(levelId)!;
   }
 
+  setLevelProgress(levelId: number, data: { completed?: boolean; attempts?: number }) {
+    const current = this.getLevelProgress(levelId);
+    if (data.completed !== undefined) current.completed = data.completed;
+    if (data.attempts !== undefined) current.attempts = data.attempts;
+  }
+
   unlockLevel(levelId: number) {
     this.getLevelProgress(levelId);
   }
@@ -39,7 +45,7 @@ describe('FIX-10: TutorialManager expanded tutorials', () => {
   describe('shouldShowTutorial', () => {
     it('should show tutorial for Level 1-5 when not completed and attempts < 5', () => {
       for (let i = 1; i <= 5; i++) {
-        saveManager.getLevelProgress(i).attempts = 0;
+        saveManager.setLevelProgress(i, { attempts: 0 });
         expect(tutorialManager.shouldShowTutorial(i)).toBe(true);
       }
     });
@@ -51,17 +57,17 @@ describe('FIX-10: TutorialManager expanded tutorials', () => {
     });
 
     it('should not show tutorial when attempts >= 5', () => {
-      saveManager.getLevelProgress(1).attempts = 5;
+      saveManager.setLevelProgress(1, { attempts: 5 });
       expect(tutorialManager.shouldShowTutorial(1)).toBe(false);
     });
 
     it('should show tutorial when attempts < 5', () => {
-      saveManager.getLevelProgress(1).attempts = 4;
+      saveManager.setLevelProgress(1, { attempts: 4 });
       expect(tutorialManager.shouldShowTutorial(1)).toBe(true);
     });
 
     it('should not show tutorial for completed levels', () => {
-      saveManager.getLevelProgress(1).completed = true;
+      saveManager.setLevelProgress(1, { completed: true });
       expect(tutorialManager.shouldShowTutorial(1)).toBe(false);
     });
 

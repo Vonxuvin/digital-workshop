@@ -159,7 +159,6 @@ export class MergeSystem {
     this.physics.removeBody(obstacle.body);
     obstacle.destroy();
     eventBus.emit(GameEvents.OBSTACLE_CLEARED);
-    console.log(`[MergeSystem] 障碍物已清除`);
   }
 
   private mergeBlocks(blockA: Block, blockB: Block, newValue?: number): void {
@@ -220,10 +219,6 @@ export class MergeSystem {
       newBlock,
       destroyedBlocks: [blockA, blockB],
     });
-    console.log(`[MergeSystem] block:merged`, { newValue: mergedValue });
-
-    console.log(`[MergeSystem] 合成: ${blockA.value} + ${blockB.value} = ${mergedValue}`);
-
     this.scheduleChainCheck(newBody.label);
   }
 
