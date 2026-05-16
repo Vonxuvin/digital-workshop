@@ -351,4 +351,72 @@ describe('GameHUD', () => {
     hud.skipAnimation();
     expect((hud as any).scoreTween).toBeNull();
   });
+
+  it('should expose scoreText getter', () => {
+    expect(hud.scoreText).toBeDefined();
+    expect(hud.scoreText.text).toBe('Score: 0');
+  });
+
+  it('should expose levelText getter', () => {
+    expect(hud.levelText).toBeDefined();
+  });
+
+  it('should expose pauseButton getter', () => {
+    expect(hud.pauseButton).toBeDefined();
+  });
+
+  it('should expose propsContainer getter', () => {
+    expect(hud.propsContainer).toBeDefined();
+  });
+
+  it('should expose objectiveBar getter', () => {
+    expect(hud.objectiveBar).toBeDefined();
+  });
+
+  it('should emit ui:pause on pause button pointerdown', () => {
+    const handler = vi.fn();
+    eventBus.on('ui:pause', handler);
+    (hud.pauseButton as any).emit('pointerdown');
+    expect(handler).toHaveBeenCalled();
+    eventBus.off('ui:pause', handler);
+  });
+
+  it('should layout with small screen triggering scaling branch', () => {
+    hud.layout(320, 480);
+    expect((hud as any).screenWidth).toBe(320);
+    expect((hud as any).screenHeight).toBe(480);
+    expect(hud.currentButtonSize).toBeLessThan(60);
+  });
+
+  it('should expose propsContainerX', () => {
+    hud.layout(800, 600);
+    expect(hud.propsContainerX).toBeGreaterThan(0);
+  });
+
+  it('should expose getObjectiveBar method', () => {
+    const bar = hud.getObjectiveBar();
+    expect(bar).toBeDefined();
+  });
+
+  it('should handle non-bomb prop click when useProp returns false', () => {
+    (mockPropSystem.getPropCount as any).mockReturnValue(3);
+    (mockPropSystem.useProp as any).mockReturnValue(false);
+    const button = hud.propButtons.get(PropType.RAINBOW);
+    if (button) {
+      (button as any).onClick(PropType.RAINBOW);
+    }
+    expect(mockPropSystem.useProp).toHaveBeenCalledWith(PropType.RAINBOW);
+  });
+
+  it('should handle usePropAtPosition when useProp returns false', () => {
+    (mockPropSystem.getPropCount as any).mockReturnValue(3);
+    (mockPropSystem.useProp as any).mockReturnValue(false);
+    const button = hud.propButtons.get(PropType.BOMB);
+    if (button) {
+      (button as any).onClick(PropType.BOMB);
+    }
+    hud.usePropAtPosition(100, 200);
+    expect(mockPropSystem.useProp).toHaveBeenCalledWith(PropType.BOMB, { x: 100, y: 200 });
+    expect((hud as any).propTargetMode).toBe(false);
+  });
 });

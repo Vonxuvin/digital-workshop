@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ResultScreen } from '../../../src/ui/screens/ResultScreen';
 
 describe('ResultScreen', () => {
@@ -112,5 +112,71 @@ describe('ResultScreen', () => {
     screen.setResult({ isWin: true, score: 500, stars: 2, levelId: 1 });
     screen.setResult({ isWin: false, score: 100, stars: 0, levelId: 1 });
     expect(() => screen.destroy()).not.toThrow();
+  });
+
+  it('should kill starTimeline on hide after win result', () => {
+    screen.setCallbacks(() => {}, () => {}, () => {}, () => {});
+    screen.setResult({ isWin: true, score: 1000, stars: 3, levelId: 1 });
+    expect(screen.starTimeline).toBeDefined();
+    screen.hide();
+    expect(screen.starTimeline).toBeNull();
+  });
+
+  it('should handle update without error', () => {
+    expect(() => screen.update()).not.toThrow();
+  });
+
+  it('should show revive button on lose result', () => {
+    screen.setCallbacks(() => {}, () => {}, () => {}, () => {});
+    screen.setResult({ isWin: false, score: 200, stars: 0, levelId: 2 });
+    const reviveButton = (screen as any)._reviveButton;
+    expect(reviveButton).not.toBeNull();
+  });
+
+  it('should handle show without arguments', () => {
+    expect(() => screen.show()).not.toThrow();
+  });
+
+  it('should handle show with only width', () => {
+    expect(() => screen.show(1024)).not.toThrow();
+  });
+
+  it('should handle show with only height', () => {
+    expect(() => screen.show(undefined, 768)).not.toThrow();
+  });
+
+  it('should trigger win button callbacks on click', () => {
+    const onNext = vi.fn();
+    const onRetry = vi.fn();
+    const onMenu = vi.fn();
+    screen.setCallbacks(onNext, onRetry, onMenu, () => {});
+    screen.setResult({ isWin: true, score: 1000, stars: 3, levelId: 1 });
+
+    (screen.nextButton as any).emit('pointerdown');
+    expect(onNext).toHaveBeenCalled();
+
+    (screen.retryButton as any).emit('pointerdown');
+    expect(onRetry).toHaveBeenCalled();
+
+    (screen.menuButton as any).emit('pointerdown');
+    expect(onMenu).toHaveBeenCalled();
+  });
+
+  it('should trigger lose button callbacks on click', () => {
+    const onRevive = vi.fn();
+    const onRetry = vi.fn();
+    const onMenu = vi.fn();
+    screen.setCallbacks(() => {}, onRetry, onMenu, onRevive);
+    screen.setResult({ isWin: false, score: 200, stars: 0, levelId: 2 });
+
+    const reviveButton = (screen as any)._reviveButton;
+    (reviveButton as any).emit('pointerdown');
+    expect(onRevive).toHaveBeenCalled();
+
+    (screen.retryButton as any).emit('pointerdown');
+    expect(onRetry).toHaveBeenCalled();
+
+    (screen.menuButton as any).emit('pointerdown');
+    expect(onMenu).toHaveBeenCalled();
   });
 });

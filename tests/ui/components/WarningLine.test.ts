@@ -134,4 +134,19 @@ describe('WarningLine', () => {
     expect(handler).not.toHaveBeenCalled();
     eventBus.off('warning:started', handler);
   });
+
+  it('should set and get color', () => {
+    wl.setColor(0x00ff00);
+    expect(wl.getColor()).toBe(0x00ff00);
+  });
+
+  it('should set and get alpha', () => {
+    wl.setAlpha(0.5);
+    expect(wl.getAlpha()).toBe(0.5);
+  });
+
+  it('should get graphics object', () => {
+    const graphics = wl.getGraphics();
+    expect(graphics).toBeDefined();
+  });
 });

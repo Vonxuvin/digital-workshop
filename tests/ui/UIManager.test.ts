@@ -25,6 +25,18 @@ class MockScreen extends Screen {
   }
 }
 
+class MockResizableScreen extends MockScreen {
+  public resizeCalled = false;
+  public lastWidth = 0;
+  public lastHeight = 0;
+
+  resize(width: number, height: number): void {
+    this.resizeCalled = true;
+    this.lastWidth = width;
+    this.lastHeight = height;
+  }
+}
+
 describe('UIManager', () => {
   let uiManager: UIManager;
   let app: any;
@@ -219,6 +231,16 @@ describe('UIManager', () => {
       uiManager.registerScreen('test', screen);
       uiManager.showScreen('test');
       expect(() => uiManager.handleResize(400, 300)).not.toThrow();
+    });
+
+    it('should call resize on current screen when it has resize method', () => {
+      const screen = new MockResizableScreen();
+      uiManager.registerScreen('test', screen);
+      uiManager.showScreen('test');
+      uiManager.handleResize(1024, 768);
+      expect(screen.resizeCalled).toBe(true);
+      expect(screen.lastWidth).toBe(1024);
+      expect(screen.lastHeight).toBe(768);
     });
 
     it('should handle resize with popup visible', () => {
