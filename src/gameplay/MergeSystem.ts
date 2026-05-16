@@ -188,11 +188,14 @@ export class MergeSystem {
     this.chainDepthMap.delete(labelA);
     this.chainDepthMap.delete(labelB);
 
+    if (this.blockPool) {
+      this.blockPool.release(blockA);
+      this.blockPool.release(blockB);
+    }
     blockA.destroy();
     blockB.destroy();
 
     const config = getBlockConfig(mergedValue);
-
     const newBody = this.physics.createCircle(posX, posY, config.radius, {
       density: config.mass * 0.001,
     });
