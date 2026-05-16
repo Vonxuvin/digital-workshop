@@ -10,6 +10,8 @@ import { LevelLoader } from './LevelLoader';
 import { AdManager } from './AdManager';
 
 export class SceneManager {
+  private static readonly MAX_LEVEL_SEARCH = 50;
+
   private uiManager: UIManager;
   private stateMachine: GameStateMachine;
   private gameScene: GameScene;
@@ -102,7 +104,7 @@ export class SceneManager {
   }
 
   private findFirstUnlockedLevel(): number {
-    for (let id = 1; id <= 15; id++) {
+    for (let id = 1; id <= SceneManager.MAX_LEVEL_SEARCH; id++) {
       const progress = this.saveManager.getLevelProgress(id);
       if (progress.unlocked && !progress.completed) return id;
     }
@@ -115,7 +117,7 @@ export class SceneManager {
       this.uiManager.showScreen('pause');
       try {
         this.gameScene.pause();
-      } catch {}
+      } catch (error) { console.error('[SceneManager] pauseGame: gameScene.pause() failed', error); }
     }
   }
 
@@ -125,7 +127,7 @@ export class SceneManager {
       this.uiManager.hideCurrentScreen();
       try {
         this.gameScene.resume();
-      } catch {}
+      } catch (error) { console.error('[SceneManager] resumeGame: gameScene.resume() failed', error); }
     }
   }
 
@@ -134,7 +136,7 @@ export class SceneManager {
     this.stateMachine.transition('playing');
     try {
       this.gameScene.restartLevel();
-    } catch {}
+    } catch (error) { console.error('[SceneManager] restartGame: gameScene.restartLevel() failed', error); }
   }
 
   failGame(): void {
@@ -145,7 +147,7 @@ export class SceneManager {
       this.gameScene.clearEverything();
       this.gameScene.getModifierManager().pauseAll();
       this.gameScene.getPropEffectHandler().pause();
-    } catch {}
+    } catch (error) { console.error('[SceneManager] failGame: cleanup operations failed', error); }
     this.audioManager.play('gameover');
     try {
       const levelId = this.gameScene.getLevelSystem()?.getConfig().id || 1;
@@ -159,7 +161,7 @@ export class SceneManager {
         levelId,
         playTime,
       });
-    } catch {}
+    } catch (error) { console.error('[SceneManager] failGame: save result failed', error); }
     this.uiManager.showScreen('result');
   }
 
@@ -169,7 +171,7 @@ export class SceneManager {
       this.gameScene.stopPhysics();
       this.gameScene.getGameHUD().skipAnimation();
       this.gameScene.clearEverything();
-    } catch {}
+    } catch (error) { console.error('[SceneManager] completeLevel: cleanup operations failed', error); }
     this.audioManager.play('levelComplete');
     try {
       const stars = this.gameScene.calculateStars(score, levelId);
@@ -190,7 +192,7 @@ export class SceneManager {
         maxCombo: longestCombo,
         mergedCount: highestMerge,
       });
-    } catch {}
+    } catch (error) { console.error('[SceneManager] completeLevel: save result failed', error); }
     this.uiManager.showScreen('result');
   }
 
@@ -203,7 +205,7 @@ export class SceneManager {
     this.uiManager.hideCurrentScreen();
     try {
       this.gameScene.handleRevive();
-    } catch {}
+    } catch (error) { console.error('[SceneManager] reviveGame: handleRevive() failed', error); }
     this.stateMachine.transition('playing');
   }
 
@@ -211,7 +213,7 @@ export class SceneManager {
     let currentId = 1;
     try {
       currentId = this.gameScene.getLevelSystem()?.getConfig().id || 1;
-    } catch {}
+    } catch (error) { console.error('[SceneManager] nextLevel: getLevelSystem config failed', error); }
     const nextId = currentId + 1;
     const config = this.levelLoader.getLevelConfig(nextId);
     if (config) {
