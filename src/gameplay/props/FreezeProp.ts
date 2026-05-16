@@ -12,7 +12,6 @@ export class FreezeProp extends Prop {
   private isFrozen: boolean = false;
   private remainingFreezeMs: number = 0;
   private freezeTimerId: string | null = null;
-  private freezeEndTime: number = 0;
 
   constructor(config: PropConfig) {
     super(config);
@@ -33,7 +32,6 @@ export class FreezeProp extends Prop {
     this.lastUseTime = Date.now();
     this.isFrozen = true;
     this.remainingFreezeMs = this.freezeDuration;
-    this.freezeEndTime = Date.now() + this.freezeDuration;
 
     if (this.physicsManager) {
       this.physicsManager.stop();
@@ -41,7 +39,6 @@ export class FreezeProp extends Prop {
 
     this.eventBus.emit(GameEvents.PROPS_FREEZE_ACTIVATED, {
       duration: this.freezeDuration,
-      endTime: Date.now() + this.freezeDuration,
     });
 
     this.startFreezeTimer();
@@ -51,9 +48,9 @@ export class FreezeProp extends Prop {
 
   private startFreezeTimer(): void {
     this.stopFreezeTimer();
-    this.freezeTimerId = AnimationManager.getInstance().register((_deltaMS) => {
-      this.remainingFreezeMs = Math.max(0, this.freezeEndTime - Date.now());
-      if (Date.now() >= this.freezeEndTime) {
+    this.freezeTimerId = AnimationManager.getInstance().register((deltaMS) => {
+      this.remainingFreezeMs -= deltaMS;
+      if (this.remainingFreezeMs <= 0) {
         this.unfreeze();
       }
     }, `freeze_${this.config.id}`);
@@ -67,8 +64,7 @@ export class FreezeProp extends Prop {
   }
 
   private extendFreeze(): void {
-    this.freezeEndTime += this.freezeDuration;
-    this.remainingFreezeMs = Math.max(0, this.freezeEndTime - Date.now());
+    this.remainingFreezeMs += this.freezeDuration;
     this.eventBus.emit(GameEvents.PROPS_FREEZE_EXTENDED, {
       additionalDuration: this.freezeDuration,
     });

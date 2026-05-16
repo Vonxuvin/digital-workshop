@@ -83,7 +83,7 @@ export class PropEffectHandler {
     }
   }
 
-  handleFreezeActivated(data: { duration: number; endTime: number }): void {
+  handleFreezeActivated(data: { duration: number }): void {
     this.effectManager.addFreezeEffect(
       this.warningLine?.parent?.width ?? 800,
       this.warningLine?.parent?.height ?? 600,

@@ -134,7 +134,7 @@ export class GameEventRouter {
     this.audioManager.play('explosion');
   }
 
-  private handleFreezeActivated(data: { duration: number; endTime: number }): void {
+  private handleFreezeActivated(data: { duration: number }): void {
     this.gameScene.handleFreezeActivated(data);
     this.audioManager.play('freeze');
   }

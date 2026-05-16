@@ -269,7 +269,7 @@ export class GameScene {
     this.propEffectHandler.handleBombExplode(data);
   }
 
-  handleFreezeActivated(data: { duration: number; endTime: number }): void {
+  handleFreezeActivated(data: { duration: number }): void {
     this.propEffectHandler.handleFreezeActivated(data);
   }
 
