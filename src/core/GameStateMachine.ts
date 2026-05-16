@@ -10,7 +10,7 @@ const VALID_TRANSITIONS: Record<GameState, GameState[]> = {
   'menu': ['playing'],
   'playing': ['paused', 'gameover', 'levelComplete', 'menu'],
   'paused': ['playing', 'menu'],
-  'gameover': ['menu', 'playing'],
+  'gameover': ['menu'],
   'levelComplete': ['menu', 'playing'],
 };
 
