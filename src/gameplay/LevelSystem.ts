@@ -179,6 +179,10 @@ export class LevelSystem {
       if (this.config.objective.type === 'survival' && this.survivalTime >= this.config.objective.timeLimit) {
         this.completeLevel();
       }
+
+      if (this.config.objective.type !== 'survival' && this.survivalTime >= this.config.objective.timeLimit) {
+        eventBus.emit(GameEvents.GAME_TIMEOUT);
+      }
     }
   }
 
