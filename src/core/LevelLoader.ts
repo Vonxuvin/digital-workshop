@@ -127,15 +127,19 @@ export class LevelLoader {
     const moduleKey = `/src/data/levels/level_${String(levelId).padStart(2, '0')}.json`;
     const moduleLoader = levelModules[moduleKey];
     if (moduleLoader) {
-      const moduleData = await moduleLoader();
-      const data = (moduleData.default || moduleData) as LevelData;
-      const validation = this.validateConfig(data);
-      if (validation.valid) {
-        const config = this.parseLevelConfig(data);
-        if (config) {
-          this.levelConfigs.set(levelId, config);
-          return config;
+      try {
+        const moduleData = await moduleLoader();
+        const data = (moduleData.default || moduleData) as LevelData;
+        const validation = this.validateConfig(data);
+        if (validation.valid) {
+          const config = this.parseLevelConfig(data);
+          if (config) {
+            this.levelConfigs.set(levelId, config);
+            return config;
+          }
         }
+      } catch (e) {
+        console.warn(`[LevelLoader] 动态导入关卡 ${levelId} 失败:`, e);
       }
     }
 

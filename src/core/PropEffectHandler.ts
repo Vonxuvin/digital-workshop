@@ -67,6 +67,7 @@ export class PropEffectHandler {
 
     const affectedBlocks = bombProp.getAffectedBlocks(this.blockSpawner.getBlocks(), data.x, data.y);
     for (const block of affectedBlocks) {
+      if (block.isDestroyed) continue;
       this.blockSpawner.removeBlock(block);
       this.mergeSystem.unregisterBlock(block);
       this.physics.removeBody(block.body);
@@ -99,6 +100,7 @@ export class PropEffectHandler {
     this.shrinkFactor = data.factor;
     const blocks = this.blockSpawner.getBlocks();
     for (const block of blocks) {
+      if (block.isDestroyed || !block.body) continue;
       this.originalBodyData.set(block.body.label, {
         position: { x: block.body.position.x, y: block.body.position.y },
         scale: data.factor,
@@ -117,6 +119,7 @@ export class PropEffectHandler {
     this.shrinkActive = false;
     const blocks = this.blockSpawner.getBlocks();
     for (const block of blocks) {
+      if (block.isDestroyed || !block.body) continue;
       const original = this.originalBodyData.get(block.body.label);
       if (original) {
         const inverseScale = 1 / original.scale;
@@ -171,7 +174,7 @@ export class PropEffectHandler {
   handleRevive(groundY: number, modifierManager: { resumeAll: () => void }): void {
     const warningY = this.warningLine ? this.warningLine.y : groundY * 0.8;
     const blocks = this.blockSpawner.getBlocks();
-    const blocksToRemove = blocks.filter(b => b.y < warningY);
+    const blocksToRemove = blocks.filter(b => !b.isDestroyed && b.y < warningY);
     for (const block of blocksToRemove) {
       this.blockSpawner.removeBlock(block);
       this.mergeSystem.unregisterBlock(block);
@@ -211,7 +214,7 @@ export class PropEffectHandler {
   }
 
   applyShrinkToBlock(block: Block): void {
-    if (!this.shrinkActive) return;
+    if (!this.shrinkActive || block.isDestroyed || !block.body) return;
     const factor = this.shrinkFactor;
     this.originalBodyData.set(block.body.label, {
       position: { x: block.body.position.x, y: block.body.position.y },
