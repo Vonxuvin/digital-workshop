@@ -12,15 +12,18 @@ export class MergeSystem {
   private blocks: Map<string, Block> = new Map();
   private obstacles: Map<string, Block> = new Map();
   private mergingBodies: Set<string> = new Set();
+  private sameFramePairs: Set<string> = new Set();
   private maxChainDepth = 10;
   private chainDepthMap: Map<string, number> = new Map();
   private pendingChainChecks: string[] = [];
   private collisionCallback: ((pair: Matter.Pair) => void) | null = null;
+  private postStepCallback: (() => void) | null = null;
   private blockPool: BlockPool | null = null;
 
   constructor(physics: PhysicsManager) {
     this.physics = physics;
     this.setupCollisionListener();
+    this.setupPostStepHook();
   }
 
   setScoreSystem(scoreSystem: ScoreSystem): void {
@@ -50,7 +53,55 @@ export class MergeSystem {
     this.physics.onCollisionStart(this.collisionCallback);
   }
 
+  private setupPostStepHook(): void {
+    this.postStepCallback = () => {
+      this.sameFramePairs.clear();
+      this.runSpatialMergeCheck();
+    };
+    Matter.Events.on(this.physics.getEngine(), 'afterUpdate', this.postStepCallback);
+  }
+
+  private runSpatialMergeCheck(): void {
+    const blockEntries = Array.from(this.blocks.entries());
+    const checkedPairs = new Set<string>();
+
+    for (let i = 0; i < blockEntries.length; i++) {
+      const [labelA, blockA] = blockEntries[i];
+      if (blockA.isDestroyed || this.mergingBodies.has(labelA)) continue;
+
+      for (let j = i + 1; j < blockEntries.length; j++) {
+        const [labelB, blockB] = blockEntries[j];
+        if (blockB.isDestroyed || this.mergingBodies.has(labelB)) continue;
+        if (blockA.value !== blockB.value) continue;
+
+        const pairKey = this.getPairKey(labelA, labelB);
+        if (checkedPairs.has(pairKey)) continue;
+        checkedPairs.add(pairKey);
+
+        const dist = Matter.Vector.magnitude(
+          Matter.Vector.sub(blockA.body.position, blockB.body.position)
+        );
+        const touchDist = (blockA.body.circleRadius || 20) + (blockB.body.circleRadius || 20) + 2;
+
+        if (dist <= touchDist) {
+          this.mergingBodies.add(labelA);
+          this.mergingBodies.add(labelB);
+          this.mergeBlocks(blockA, blockB);
+          break;
+        }
+      }
+    }
+  }
+
+  private getPairKey(labelA: string, labelB: string): string {
+    return labelA < labelB ? `${labelA}|${labelB}` : `${labelB}|${labelA}`;
+  }
+
   private handleCollision(bodyA: Matter.Body, bodyB: Matter.Body): void {
+    const pairKey = this.getPairKey(bodyA.label, bodyB.label);
+    if (this.sameFramePairs.has(pairKey)) return;
+    this.sameFramePairs.add(pairKey);
+
     const isObstacleA = bodyA.label.startsWith('obstacle_');
     const isObstacleB = bodyB.label.startsWith('obstacle_');
 
@@ -226,6 +277,10 @@ export class MergeSystem {
       this.physics.offCollisionStart(this.collisionCallback);
       this.collisionCallback = null;
     }
+    if (this.postStepCallback) {
+      Matter.Events.off(this.physics.getEngine(), 'afterUpdate', this.postStepCallback);
+      this.postStepCallback = null;
+    }
     if (this.chainCheckAnimId) {
       AnimationManager.getInstance().unregister(this.chainCheckAnimId);
       this.chainCheckAnimId = null;
@@ -233,6 +288,7 @@ export class MergeSystem {
     this.blocks.clear();
     this.obstacles.clear();
     this.mergingBodies.clear();
+    this.sameFramePairs.clear();
     this.chainDepthMap.clear();
     this.pendingChainChecks = [];
   }
