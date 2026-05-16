@@ -127,6 +127,12 @@ export class PropEffectHandler {
         if (original.circleRadius !== undefined && block.body.circleRadius !== undefined) {
           block.body.circleRadius = original.circleRadius;
         }
+      } else {
+        const inverseScale = 1 / this.shrinkFactor;
+        Matter.Body.scale(block.body, inverseScale, inverseScale);
+        if (block.body.circleRadius !== undefined) {
+          block.body.circleRadius /= this.shrinkFactor;
+        }
       }
       block.scale.set(1);
     }
