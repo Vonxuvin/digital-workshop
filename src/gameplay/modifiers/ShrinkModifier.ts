@@ -226,7 +226,9 @@ export class ShrinkModifier extends ContainerModifier {
   }
 
   getShrinkProgress(): number {
-    return (this.originalWidth - this.currentWidth) / (this.originalWidth - this.targetWidth);
+    const diff = this.originalWidth - this.targetWidth;
+    if (diff === 0) return 0;
+    return (this.originalWidth - this.currentWidth) / diff;
   }
 
   destroy(): void {
