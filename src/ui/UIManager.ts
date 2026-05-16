@@ -4,7 +4,8 @@ import { GameState } from '../core/GameStateMachine';
 export abstract class Screen extends Container {
   abstract show(screenWidth?: number, screenHeight?: number): void;
   abstract hide(): void;
-  resize?(_width: number, _height: number): void;
+
+  resize?(_screenWidth: number, _screenHeight: number): void;
 }
 
 export type LayerName = 'background' | 'main' | 'popup' | 'overlay' | 'toast';
@@ -18,8 +19,8 @@ export class UIManager {
   private layers: Map<string, Container> = new Map();
   private popupQueue: Screen[] = [];
   private modalOverlay: Graphics;
-  private currentPopup: Screen | null = null;
   private modalOverlayDrawn = false;
+  private currentPopup: Screen | null = null;
 
   constructor(app: Application) {
     this.app = app;
@@ -31,7 +32,6 @@ export class UIManager {
       this.app.stage.addChild(layer);
     }
 
-    // 先创建 Graphics 对象，但不立即绘制（需要等 app.init() 后才有 screen 尺寸）
     this.modalOverlay = new Graphics();
     this.modalOverlay.eventMode = 'static';
     this.modalOverlay.visible = false;
@@ -112,7 +112,6 @@ export class UIManager {
     this.modalOverlay.visible = true;
   }
 
-  /** 确保 modalOverlay 已经绘制完成 */
   private ensureModalOverlayDrawn(): void {
     if (this.modalOverlayDrawn) {
       return;
@@ -132,8 +131,8 @@ export class UIManager {
   }
 
   handleResize(width: number, height: number): void {
-    if (this.currentScreen && this.currentScreen.resize) {
-      this.currentScreen.resize(width, height);
+    if (this.currentScreen) {
+      this.currentScreen.resize?.(width, height);
     }
     this.modalOverlayDrawn = false;
     if (this.modalOverlay.visible) {
