@@ -151,6 +151,10 @@ export class NamespacedEventBus {
   }
 
   on(event: string, callback: EventCallback): void {
+    const oldCb = this.callbacks.get(event);
+    if (oldCb) {
+      this.bus.off(event, oldCb);
+    }
     this.bus.onInNamespace(this.namespace, event, callback);
     this.registeredEvents.add(event);
     this.callbacks.set(event, callback);
