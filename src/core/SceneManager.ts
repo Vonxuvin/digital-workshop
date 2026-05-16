@@ -117,7 +117,9 @@ export class SceneManager {
       this.uiManager.showScreen('pause');
       try {
         this.gameScene.pause();
-      } catch (error) { console.error('[SceneManager] pauseGame: gameScene.pause() failed', error); }
+      } catch (err) {
+        console.error('[SceneManager] pauseGame 暂停场景失败:', err);
+      }
     }
   }
 
@@ -127,7 +129,9 @@ export class SceneManager {
       this.uiManager.hideCurrentScreen();
       try {
         this.gameScene.resume();
-      } catch (error) { console.error('[SceneManager] resumeGame: gameScene.resume() failed', error); }
+      } catch (err) {
+        console.error('[SceneManager] resumeGame 恢复场景失败:', err);
+      }
     }
   }
 
@@ -136,7 +140,9 @@ export class SceneManager {
     this.stateMachine.transition('playing');
     try {
       this.gameScene.restartLevel();
-    } catch (error) { console.error('[SceneManager] restartGame: gameScene.restartLevel() failed', error); }
+    } catch (err) {
+      console.error('[SceneManager] restartGame 重启关卡失败:', err);
+    }
   }
 
   failGame(): void {
@@ -147,7 +153,9 @@ export class SceneManager {
       this.gameScene.clearEverything();
       this.gameScene.getModifierManager().pauseAll();
       this.gameScene.getPropEffectHandler().pause();
-    } catch (error) { console.error('[SceneManager] failGame: cleanup operations failed', error); }
+    } catch (err) {
+      console.error('[SceneManager] failGame 停止游戏逻辑失败:', err);
+    }
     this.audioManager.play('gameover');
     try {
       const levelId = this.gameScene.getLevelSystem()?.getConfig().id || 1;
@@ -161,7 +169,9 @@ export class SceneManager {
         levelId,
         playTime,
       });
-    } catch (error) { console.error('[SceneManager] failGame: save result failed', error); }
+    } catch (err) {
+      console.error('[SceneManager] failGame 保存失败结果失败:', err);
+    }
     this.uiManager.showScreen('result');
   }
 
@@ -171,7 +181,9 @@ export class SceneManager {
       this.gameScene.stopPhysics();
       this.gameScene.getGameHUD().skipAnimation();
       this.gameScene.clearEverything();
-    } catch (error) { console.error('[SceneManager] completeLevel: cleanup operations failed', error); }
+    } catch (err) {
+      console.error('[SceneManager] completeLevel 停止场景失败:', err);
+    }
     this.audioManager.play('levelComplete');
     try {
       const stars = this.gameScene.calculateStars(score, levelId);
@@ -192,7 +204,9 @@ export class SceneManager {
         maxCombo: longestCombo,
         mergedCount: highestMerge,
       });
-    } catch (error) { console.error('[SceneManager] completeLevel: save result failed', error); }
+    } catch (err) {
+      console.error('[SceneManager] completeLevel 保存通关结果失败:', err);
+    }
     this.uiManager.showScreen('result');
   }
 
@@ -204,7 +218,9 @@ export class SceneManager {
     this.uiManager.hideCurrentScreen();
     try {
       this.gameScene.handleRevive();
-    } catch (error) { console.error('[SceneManager] reviveGame: handleRevive() failed', error); }
+    } catch (err) {
+      console.error('[SceneManager] reviveGame 复活处理失败:', err);
+    }
     this.stateMachine.transition('playing');
   }
 
@@ -212,7 +228,9 @@ export class SceneManager {
     let currentId = 1;
     try {
       currentId = this.gameScene.getLevelSystem()?.getConfig().id || 1;
-    } catch (error) { console.error('[SceneManager] nextLevel: getLevelSystem config failed', error); }
+    } catch (err) {
+      console.error('[SceneManager] nextLevel 获取当前关卡ID失败:', err);
+    }
     const nextId = currentId + 1;
     const config = this.levelLoader.getLevelConfig(nextId);
     if (config) {
