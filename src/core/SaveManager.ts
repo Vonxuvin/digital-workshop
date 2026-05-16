@@ -345,8 +345,6 @@ export class SaveManager {
         typeof sourceVal === 'object' && !Array.isArray(sourceVal)
       ) {
         result[key] = this.deepMerge(targetVal as Record<string, unknown>, sourceVal as Record<string, unknown>);
-      } else if (key in result) {
-        result[key] = sourceVal;
       } else {
         result[key] = sourceVal;
       }

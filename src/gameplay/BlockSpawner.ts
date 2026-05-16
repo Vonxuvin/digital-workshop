@@ -173,7 +173,7 @@ export class BlockSpawner {
     obstacles.forEach((obs, i) => {
       const config = getBlockConfig(obs.value);
       const posX = obs.x + containerOffsetX;
-      const posY = obs.y !== undefined ? obs.y : groundY - config.radius;
+      const posY = typeof obs.y === 'number' ? obs.y : groundY - config.radius;
 
       const body = this.physics.createCircle(posX, posY, config.radius, {
         isStatic: true,

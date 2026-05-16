@@ -163,6 +163,7 @@ export class LevelSystem {
   }
 
   stopTimer(): void {
+    this.isPaused = true;
   }
 
   update(deltaMS: number): void {
