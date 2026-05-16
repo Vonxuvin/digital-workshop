@@ -9,6 +9,7 @@ import { BlockPreview } from '../gameplay/BlockPreview';
 import { MergeSystem } from '../gameplay/MergeSystem';
 import { UIManager } from '../ui/UIManager';
 import { MainMenuScreen } from '../ui/screens/MainMenuScreen';
+import { LoadingScreen } from '../ui/screens/LoadingScreen';
 import { ResultScreen } from '../ui/screens/ResultScreen';
 import { LevelSelectScreen } from '../ui/screens/LevelSelectScreen';
 import { PauseScreen } from '../ui/screens/PauseScreen';
@@ -68,6 +69,8 @@ export class Game {
   private tutorialOverlay!: TutorialOverlay;
   private tutorialManager!: TutorialManager;
   private platform!: PlatformAdapter;
+  private loadingScreen: LoadingScreen | null = null;
+  private gameSceneInitialized = false;
 
   constructor(canvas: HTMLCanvasElement) {
     Game.instance = this;
@@ -165,9 +168,36 @@ export class Game {
         throw initErr;
       }
 
+      this.uiManager = new UIManager(this.app);
+
+      this.loadingScreen = new LoadingScreen();
+      this.uiManager.registerScreen('loading', this.loadingScreen);
+      this.stateMachine.transition('loading');
+      this.uiManager.showScreen('loading');
+
       this.tutorialOverlay = new TutorialOverlay();
       this.tutorialManager = new TutorialManager(this.tutorialOverlay, this.saveManager);
       this.app.stage.addChild(this.tutorialOverlay);
+
+      const textureCache = BlockTextureCache.getInstance();
+      textureCache.setApp(this.app);
+      textureCache.preloadMinimal([1, 2, 4, 8]);
+
+      this.loadingScreen.updateProgress(0.2);
+
+      await Promise.all([
+        this.audioManager.init().catch((audioErr) => {
+          console.warn('[Game] 音频初始化失败，游戏将以静音模式运行:', audioErr);
+        }),
+        this.loadLevelConfig().catch((configErr) => {
+          console.warn('[Game] 关卡配置加载失败，使用默认配置:', configErr);
+        }),
+        this.levelLoader.discoverAndLoadAllLevels().catch((levelErr) => {
+          console.warn('[Game] 关卡数据预加载失败:', levelErr);
+        }),
+      ]);
+
+      this.loadingScreen.updateProgress(0.4);
 
       this.gameScene = new GameScene(
         this.app,
@@ -182,33 +212,11 @@ export class Game {
         this.tutorialManager,
       );
       this.gameScene.init();
+      this.gameSceneInitialized = true;
 
-      this.uiManager = new UIManager(this.app);
-
-      const textureCache = BlockTextureCache.getInstance();
-      textureCache.setApp(this.app);
-      textureCache.preload([1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]);
       this.gameHUD.layout(this.app.screen.width, this.app.screen.height);
 
-      this.stateMachine.transition('loading');
-
-      try {
-        await this.audioManager.init();
-      } catch (audioErr) {
-        console.warn('[Game] 音频初始化失败，游戏将以静音模式运行:', audioErr);
-      }
-
-      try {
-        await this.loadLevelConfig();
-      } catch (configErr) {
-        console.warn('[Game] 关卡配置加载失败，使用默认配置:', configErr);
-      }
-
-      try {
-        await this.levelLoader.discoverAndLoadAllLevels();
-      } catch (levelErr) {
-        console.warn('[Game] 关卡数据预加载失败:', levelErr);
-      }
+      this.loadingScreen.updateProgress(0.6);
 
       this.gameScene.initializeProps();
       this.gameScene.setupContainer();
@@ -244,6 +252,13 @@ export class Game {
       window.addEventListener('resize', this.boundHandleResize);
 
       this.setupKeyboard();
+
+      this.loadingScreen.updateProgress(0.8);
+
+      textureCache.preloadAsync([16, 32, 64, 128, 256, 512, 1024, 2048], (loaded, total) => {
+        const textureProgress = 0.8 + (loaded / total) * 0.2;
+        this.loadingScreen?.updateProgress(textureProgress);
+      }).catch(() => {});
 
       this.stateMachine.transition('menu');
       this.uiManager.showScreen('mainMenu');
@@ -512,8 +527,10 @@ export class Game {
       window.removeEventListener('keydown', this.boundKeydown);
       this.boundKeydown = null;
     }
-    this.eventRouter.destroy();
-    this.gameScene.destroy();
+    if (this.gameSceneInitialized) {
+      this.eventRouter.destroy();
+      this.gameScene.destroy();
+    }
     this.uiManager.destroy();
     this.input.destroy();
     this.mergeSystem.destroy();
@@ -529,12 +546,18 @@ export class Game {
     this.resultScreen.destroy();
     this.levelSelectScreen.destroy();
     this.pauseScreen.destroy();
-    this.tutorialManager.destroy();
-    this.tutorialOverlay.destroy();
+    if (this.tutorialManager) {
+      this.tutorialManager.destroy();
+    }
+    if (this.tutorialOverlay) {
+      this.tutorialOverlay.destroy();
+    }
     if (this.fpsDisplay) {
       this.fpsDisplay.destroy();
       this.fpsDisplay = null;
     }
+    this.loadingScreen = null;
+    this.gameSceneInitialized = false;
     BlockTextureCache.resetInstance();
     AnimationManager.resetInstance();
     TimeManager.resetInstance();

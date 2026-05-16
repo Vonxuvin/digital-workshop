@@ -6,6 +6,7 @@ export class BlockTextureCache {
   private textures: Map<string, Texture> = new Map();
   private app: Application | null = null;
   private pendingKeys: Set<string> = new Set();
+  private preloadCancelled: boolean = false;
 
   constructor() {}
 
@@ -184,6 +185,36 @@ export class BlockTextureCache {
     }
   }
 
+  preloadMinimal(values: number[]): void {
+    for (const value of values) {
+      this.getTexture(value, false);
+    }
+  }
+
+  async preloadAsync(values: number[], onProgress?: (loaded: number, total: number) => void): Promise<void> {
+    this.preloadCancelled = false;
+    const allValues: number[] = [];
+    for (const value of values) {
+      allValues.push(value);
+    }
+    const total = allValues.length * 2;
+    let loaded = 0;
+    for (const value of allValues) {
+      if (this.preloadCancelled) break;
+      this.getTexture(value, false);
+      loaded++;
+      onProgress?.(loaded, total);
+      this.getTexture(value, true);
+      loaded++;
+      onProgress?.(loaded, total);
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+    }
+  }
+
+  cancelPreload(): void {
+    this.preloadCancelled = true;
+  }
+
   destroy(): void {
     for (const texture of this.textures.values()) {
       if (texture !== Texture.EMPTY) {
@@ -191,6 +222,7 @@ export class BlockTextureCache {
       }
     }
     this.textures.clear();
+    this.preloadCancelled = true;
     this.pendingKeys.clear();
     this.app = null;
   }

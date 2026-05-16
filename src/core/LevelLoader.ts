@@ -1,7 +1,7 @@
 import { LevelConfig } from '../gameplay/LevelSystem';
 import { createPlatformAdapter } from '../platform/PlatformFactory';
 
-const levelModules = import.meta.glob('/src/data/levels/level_*.json', { eager: true }) as Record<string, any>;
+const levelModules = import.meta.glob('/src/data/levels/level_*.json') as Record<string, () => Promise<any>>;
 
 export interface ValidationResult {
   valid: boolean;
@@ -63,9 +63,10 @@ export class LevelLoader {
     }
 
     const moduleKey = `/src/data/levels/level_${String(levelId).padStart(2, '0')}.json`;
-    const moduleData = levelModules[moduleKey];
-    if (moduleData && moduleData.default) {
-      const data = moduleData.default;
+    const moduleLoader = levelModules[moduleKey];
+    if (moduleLoader) {
+      const moduleData = await moduleLoader();
+      const data = moduleData.default || moduleData;
       const validation = this.validateConfig(data);
       if (validation.valid) {
         const config = this.parseLevelConfig(data);
@@ -429,11 +430,12 @@ export class LevelLoader {
   }
 
   async discoverAndLoadAllLevels(): Promise<void> {
-    for (const [path, module] of Object.entries(levelModules)) {
+    for (const [path, moduleLoader] of Object.entries(levelModules)) {
       const match = path.match(/level_(\d+)\.json$/);
       if (match) {
         const levelId = parseInt(match[1], 10);
         if (!this.levelConfigs.has(levelId)) {
+          const module = await moduleLoader();
           const data = module?.default || module;
           if (data) {
             const validation = this.validateConfig(data);
