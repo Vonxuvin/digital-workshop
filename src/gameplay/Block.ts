@@ -55,8 +55,8 @@ export class Block extends Container {
   private config: BlockConfig;
   private sprite: Sprite;
   private _destroyed: boolean = false;
-  public isRainbow: boolean = false;
-  public isObstacle: boolean = false;
+  public readonly isRainbow: boolean;
+  public readonly isObstacle: boolean;
   private obstacleOverlay: Graphics | null = null;
 
   constructor(body: Matter.Body, value: number, isRainbow: boolean = false, isObstacle: boolean = false) {
@@ -141,8 +141,8 @@ export class Block extends Container {
   reinit(body: Matter.Body, value: number, isRainbow: boolean = false, isObstacle: boolean = false): void {
     this.body = body;
     this.value = value;
-    this.isRainbow = isRainbow;
-    this.isObstacle = isObstacle;
+    (this as any).isRainbow = isRainbow;
+    (this as any).isObstacle = isObstacle;
     this.config = getBlockConfig(value);
     this._destroyed = false;
 

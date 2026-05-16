@@ -91,6 +91,18 @@
       "loop": false
     },
     {
+      "key": "shrink",
+      "url": "/assets/audio/sfx/shrink.mp3",
+      "volume": 0.7,
+      "loop": false
+    },
+    {
+      "key": "lucky",
+      "url": "/assets/audio/sfx/lucky.mp3",
+      "volume": 0.7,
+      "loop": false
+    },
+    {
       "key": "propDefault",
       "url": "/assets/audio/sfx/prop_default.mp3",
       "volume": 0.6,
