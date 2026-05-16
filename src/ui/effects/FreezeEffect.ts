@@ -17,11 +17,14 @@ export class FreezeEffect extends PIXI.Container {
   private isExiting: boolean = false;
   private snowflakeTweens: gsap.core.Tween[] = [];
   private entranceTween: gsap.core.Tween | null = null;
+  private exitTimerId: string;
+  private static nextId = 0;
 
   constructor(containerWidth: number, containerHeight: number, onComplete?: () => void) {
     super();
     this.containerWidth = containerWidth;
     this.containerHeight = containerHeight;
+    this.exitTimerId = `freeze_exit_${FreezeEffect.nextId++}`;
     this.createEffect();
     this.playEntrance();
   }
@@ -127,7 +130,7 @@ export class FreezeEffect extends PIXI.Container {
         this.allComplete = true;
         this.destroy();
         resolve();
-      }, 500, 'freeze_exit_delay');
+      }, 500, this.exitTimerId);
     });
   }
 

@@ -35,8 +35,8 @@ export class ExplosionEffect extends PIXI.Container {
       const ring = this.acquireGraphics();
       const ringRadius = (radius / numRings) * (i + 1);
       const alpha = 1 - i * 0.2;
-      ring.fill({ color: 0xff6b6b, alpha });
       ring.circle(0, 0, ringRadius);
+      ring.fill({ color: 0xff6b6b, alpha });
       ring.x = cx;
       ring.y = cy;
       this.addChild(ring);

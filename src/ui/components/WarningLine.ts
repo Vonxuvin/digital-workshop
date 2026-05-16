@@ -73,8 +73,8 @@ export class WarningLine extends Container {
     for (let i = 0; i < this.containerWidth; i += 20) {
       this.graphics.moveTo(i, -5);
       this.graphics.lineTo(i + 10, -5);
+      this.graphics.stroke({ width: 2, color, alpha: alpha * 0.6 });
     }
-    this.graphics.stroke({ width: 2, color, alpha: alpha * 0.6 });
   }
 
   update(blocks: { y: number; radius: number; speed: number }[], deltaMS: number): void {

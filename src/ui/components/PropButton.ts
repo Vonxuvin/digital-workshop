@@ -22,6 +22,7 @@ export class PropButton extends PIXI.Container {
   private cooldownOverlay: PIXI.Graphics;
   private scaleTween: gsap.core.Tween | null = null;
   private currentSize: number;
+  private _isSelected: boolean = false;
 
   constructor(options: PropButtonOptions) {
     super();
@@ -131,7 +132,11 @@ export class PropButton extends PIXI.Container {
   }
 
   private handlePointerOut(): void {
-    this.drawBackground(0x2d3436, 0x636e72);
+    if (this._isSelected) {
+      this.drawBackground(0x3d4446, 0xffd700, 3);
+    } else {
+      this.drawBackground(0x2d3436, 0x636e72);
+    }
     this.killScaleTween();
     this.scaleTween = gsap.to(this.scale, {
       x: 1,
@@ -173,6 +178,7 @@ export class PropButton extends PIXI.Container {
   }
 
   setSelected(): void {
+    this._isSelected = true;
     this.drawBackground(0x3d4446, 0xffd700, 3);
     this.killScaleTween();
     this.scaleTween = gsap.to(this.scale, {
@@ -185,6 +191,7 @@ export class PropButton extends PIXI.Container {
   }
 
   clearSelected(): void {
+    this._isSelected = false;
     this.drawBackground(0x2d3436, 0x636e72);
     this.killScaleTween();
     this.scaleTween = gsap.to(this.scale, {
@@ -212,7 +219,11 @@ export class PropButton extends PIXI.Container {
     this.cooldownOverlay.fill({ color: 0x000000, alpha: 0.5 });
     this.cooldownOverlay.rect(0, 0, newSize, newSize);
 
-    this.drawBackground(0x2d3436, 0x636e72);
+    if (this._isSelected) {
+      this.drawBackground(0x3d4446, 0xffd700, 3);
+    } else {
+      this.drawBackground(0x2d3436, 0x636e72);
+    }
   }
 
   destroy(): void {

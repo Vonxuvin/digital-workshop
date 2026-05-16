@@ -71,8 +71,8 @@ export class ParticleEffect extends PIXI.Container {
         break;
       case 'confetti':
         const colors = [0xff6b6b, 0xffd93d, 0x4ecdc4, 0x9b59b6, 0x3498db];
-        particle.fill({ color: colors[Math.floor(Math.random() * colors.length)] });
         particle.rect(-3, -6, 6, 12);
+        particle.fill({ color: colors[Math.floor(Math.random() * colors.length)] });
         break;
       case 'smoke':
         particle.fill({ color: 0x888888, alpha: 0.3 });
@@ -162,7 +162,6 @@ export class ParticleEffect extends PIXI.Container {
       this.timeline.kill();
       this.timeline = null;
     }
-    this.particles.forEach(p => p.graphics.destroy());
     this.particles = [];
     this.removeChildren();
     super.destroy({ children: true });

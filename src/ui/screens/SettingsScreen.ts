@@ -30,6 +30,12 @@ export class SettingsScreen extends Screen {
     this.addChild(this.overlay);
   }
 
+  private redrawOverlay(): void {
+    this.overlay.clear();
+    this.overlay.rect(0, 0, this.currentScreenWidth, this.currentScreenHeight);
+    this.overlay.fill({ color: 0x000000, alpha: 0.5 });
+  }
+
   private createContent(): void {
     this.contentContainer = new Container();
 
@@ -79,10 +85,9 @@ export class SettingsScreen extends Screen {
 
   show(screenWidth?: number, screenHeight?: number): void {
     this.initialize();
-    if (screenWidth) this.currentScreenWidth = screenWidth;
-    if (screenHeight) this.currentScreenHeight = screenHeight;
-    this.overlay.width = this.currentScreenWidth;
-    this.overlay.height = this.currentScreenHeight;
+    if (screenWidth !== undefined) this.currentScreenWidth = screenWidth;
+    if (screenHeight !== undefined) this.currentScreenHeight = screenHeight;
+    this.redrawOverlay();
     this.contentContainer.position.set(
       (this.currentScreenWidth - 400) / 2,
       (this.currentScreenHeight - 300) / 2,

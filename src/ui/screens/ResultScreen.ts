@@ -136,13 +136,12 @@ export class ResultScreen extends Screen {
       this.showDetails(data);
     }
 
+    this.showButtons(data.isWin);
     this.layout(this.screenWidth, this.screenHeight);
 
     if (data.isWin && data.stars > 0) {
       this.animateStars(data.stars);
     }
-
-    this.showButtons(data.isWin);
   }
 
   private animateStars(earnedStars: number): void {
@@ -269,17 +268,14 @@ export class ResultScreen extends Screen {
     this.detailsContainer.x = screenWidth / 2;
 
     const btnY = 460;
-    let btnX = screenWidth / 2;
 
     if (this._nextButton) {
-      this._nextButton.x = btnX;
+      this._nextButton.x = screenWidth / 2;
       this._nextButton.y = btnY;
-      btnX = screenWidth / 2;
     }
     if (this._reviveButton) {
-      this._reviveButton.x = btnX;
+      this._reviveButton.x = screenWidth / 2;
       this._reviveButton.y = btnY;
-      btnX = screenWidth / 2;
     }
     if (this._retryButton) {
       this._retryButton.x = screenWidth / 2 - 80;
@@ -309,7 +305,9 @@ export class ResultScreen extends Screen {
 
   hide(): void {
     this.onHide();
-  }update(): void {}
+  }
+
+  update(): void {}
 
   destroy(): void {
     if (this._starTimeline) {

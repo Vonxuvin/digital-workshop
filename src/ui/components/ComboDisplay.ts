@@ -38,6 +38,10 @@ export class ComboDisplay extends Container {
   }
 
   showCombo(comboCount: number, screenWidth?: number, screenHeight?: number): void {
+    if (this.fadeTween) {
+      this.fadeTween.kill();
+      this.fadeTween = null;
+    }
     this.currentCombo = comboCount;
     if (comboCount < 2) {
       this.hide();

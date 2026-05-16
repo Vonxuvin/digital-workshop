@@ -130,7 +130,6 @@ export class MergeEffect extends PIXI.Container {
 
   private createStar(color: number, size: number): PIXI.Graphics {
     const star = this.acquireGraphics();
-    star.fill({ color, alpha: 0.8 });
     const points = 5;
     const outerRadius = size;
     const innerRadius = size * 0.4;
@@ -146,6 +145,7 @@ export class MergeEffect extends PIXI.Container {
       }
     }
     star.closePath();
+    star.fill({ color, alpha: 0.8 });
     return star;
   }
 

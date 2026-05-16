@@ -37,7 +37,7 @@ export class UIManager {
     this.getLayer('overlay').addChild(this.modalOverlay);
   }
 
-  getLayer(name: string): Container {
+  getLayer(name: LayerName): Container {
     const layer = this.layers.get(name);
     if (!layer) {
       throw new Error(`Layer "${name}" not found. Available layers: ${LAYER_ORDER.join(', ')}`);
@@ -149,6 +149,9 @@ export class UIManager {
     if (this.currentPopup) {
       if ((this.currentPopup as any).destroy) (this.currentPopup as any).destroy();
       this.currentPopup = null;
+    }
+    for (const queuedPopup of this.popupQueue) {
+      if ((queuedPopup as any).destroy) (queuedPopup as any).destroy();
     }
     this.popupQueue = [];
     for (const layer of this.layers.values()) {

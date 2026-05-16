@@ -26,6 +26,7 @@ export class BlockPreviewUI extends Container {
 
   private draw(value: number): void {
     const config = BLOCK_CONFIGS[value] || BLOCK_CONFIGS[1];
+    if (!config) return;
     this.previewGraphics.clear();
     this.previewGraphics.circle(0, 0, config.radius);
     this.previewGraphics.fill(config.color);

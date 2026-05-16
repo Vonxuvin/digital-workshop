@@ -1,5 +1,6 @@
 import { Container, Graphics } from 'pixi.js';
 import gsap from 'gsap';
+import { TimeManager } from '../../utils/TimeManager';
 
 export class UIProgressBar extends Container {
   private track: Graphics;
@@ -74,6 +75,9 @@ export class UIProgressBar extends Container {
         this.progressTween = null;
       },
     });
+
+    const timeline = TimeManager.getInstance().getGameTimeline();
+    timeline.add(this.progressTween, timeline.time());
   }
 
   setColors(trackColor: number, fillColor: number): void {

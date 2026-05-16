@@ -475,6 +475,7 @@ export class GameHUD extends Container {
       this.scoreTween.kill();
       this.scoreTween = null;
     }
+    this._propButtons.forEach((button) => button.destroy());
     this._propButtons.clear();
     super.destroy();
   }

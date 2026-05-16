@@ -61,12 +61,17 @@ export class UIPanel extends Container {
 
   private drawBackground(): void {
     this.background.clear();
+
+    this.background.beginPath();
     this.background.roundRect(0, 0, this.panelWidth, this.panelHeight, 12);
     this.background.fill({ color: 0x1a1a2e, alpha: 0.9 });
+    this.background.closePath();
 
+    this.background.beginPath();
     this.background.moveTo(0, 50);
     this.background.lineTo(this.panelWidth, 50);
     this.background.stroke({ width: 1, color: 0x444466 });
+    this.background.closePath();
   }
 
   setTitle(text: string): void {
@@ -82,11 +87,11 @@ export class UIPanel extends Container {
 
     this.visible = true;
 
-    const targetY = this.y;
-    this.y = targetY + this.panelHeight;
+    const targetY = this.y + this.panelHeight;
+    this.y = targetY;
 
     this.panelTween = gsap.to(this, {
-      y: targetY,
+      y: targetY - this.panelHeight,
       duration: 0.3,
       ease: 'power3.out',
       onComplete: () => {

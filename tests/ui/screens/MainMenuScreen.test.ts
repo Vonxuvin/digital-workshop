@@ -153,8 +153,8 @@ describe('MainMenuScreen', () => {
 
   it('should handle show with zero dimensions', () => {
     screen.show(0, 0);
-    expect((screen as any).currentScreenWidth).toBe(800);
-    expect((screen as any).currentScreenHeight).toBe(600);
+    expect((screen as any).currentScreenWidth).toBe(0);
+    expect((screen as any).currentScreenHeight).toBe(0);
   });
 
   it('should handle button pointerover and pointerout', () => {

@@ -207,8 +207,17 @@ export class MainMenuScreen extends Screen {
   }
 
   show(screenWidth?: number, screenHeight?: number): void {
-    this.currentScreenWidth = screenWidth || 800;
-    this.currentScreenHeight = screenHeight || 600;
+    const newWidth = screenWidth ?? 800;
+    const newHeight = screenHeight ?? 600;
+    const needsReinit = this.initialized &&
+      (this.currentScreenWidth !== newWidth || this.currentScreenHeight !== newHeight);
+
+    this.currentScreenWidth = newWidth;
+    this.currentScreenHeight = newHeight;
+
+    if (needsReinit) {
+      this.initialized = false;
+    }
     this.initialize();
 
     this.visible = true;

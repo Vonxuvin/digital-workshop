@@ -32,6 +32,12 @@ export class PauseScreen extends Screen {
     this.addChild(this.overlay);
   }
 
+  private redrawOverlay(): void {
+    this.overlay.clear();
+    this.overlay.rect(0, 0, this.currentScreenWidth, this.currentScreenHeight);
+    this.overlay.fill({ color: 0x000000, alpha: 0.7 });
+  }
+
   private createContent(): void {
     this.contentContainer = new Container();
     this.contentContainer.x = this.currentScreenWidth / 2;
@@ -108,9 +114,12 @@ export class PauseScreen extends Screen {
   }
 
   show(screenWidth?: number, screenHeight?: number): void {
-    this.currentScreenWidth = screenWidth || 800;
-    this.currentScreenHeight = screenHeight || 600;
+    this.currentScreenWidth = screenWidth ?? 800;
+    this.currentScreenHeight = screenHeight ?? 600;
     this.initialize();
+    this.redrawOverlay();
+    this.contentContainer.x = this.currentScreenWidth / 2;
+    this.contentContainer.y = this.currentScreenHeight / 2;
     this.visible = true;
   }
 

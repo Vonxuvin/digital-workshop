@@ -21,6 +21,7 @@ export class UIButton extends Container {
   private clickCooldown = false;
   private readonly COOLDOWN_MS = 300;
   private scaleTween: gsap.core.Tween | null = null;
+  private cooldownTimerId: ReturnType<typeof setTimeout> | null = null;
 
   constructor(options: UIButtonOptions) {
     super();
@@ -87,8 +88,9 @@ export class UIButton extends Container {
       this.animateRelease();
       this.clickCooldown = true;
       this.options.onClick();
-      setTimeout(() => {
+      this.cooldownTimerId = setTimeout(() => {
         this.clickCooldown = false;
+        this.cooldownTimerId = null;
       }, this.COOLDOWN_MS);
     }
   }
@@ -131,6 +133,10 @@ export class UIButton extends Container {
 
   destroy(): void {
     this.killScaleTween();
+    if (this.cooldownTimerId !== null) {
+      clearTimeout(this.cooldownTimerId);
+      this.cooldownTimerId = null;
+    }
     super.destroy();
   }
 }
