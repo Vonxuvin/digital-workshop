@@ -66,6 +66,7 @@ export class Game {
   private fpsDisplay: Text | null = null;
   private boundHandleResize: (() => void) | null = null;
   private boundUpdate: (() => void) | null = null;
+  private boundStateChange: ((from: any, to: any) => void) | null = null;
   private tutorialOverlay!: TutorialOverlay;
   private tutorialManager!: TutorialManager;
   private platform!: PlatformAdapter;
@@ -248,12 +249,13 @@ export class Game {
 
       this.setupFPSDisplay();
 
-      this.stateMachine.onAnyChange((from, to) => {
+      this.boundStateChange = (from, to) => {
         console.log(`[Game] 状态变化: ${from} -> ${to}`);
         const isPlaying = to === 'playing';
         this.gameScene.setHUDVisible(isPlaying);
         this.gameScene.setWarningLineVisible(isPlaying);
-      });
+      };
+      this.stateMachine.onAnyChange(this.boundStateChange);
 
       this.boundUpdate = this.update.bind(this);
       this.app.ticker.add(this.boundUpdate);
@@ -415,6 +417,10 @@ export class Game {
   getEventBus() { return eventBus; }
 
   destroy(): void {
+    if (this.boundStateChange) {
+      this.stateMachine.offAnyChange(this.boundStateChange);
+      this.boundStateChange = null;
+    }
     if (this.boundHandleResize) {
       window.removeEventListener('resize', this.boundHandleResize);
       this.boundHandleResize = null;
