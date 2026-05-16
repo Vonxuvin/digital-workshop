@@ -84,8 +84,8 @@ describe('ParticleEffect', () => {
 });
 
 describe('ParticleEffect count limit', () => {
-  it('should define MAX_PARTICLE_COUNT as 50', () => {
-    expect(MAX_PARTICLE_COUNT).toBe(50);
+  it('should define MAX_PARTICLE_COUNT as 30', () => {
+    expect(MAX_PARTICLE_COUNT).toBe(30);
   });
 
   it('should clamp particle count to MAX_PARTICLE_COUNT', () => {

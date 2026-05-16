@@ -4,7 +4,7 @@ import { TimeManager } from '../../utils/TimeManager';
 
 export type ParticleType = 'sparkle' | 'confetti' | 'smoke' | 'bubble';
 
-export const MAX_PARTICLE_COUNT = 50;
+export const MAX_PARTICLE_COUNT = 30;
 
 export interface ParticleConfig {
   type: ParticleType;
