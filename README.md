@@ -47,13 +47,13 @@ digital-workshop/
 │   │   ├── screens/             # 全屏界面
 │   │   ├── components/          # UI 组件
 │   │   └── hud/                 # 游戏内 HUD
-│   ├── progression/             # 成长系统
+│   ├── progression/             # 成长系统（规划中，预计 Week 7–8）
 │   │   ├── TalentSystem.ts      # 天赋系统
 │   │   ├── AchievementSystem.ts # 成就系统
 │   │   ├── PassSystem.ts        # 通行证系统
 │   │   ├── SkinSystem.ts        # 皮肤系统
 │   │   └── LeaderboardSystem.ts # 排行榜系统
-│   ├── monetization/            # 变现系统
+│   ├── monetization/            # 变现系统（规划中，预计 Week 7–8）
 │   │   ├── AdManager.ts         # 广告管理器
 │   │   ├── IAPManager.ts        # 内购管理器
 │   │   ├── ShopManager.ts       # 商店管理器
