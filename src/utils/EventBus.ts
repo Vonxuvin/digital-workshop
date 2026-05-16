@@ -1,7 +1,8 @@
 import { EventPayloadMap } from './EventPayloadMap';
 import { GameEvents, GameEvent } from './GameEvents';
 
-export { GameEvents, GameEvent } from './GameEvents';
+export { GameEvents } from './GameEvents';
+export type { GameEvent } from './GameEvents';
 
 type EventCallback<T = any> = (payload: T) => void;
 
