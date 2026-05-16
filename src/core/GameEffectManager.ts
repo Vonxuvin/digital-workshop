@@ -52,6 +52,9 @@ export class GameEffectManager {
   addMergeEffect(x: number, y: number, oldValue: number, newValue: number): void {
     this.cleanup();
     if (this.effects.length >= MAX_ACTIVE_EFFECTS) return;
+    const particleCount = Math.min(newValue, 20);
+    if (!this.canAddParticles(particleCount)) return;
+    this.trackParticles(particleCount);
     const effect = new MergeEffect({
       x,
       y,
@@ -65,6 +68,9 @@ export class GameEffectManager {
   addExplosionEffect(x: number, y: number, radius: number): void {
     this.cleanup();
     if (this.effects.length >= MAX_ACTIVE_EFFECTS) return;
+    const particleCount = Math.min(Math.floor(radius / 5), 30);
+    if (!this.canAddParticles(particleCount)) return;
+    this.trackParticles(particleCount);
     const effect = new ExplosionEffect(x, y, radius, undefined, this.graphicsPool);
     this.stage.addChild(effect);
     this.effects.push(effect);
