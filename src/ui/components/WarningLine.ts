@@ -13,6 +13,8 @@ const DEFAULT_WARNING_CONFIG: WarningConfig = {
   gracePeriod: 1000,
 };
 
+const SETTLE_CHECK_DURATION = 200;
+
 export class WarningLine extends Container {
   private graphics: Graphics;
   private countdownText: Text;
@@ -27,6 +29,8 @@ export class WarningLine extends Container {
   private graceTimer = 0;
   private disabled = false;
   private config: WarningConfig;
+  private settleTimer = 0;
+  private wasSettled = false;
 
   private currentColor: number = 0xff4444;
   private currentAlpha: number = 0.8;
@@ -86,6 +90,12 @@ export class WarningLine extends Container {
     );
 
     if (hasBlockAboveLine) {
+      this.settleTimer += deltaMS;
+      if (this.settleTimer < SETTLE_CHECK_DURATION && !this.wasSettled) {
+        this.drawLine(0xff8844, 0.6);
+        return;
+      }
+      this.wasSettled = true;
       this.graceTimer = 0;
       if (!this.isWarning) {
         this.isWarning = true;
@@ -104,6 +114,8 @@ export class WarningLine extends Container {
         this.countdownText.visible = false;
       }
     } else {
+      this.settleTimer = 0;
+      this.wasSettled = false;
       if (this.isWarning) {
         this.graceTimer += deltaMS;
         if (this.graceTimer >= this.GRACE_PERIOD) {
@@ -158,6 +170,8 @@ export class WarningLine extends Container {
     this.warningDuration = 0;
     this.flashTimer = 0;
     this.graceTimer = 0;
+    this.settleTimer = 0;
+    this.wasSettled = false;
     this.drawLine(0xff4444, 0.8);
     this.countdownText.visible = false;
   }
