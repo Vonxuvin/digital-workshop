@@ -14,7 +14,6 @@ export class GameInputHandler {
   private gameHUD: GameHUD;
   private canvas: HTMLCanvasElement;
   private boundKeydown: ((e: KeyboardEvent) => void) | null = null;
-  private static readonly TOUCH_OFFSET_Y = 30;
 
   constructor(
     app: Application,
@@ -99,11 +98,18 @@ export class GameInputHandler {
   }
 
   private calculateDropY(touchY: number): number {
+    const touchOffsetY = this.getTouchOffsetY();
     const offset = this.gameScene.getContainerOffsetX() > 0 ? 80 : 60;
     const maxDropY = this.gameScene.getContainerHeight() > 0
       ? this.gameScene.getContainerHeight() * 0.5
       : 300;
-    return Math.max(60, Math.min(touchY - GameInputHandler.TOUCH_OFFSET_Y, maxDropY));
+    return Math.max(60, Math.min(touchY - touchOffsetY, maxDropY));
+  }
+
+  private getTouchOffsetY(): number {
+    const dpr = window.devicePixelRatio || 1;
+    const screenHeight = this.app.screen.height || 600;
+    return Math.round(screenHeight * 0.05 * dpr);
   }
 
   syncInputScale(): void {
