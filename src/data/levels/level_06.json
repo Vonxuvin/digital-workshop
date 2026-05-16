@@ -2,7 +2,7 @@
   "id": 6,
   "name": "挡板初体验",
   "objective": { "type": "score", "target": 2500 },
-  "container": { "width": 400, "height": 600 },
+  "container": { "width": 400, "height": 600, "shape": "rectangle" },
   "spawn": { "availableNumbers": [1, 2, 4, 8, 16], "spawnInterval": 0 },
   "modifiers": [
     {

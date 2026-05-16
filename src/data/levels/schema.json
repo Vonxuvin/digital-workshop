@@ -21,8 +21,7 @@
       "properties": {
         "width": { "type": "number", "minimum": 100 },
         "height": { "type": "number", "minimum": 100 },
-        "shape": { "type": "string", "enum": ["rectangle", "circle", "custom"] },
-        "modifiers": { "type": "array" }
+        "shape": { "type": "string", "enum": ["rectangle", "circle", "custom"] }
       }
     },
     "spawn": {
@@ -32,6 +31,30 @@
         "availableNumbers": { "type": "array", "items": { "type": "number" }, "minItems": 1 },
         "initialBlocks": { "type": "array" },
         "spawnInterval": { "type": "number", "minimum": 0 }
+      }
+    },
+    "modifiers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "enabled"],
+        "properties": {
+          "type": { "type": "string", "enum": ["paddle", "rotate", "shrink"] },
+          "enabled": { "type": "boolean" },
+          "side": { "type": "string", "enum": ["left", "right"] },
+          "extendDuration": { "type": "number", "minimum": 0 },
+          "retractDuration": { "type": "number", "minimum": 0 },
+          "extendLength": { "type": "number", "minimum": 0 },
+          "triggerInterval": { "type": "number", "minimum": 0 },
+          "yPosition": { "type": "number" },
+          "mode": { "type": "string", "enum": ["extend"] },
+          "rotationSpeed": { "type": "number" },
+          "maxAngle": { "type": "number" },
+          "oscillate": { "type": "boolean" },
+          "duration": { "type": "number" },
+          "containerOffsetX": { "type": "number" },
+          "shrinkAmount": { "type": "number", "minimum": 0 }
+        }
       }
     },
     "obstacles": {
