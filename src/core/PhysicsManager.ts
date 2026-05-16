@@ -27,6 +27,7 @@ export class PhysicsManager {
   private readonly fixedStep = 1000 / 60;
   private readonly maxVelocity = 20;
   private physicsConfig: PhysicsConfig;
+  private collisionCallbackMap: Map<(pair: Matter.Pair) => void, (event: any) => void> = new Map();
 
   constructor() {
     this.physicsConfig = { ...DEFAULT_PHYSICS_CONFIG };
@@ -56,6 +57,7 @@ export class PhysicsManager {
   }
 
   resume(): void {
+    if (this.running) return;
     this.running = true;
   }
 
@@ -99,6 +101,7 @@ export class PhysicsManager {
   clearAll(): void {
     Matter.Composite.clear(this.engine.world, false);
     this.bodies.clear();
+    this.bodyToId.clear();
     this.idCounter = 0;
   }
 
@@ -162,35 +165,30 @@ export class PhysicsManager {
     };
   }
 
-  private collisionCallbacks: Array<(pair: Matter.Pair) => void> = [];
-  private collisionWrappers: Array<(event: any) => void> = [];
-
   onCollisionStart(callback: (pair: Matter.Pair) => void): void {
-    this.collisionCallbacks.push(callback);
     const wrapper = (event: any) => {
       event.pairs.forEach(callback);
     };
-    this.collisionWrappers.push(wrapper);
+    this.collisionCallbackMap.set(callback, wrapper);
     Matter.Events.on(this.engine, 'collisionStart', wrapper);
   }
 
   offCollisionStart(callback: (pair: Matter.Pair) => void): void {
-    const index = this.collisionCallbacks.indexOf(callback);
-    if (index !== -1) {
-      this.collisionCallbacks.splice(index, 1);
-      const wrapper = this.collisionWrappers.splice(index, 1)[0];
+    const wrapper = this.collisionCallbackMap.get(callback);
+    if (wrapper) {
       Matter.Events.off(this.engine, 'collisionStart', wrapper);
+      this.collisionCallbackMap.delete(callback);
     }
   }
 
   destroy(): void {
-    for (const wrapper of this.collisionWrappers) {
+    for (const wrapper of this.collisionCallbackMap.values()) {
       Matter.Events.off(this.engine, 'collisionStart', wrapper);
     }
-    this.collisionCallbacks = [];
-    this.collisionWrappers = [];
+    this.collisionCallbackMap.clear();
     Matter.Engine.clear(this.engine);
     this.bodies.clear();
+    this.bodyToId.clear();
     this.running = false;
   }
 
