@@ -1,6 +1,6 @@
 
 import { Container, Text, Graphics } from 'pixi.js';
-import { eventBus } from '../../utils/EventBus';
+import { eventBus, GameEvents } from '../../utils/EventBus';
 import { UIProgressBar } from '../components/UIProgressBar';
 import { PropButton } from '../components/PropButton';
 import { PropSystem } from '../../gameplay/props/PropSystem';
@@ -164,7 +164,7 @@ export class GameHUD extends Container {
       const success = this.propSystem.useProp(type);
       if (success) {
         this.updatePropButtons();
-        eventBus.emit('props:used', { type });
+        eventBus.emit(GameEvents.PROPS_USED, { type });
       }
     }
   }
@@ -172,7 +172,7 @@ export class GameHUD extends Container {
   private enterBombTargetMode(): void {
     this.selectedProp = PropType.BOMB;
     this.propTargetMode = true;
-    eventBus.emit('ui:propTargetMode', { type: PropType.BOMB, enabled: true });
+    eventBus.emit(GameEvents.UI_PROP_TARGET_MODE, { type: PropType.BOMB, enabled: true });
   }
 
   usePropAtPosition(x: number, y: number): void {
@@ -181,7 +181,7 @@ export class GameHUD extends Container {
     const success = this.propSystem.useProp(this.selectedProp, { x, y });
     if (success) {
       this.updatePropButtons();
-      eventBus.emit('props:used', { type: this.selectedProp, x, y });
+      eventBus.emit(GameEvents.PROPS_USED, { type: this.selectedProp, x, y });
     }
     
     this.exitPropTargetMode();
@@ -192,7 +192,7 @@ export class GameHUD extends Container {
     this.propTargetMode = false;
     this.setPropSelected(null);
     this.hideCrosshair();
-    eventBus.emit('ui:propTargetMode', { enabled: false });
+    eventBus.emit(GameEvents.UI_PROP_TARGET_MODE, { enabled: false });
   }
 
   private exitBombTargetMode(): void {
@@ -273,7 +273,7 @@ export class GameHUD extends Container {
     this._pauseButton.cursor = 'pointer';
 
     this._pauseButton.on('pointerdown', () => {
-      eventBus.emit('ui:pause');
+      eventBus.emit(GameEvents.UI_PAUSE);
     });
 
     this.addChild(this._pauseButton);
@@ -337,7 +337,7 @@ export class GameHUD extends Container {
   }
 
   private setupEventListeners(): void {
-    eventBus.on('score:updated', this.onScoreUpdatedBound);
+    eventBus.on(GameEvents.SCORE_UPDATED, this.onScoreUpdatedBound);
   }
 
   private handleScoreUpdated(data: { totalScore: number; earnedScore: number; chainCount: number }): void {

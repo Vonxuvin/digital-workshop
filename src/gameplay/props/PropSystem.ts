@@ -1,4 +1,4 @@
-import { eventBus } from '../../utils/EventBus';
+import { eventBus, GameEvents } from '../../utils/EventBus';
 import { Prop, PropConfig, PropType } from './Prop';
 import { BombProp } from './BombProp';
 import { RainbowProp } from './RainbowProp';
@@ -56,7 +56,7 @@ export class PropSystem {
         this.props.set(prop.type, propInstance);
       }
     }
-    this.eventBus.emit('props:initialized', { props: this.getAllProps() });
+    this.eventBus.emit(GameEvents.PROPS_INITIALIZED, { props: this.getAllProps() });
   }
 
   private createPropInstance(type: PropType, config: PropConfig): Prop {
@@ -81,13 +81,13 @@ export class PropSystem {
     
     const prop = this.props.get(type);
     if (!prop || !prop.canUse()) {
-      this.eventBus.emit('props:useFailed', { type, reason: 'notAvailable' });
+      this.eventBus.emit(GameEvents.PROPS_USE_FAILED, { type, reason: 'notAvailable' });
       return false;
     }
 
     const success = prop.use(target);
     if (success) {
-      this.eventBus.emit('props:used', { type, remaining: prop.getRemainingCount() });
+      this.eventBus.emit(GameEvents.PROPS_USED, { type, remaining: prop.getRemainingCount() });
       console.log(`[PropSystem] props:used`, { type, remaining: prop.getRemainingCount() });
     }
     return success;
@@ -124,7 +124,7 @@ export class PropSystem {
 
   reset(): void {
     this.props.forEach(prop => prop.reset());
-    this.eventBus.emit('props:reset');
+    this.eventBus.emit(GameEvents.PROPS_RESET);
   }
 
   destroy(): void {

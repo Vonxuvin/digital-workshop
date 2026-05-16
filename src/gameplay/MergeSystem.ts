@@ -2,7 +2,7 @@ import Matter from 'matter-js';
 import { Block, getBlockConfig } from './Block';
 import { PhysicsManager } from '../core/PhysicsManager';
 import { ScoreSystem } from './ScoreSystem';
-import { eventBus } from '../utils/EventBus';
+import { eventBus, GameEvents } from '../utils/EventBus';
 import { AnimationManager } from '../utils/AnimationManager';
 import { BlockPool } from '../core/BlockPool';
 
@@ -107,7 +107,7 @@ export class MergeSystem {
     this.obstacles.delete(label);
     this.physics.removeBody(obstacle.body);
     obstacle.destroy();
-    eventBus.emit('obstacle:cleared');
+    eventBus.emit(GameEvents.OBSTACLE_CLEARED);
     console.log(`[MergeSystem] 障碍物已清除`);
   }
 
@@ -159,7 +159,7 @@ export class MergeSystem {
     if (this.scoreSystem) {
       this.scoreSystem.addMergeScore(mergedValue, chainDepth > 0);
     }
-    eventBus.emit('block:merged', {
+    eventBus.emit(GameEvents.BLOCK_MERGED, {
       newValue: mergedValue,
       position: { x: posX, y: posY },
       chainCount: chainDepth,

@@ -1,4 +1,4 @@
-import { eventBus } from '../utils/EventBus';
+import { eventBus, GameEvents } from '../utils/EventBus';
 import type { ModifierConfig } from './modifiers/ContainerModifier';
 
 export type ObjectiveType = 'score' | 'target_merge' | 'clear_obstacle' | 'survival';
@@ -65,9 +65,9 @@ export class LevelSystem {
   }
 
   private setupEventListeners(): void {
-    eventBus.on('score:updated', this.onScoreUpdatedBound);
-    eventBus.on('block:merged', this.onBlockMergedBound);
-    eventBus.on('obstacle:cleared', this.onObstacleClearedBound);
+    eventBus.on(GameEvents.SCORE_UPDATED, this.onScoreUpdatedBound);
+    eventBus.on(GameEvents.BLOCK_MERGED, this.onBlockMergedBound);
+    eventBus.on(GameEvents.OBSTACLE_CLEARED, this.onObstacleClearedBound);
   }
 
   private handleScoreUpdated(data: { totalScore: number }): void {
@@ -157,7 +157,7 @@ export class LevelSystem {
       time: this.survivalTime,
       highestMergeValue: this.highestMergeValue,
     };
-    eventBus.emit('level:completed', eventData);
+    eventBus.emit(GameEvents.LEVEL_COMPLETED, eventData);
   }
 
   stopTimer(): void {
@@ -173,7 +173,7 @@ export class LevelSystem {
       if (elapsedSeconds !== this.survivalTime) {
         this.survivalTime = elapsedSeconds;
         const remaining = Math.max(0, this.config.objective.timeLimit - this.survivalTime);
-        eventBus.emit('level:timeUpdate', remaining);
+        eventBus.emit(GameEvents.LEVEL_TIME_UPDATE, remaining);
       }
 
       if (this.config.objective.type === 'survival' && this.survivalTime >= this.config.objective.timeLimit) {

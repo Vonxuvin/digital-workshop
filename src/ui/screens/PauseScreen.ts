@@ -1,6 +1,6 @@
 import { Container, Text, Graphics } from 'pixi.js';
 import { Screen } from '../UIManager';
-import { eventBus } from '../../utils/EventBus';
+import { eventBus, GameEvents } from '../../utils/EventBus';
 
 export class PauseScreen extends Screen {
   private contentContainer!: Container;
@@ -59,21 +59,21 @@ export class PauseScreen extends Screen {
     this.continueButton = this.createButton('继续游戏', 0x4ECDC4);
     this.continueButton.y = 0;
     this.continueButton.on('pointerdown', () => {
-      eventBus.emit('ui:resume');
+      eventBus.emit(GameEvents.UI_RESUME);
     });
     this.contentContainer.addChild(this.continueButton);
 
     this.restartButton = this.createButton('重新开始', 0xFF6B6B);
     this.restartButton.y = 60;
     this.restartButton.on('pointerdown', () => {
-      eventBus.emit('ui:restart');
+      eventBus.emit(GameEvents.UI_RESTART);
     });
     this.contentContainer.addChild(this.restartButton);
 
     this.menuButton = this.createButton('返回主菜单', 0x95E1D3);
     this.menuButton.y = 120;
     this.menuButton.on('pointerdown', () => {
-      eventBus.emit('ui:backToMenu');
+      eventBus.emit(GameEvents.UI_BACK_TO_MENU);
     });
     this.contentContainer.addChild(this.menuButton);
 

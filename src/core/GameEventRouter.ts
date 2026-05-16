@@ -4,7 +4,7 @@ import { AudioManager } from './AudioManager';
 import { SaveManager } from './SaveManager';
 import { LevelLoader } from './LevelLoader';
 import { PropType } from '../gameplay/props/Prop';
-import { eventBus, NamespacedEventBus } from '../utils/EventBus';
+import { eventBus, NamespacedEventBus, GameEvents } from '../utils/EventBus';
 
 export class GameEventRouter {
   private gameScene: GameScene;
@@ -30,34 +30,34 @@ export class GameEventRouter {
   }
 
   setup(): void {
-    this.ns.on('block:merged', this.handleBlockMerged.bind(this));
-    this.ns.on('block:dropped', this.handleBlockDropped.bind(this));
-    this.ns.on('game:over', this.handleGameOver.bind(this));
-    this.ns.on('game:timeout', this.handleTimeout.bind(this));
-    this.ns.on('level:completed', this.handleLevelCompleted.bind(this));
-    this.ns.on('ui:startGame', this.handleStartGame.bind(this));
-    this.ns.on('ui:selectLevel', this.handleSelectLevel.bind(this));
-    this.ns.on('ui:pause', this.handlePause.bind(this));
-    this.ns.on('ui:resume', this.handleResume.bind(this));
-    this.ns.on('ui:restart', this.handleRestart.bind(this));
-    this.ns.on('ui:backToMenu', this.handleBackToMenu.bind(this));
-    this.ns.on('ui:nextLevel', this.handleNextLevel.bind(this));
-    this.ns.on('ui:levelSelect', this.handleLevelSelect.bind(this));
-    this.ns.on('ui:revive', this.handleRevive.bind(this));
-    this.ns.on('props:bomb:explode', this.handleBombExplode.bind(this));
-    this.ns.on('props:freeze:activated', this.handleFreezeActivated.bind(this));
-    this.ns.on('props:freeze:deactivated', this.handleFreezeDeactivated.bind(this));
-    this.ns.on('ui:propTargetMode', this.handlePropTargetMode.bind(this));
-    this.ns.on('gameplay:nextBlock', this.handleNextRainbowBlock.bind(this));
-    this.ns.on('props:rainbow:consumed', this.handleRainbowConsumed.bind(this));
-    this.ns.on('props:shrink:activate', this.handleShrinkActivate.bind(this));
-    this.ns.on('props:shrink:deactivate', this.handleShrinkDeactivate.bind(this));
-    this.ns.on('props:lucky:activate', this.handleLuckyActivate.bind(this));
-    this.ns.on('props:lucky:deactivate', this.handleLuckyDeactivate.bind(this));
-    this.ns.on('level:timeUpdate', this.handleLevelTimeUpdate.bind(this));
-    this.ns.on('score:updated', this.handleScoreUpdated.bind(this));
-    this.ns.on('warning:started', this.handleWarningStarted.bind(this));
-    this.ns.on('warning:ended', this.handleWarningEnded.bind(this));
+    this.ns.on(GameEvents.BLOCK_MERGED, this.handleBlockMerged.bind(this));
+    this.ns.on(GameEvents.BLOCK_DROPPED, this.handleBlockDropped.bind(this));
+    this.ns.on(GameEvents.GAME_OVER, this.handleGameOver.bind(this));
+    this.ns.on(GameEvents.GAME_TIMEOUT, this.handleTimeout.bind(this));
+    this.ns.on(GameEvents.LEVEL_COMPLETED, this.handleLevelCompleted.bind(this));
+    this.ns.on(GameEvents.UI_START_GAME, this.handleStartGame.bind(this));
+    this.ns.on(GameEvents.UI_SELECT_LEVEL, this.handleSelectLevel.bind(this));
+    this.ns.on(GameEvents.UI_PAUSE, this.handlePause.bind(this));
+    this.ns.on(GameEvents.UI_RESUME, this.handleResume.bind(this));
+    this.ns.on(GameEvents.UI_RESTART, this.handleRestart.bind(this));
+    this.ns.on(GameEvents.UI_BACK_TO_MENU, this.handleBackToMenu.bind(this));
+    this.ns.on(GameEvents.UI_NEXT_LEVEL, this.handleNextLevel.bind(this));
+    this.ns.on(GameEvents.UI_LEVEL_SELECT, this.handleLevelSelect.bind(this));
+    this.ns.on(GameEvents.UI_REVIVE, this.handleRevive.bind(this));
+    this.ns.on(GameEvents.PROPS_BOMB_EXPLODE, this.handleBombExplode.bind(this));
+    this.ns.on(GameEvents.PROPS_FREEZE_ACTIVATED, this.handleFreezeActivated.bind(this));
+    this.ns.on(GameEvents.PROPS_FREEZE_DEACTIVATED, this.handleFreezeDeactivated.bind(this));
+    this.ns.on(GameEvents.UI_PROP_TARGET_MODE, this.handlePropTargetMode.bind(this));
+    this.ns.on(GameEvents.GAMEPLAY_NEXT_BLOCK, this.handleNextRainbowBlock.bind(this));
+    this.ns.on(GameEvents.PROPS_RAINBOW_CONSUMED, this.handleRainbowConsumed.bind(this));
+    this.ns.on(GameEvents.PROPS_SHRINK_ACTIVATE, this.handleShrinkActivate.bind(this));
+    this.ns.on(GameEvents.PROPS_SHRINK_DEACTIVATE, this.handleShrinkDeactivate.bind(this));
+    this.ns.on(GameEvents.PROPS_LUCKY_ACTIVATE, this.handleLuckyActivate.bind(this));
+    this.ns.on(GameEvents.PROPS_LUCKY_DEACTIVATE, this.handleLuckyDeactivate.bind(this));
+    this.ns.on(GameEvents.LEVEL_TIME_UPDATE, this.handleLevelTimeUpdate.bind(this));
+    this.ns.on(GameEvents.SCORE_UPDATED, this.handleScoreUpdated.bind(this));
+    this.ns.on(GameEvents.WARNING_STARTED, this.handleWarningStarted.bind(this));
+    this.ns.on(GameEvents.WARNING_ENDED, this.handleWarningEnded.bind(this));
   }
 
   private handleBlockMerged(data: BlockMergedData): void {

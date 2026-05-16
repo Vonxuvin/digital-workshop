@@ -1,5 +1,5 @@
 import { Container, Text } from 'pixi.js';
-import { eventBus } from '../../utils/EventBus';
+import { eventBus, GameEvents } from '../../utils/EventBus';
 
 export class ScoreBoard extends Container {
   private scoreText: Text;
@@ -38,7 +38,7 @@ export class ScoreBoard extends Container {
   }
 
   private setupEventListeners(): void {
-    eventBus.on('score:updated', this.onScoreUpdatedBound);
+    eventBus.on(GameEvents.SCORE_UPDATED, this.onScoreUpdatedBound);
   }
 
   private handleScoreUpdated(data: { totalScore: number; earnedScore: number; chainCount: number }): void {

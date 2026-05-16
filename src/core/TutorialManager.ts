@@ -1,6 +1,6 @@
 import { TutorialOverlay, TutorialStep } from '../ui/TutorialOverlay';
 import { SaveManager } from './SaveManager';
-import { eventBus } from '../utils/EventBus';
+import { eventBus, GameEvents } from '../utils/EventBus';
 import { AnimationManager } from '../utils/AnimationManager';
 
 export class TutorialManager {
@@ -212,11 +212,11 @@ export class TutorialManager {
     this.boundOnPropUsed = () => this.handleAction('prop_used');
     this.boundOnObstacleCleared = () => this.handleAction('obstacle_cleared');
 
-    eventBus.on('block:dropped', this.boundOnDrop);
-    eventBus.on('block:merged', this.boundOnMerge);
-    eventBus.on('warning:started', this.boundOnWarning);
-    eventBus.on('props:used', this.boundOnPropUsed);
-    eventBus.on('obstacle:cleared', this.boundOnObstacleCleared);
+    eventBus.on(GameEvents.BLOCK_DROPPED, this.boundOnDrop);
+    eventBus.on(GameEvents.BLOCK_MERGED, this.boundOnMerge);
+    eventBus.on(GameEvents.WARNING_STARTED, this.boundOnWarning);
+    eventBus.on(GameEvents.PROPS_USED, this.boundOnPropUsed);
+    eventBus.on(GameEvents.OBSTACLE_CLEARED, this.boundOnObstacleCleared);
   }
 
   private removeListeners(): void {
@@ -312,7 +312,7 @@ export class TutorialManager {
     this.clearAutoTimer();
     this.overlay.hide();
     this.removeListeners();
-    eventBus.emit('tutorial:completed');
+    eventBus.emit(GameEvents.TUTORIAL_COMPLETED);
   }
 
   isActive(): boolean {

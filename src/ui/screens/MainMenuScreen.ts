@@ -1,6 +1,6 @@
 import { Container, Text, Graphics } from 'pixi.js';
 import { Screen } from '../UIManager';
-import { eventBus } from '../../utils/EventBus';
+import { eventBus, GameEvents } from '../../utils/EventBus';
 import { Layout } from '../layout/Layout';
 import { AudioManager } from '../../core/AudioManager';
 import gsap from 'gsap';
@@ -75,15 +75,15 @@ export class MainMenuScreen extends Screen {
     this.allButtons = [];
 
     this.startButton = this.createButton('开始游戏', 0x4ECDC4, () => {
-      eventBus.emit('ui:startGame');
+      eventBus.emit(GameEvents.UI_START_GAME);
     });
 
     this.levelSelectButton = this.createButton('关卡选择', 0x45B7D1, () => {
-      eventBus.emit('ui:levelSelect');
+      eventBus.emit(GameEvents.UI_LEVEL_SELECT);
     });
 
     this.settingsButton = this.createButton('设置', 0x95E1D3, () => {
-      eventBus.emit('ui:settings');
+      eventBus.emit(GameEvents.UI_SETTINGS);
     });
 
     this.allButtons = [this.startButton, this.levelSelectButton, this.settingsButton];

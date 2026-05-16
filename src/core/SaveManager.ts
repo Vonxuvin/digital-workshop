@@ -1,4 +1,4 @@
-import { eventBus } from '../utils/EventBus';
+import { eventBus, GameEvents } from '../utils/EventBus';
 import { PlatformAdapter } from '../platform/PlatformAdapter';
 import { createPlatformAdapter } from '../platform/PlatformFactory';
 
@@ -114,7 +114,7 @@ export class SaveManager {
         const parsed = typeof saved === 'string' ? JSON.parse(saved) : saved;
         this.data = this.deepMerge(this.getDefaultData(), parsed);
         console.log('[SaveManager] 存档加载成功');
-        eventBus.emit('save:loaded', this.data);
+        eventBus.emit(GameEvents.SAVE_LOADED, this.data);
         return true;
       }
     } catch (error) {
@@ -129,7 +129,7 @@ export class SaveManager {
       await this.platform.setStorage(this.STORAGE_KEY, JSON.stringify(this.data));
       this.isDirty = false;
       console.log('[SaveManager] 存档保存成功');
-      eventBus.emit('save:saved', this.data);
+      eventBus.emit(GameEvents.SAVE_SAVED, this.data);
       return true;
     } catch (error) {
       console.error('[SaveManager] 保存存档失败:', error);
@@ -164,7 +164,7 @@ export class SaveManager {
     const progress = this.getLevelProgress(levelId);
     progress.unlocked = true;
     this.markDirty();
-    eventBus.emit('level:unlocked', levelId);
+    eventBus.emit(GameEvents.LEVEL_UNLOCKED, levelId);
   }
 
   updateLevelProgress(
@@ -186,7 +186,7 @@ export class SaveManager {
       const newStars = stars - progress.stars;
       this.data.totalStars += newStars;
       progress.stars = stars;
-      eventBus.emit('stars:earned', newStars);
+      eventBus.emit(GameEvents.STARS_EARNED, newStars);
     }
     if (completed && !progress.completed) {
       progress.completed = true;
@@ -194,7 +194,7 @@ export class SaveManager {
       this.unlockLevel(nextLevelId);
     }
     this.markDirty();
-    eventBus.emit('level:progress:updated', { levelId, progress });
+    eventBus.emit(GameEvents.LEVEL_PROGRESS_UPDATED, { levelId, progress });
   }
 
   updateStatistics(mergeValue: number, comboCount: number, playTime: number): void {
@@ -215,13 +215,13 @@ export class SaveManager {
   addCoins(amount: number): void {
     this.data.coins += amount;
     this.markDirty();
-    eventBus.emit('coins:changed', this.data.coins);
+    eventBus.emit(GameEvents.COINS_CHANGED, this.data.coins);
   }
 
   addDiamonds(amount: number): void {
     this.data.diamonds += amount;
     this.markDirty();
-    eventBus.emit('diamonds:changed', this.data.diamonds);
+    eventBus.emit(GameEvents.DIAMONDS_CHANGED, this.data.diamonds);
   }
 
   updateSettings(
@@ -233,14 +233,14 @@ export class SaveManager {
     if (musicEnabled !== undefined) this.data.settings.musicEnabled = musicEnabled;
     if (vibrationEnabled !== undefined) this.data.settings.vibrationEnabled = vibrationEnabled;
     this.markDirty();
-    eventBus.emit('settings:changed', this.data.settings);
+    eventBus.emit(GameEvents.SETTINGS_CHANGED, this.data.settings);
   }
 
   unlockAchievement(achievementId: string): void {
     if (!this.data.achievements[achievementId]) {
       this.data.achievements[achievementId] = true;
       this.markDirty();
-      eventBus.emit('achievement:unlocked', achievementId);
+      eventBus.emit(GameEvents.ACHIEVEMENT_UNLOCKED, achievementId);
     }
   }
 
@@ -248,7 +248,7 @@ export class SaveManager {
     if (!this.data.unlockedSkins.includes(skinId)) {
       this.data.unlockedSkins.push(skinId);
       this.markDirty();
-      eventBus.emit('skin:unlocked', skinId);
+      eventBus.emit(GameEvents.SKIN_UNLOCKED, skinId);
     }
   }
 
@@ -256,7 +256,7 @@ export class SaveManager {
     if (!this.data.unlockedTalents.includes(talentId)) {
       this.data.unlockedTalents.push(talentId);
       this.markDirty();
-      eventBus.emit('talent:unlocked', talentId);
+      eventBus.emit(GameEvents.TALENT_UNLOCKED, talentId);
     }
   }
 
@@ -280,7 +280,7 @@ export class SaveManager {
     this.data = this.getDefaultData();
     this.markDirty();
     await this.save();
-    eventBus.emit('save:reset', this.data);
+    eventBus.emit(GameEvents.SAVE_RESET, this.data);
   }
 
   private deepMerge<T extends Record<string, any>>(target: T, source: any): T {
@@ -316,7 +316,7 @@ export class SaveManager {
       this.data = this.deepMerge(this.getDefaultData(), parsed);
       await this.save();
       console.log('[SaveManager] 存档导入成功');
-      eventBus.emit('save:imported', this.data);
+      eventBus.emit(GameEvents.SAVE_IMPORTED, this.data);
       return true;
     } catch (error) {
       console.error('[SaveManager] 导入存档失败:', error);

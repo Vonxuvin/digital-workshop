@@ -1,5 +1,5 @@
 import { Prop, PropConfig } from './Prop';
-import { eventBus } from '../../utils/EventBus';
+import { eventBus, GameEvents } from '../../utils/EventBus';
 import { PhysicsManager } from '../../core/PhysicsManager';
 import { AnimationManager } from '../../utils/AnimationManager';
 
@@ -39,7 +39,7 @@ export class FreezeProp extends Prop {
       this.physicsManager.stop();
     }
 
-    this.eventBus.emit('props:freeze:activated', {
+    this.eventBus.emit(GameEvents.PROPS_FREEZE_ACTIVATED, {
       duration: this.freezeDuration,
       endTime: Date.now() + this.freezeDuration,
     });
@@ -69,7 +69,7 @@ export class FreezeProp extends Prop {
   private extendFreeze(): void {
     this.freezeEndTime += this.freezeDuration;
     this.remainingFreezeMs = Math.max(0, this.freezeEndTime - Date.now());
-    this.eventBus.emit('props:freeze:extended', {
+    this.eventBus.emit(GameEvents.PROPS_FREEZE_EXTENDED, {
       additionalDuration: this.freezeDuration,
     });
   }
@@ -85,7 +85,7 @@ export class FreezeProp extends Prop {
       this.physicsManager.start();
     }
 
-    this.eventBus.emit('props:freeze:deactivated');
+    this.eventBus.emit(GameEvents.PROPS_FREEZE_DEACTIVATED);
   }
 
   pause(): void {

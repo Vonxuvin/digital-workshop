@@ -7,6 +7,7 @@ import { SaveManager } from './SaveManager';
 import { ResultScreen, ResultData } from '../ui/screens/ResultScreen';
 import { LevelSelectScreen } from '../ui/screens/LevelSelectScreen';
 import { LevelLoader } from './LevelLoader';
+import { AdManager } from './AdManager';
 
 export class SceneManager {
   private uiManager: UIManager;
@@ -17,6 +18,7 @@ export class SceneManager {
   private resultScreen: ResultScreen;
   private levelSelectScreen: LevelSelectScreen;
   private levelLoader: LevelLoader;
+  private adManager: AdManager;
 
   constructor(
     uiManager: UIManager,
@@ -27,6 +29,7 @@ export class SceneManager {
     resultScreen: ResultScreen,
     levelSelectScreen: LevelSelectScreen,
     levelLoader: LevelLoader,
+    adManager: AdManager,
   ) {
     this.uiManager = uiManager;
     this.stateMachine = stateMachine;
@@ -36,6 +39,7 @@ export class SceneManager {
     this.resultScreen = resultScreen;
     this.levelSelectScreen = levelSelectScreen;
     this.levelLoader = levelLoader;
+    this.adManager = adManager;
   }
 
   registerScreens(screens: { name: string; screen: Screen }[]): void {
@@ -190,7 +194,12 @@ export class SceneManager {
     this.uiManager.showScreen('result');
   }
 
-  reviveGame(): void {
+  async reviveGame(): Promise<void> {
+    const watched = await this.adManager.showRewardedVideo();
+    if (!watched) {
+      console.log('[SceneManager] 用户未看完激励视频，取消复活');
+      return;
+    }
     this.uiManager.hideCurrentScreen();
     try {
       this.gameScene.handleRevive();

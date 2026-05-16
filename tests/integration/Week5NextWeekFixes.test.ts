@@ -7,7 +7,7 @@ import { TutorialOverlay } from '../../src/ui/TutorialOverlay';
 import { GameHUD } from '../../src/ui/hud/GameHUD';
 import { PropSystem } from '../../src/gameplay/props/PropSystem';
 import { AnimationManager } from '../../src/utils/AnimationManager';
-import { eventBus } from '../../src/utils/EventBus';
+import { eventBus, GameEvents } from '../../src/utils/EventBus';
 import { Container } from 'pixi.js';
 import fs from 'fs';
 import path from 'path';
@@ -175,14 +175,14 @@ describe('TC-003: 关卡难度曲线验证', () => {
       ls.start();
 
       const timeoutHandler = vi.fn();
-      eventBus.on('game:timeout', timeoutHandler);
+      eventBus.on(GameEvents.GAME_TIMEOUT, timeoutHandler);
 
       for (let i = 0; i < 200; i++) {
         ls.update(1000);
       }
 
       expect(timeoutHandler).not.toHaveBeenCalled();
-      eventBus.off('game:timeout', timeoutHandler);
+      eventBus.off(GameEvents.GAME_TIMEOUT, timeoutHandler);
       ls.destroy();
     });
   });
@@ -255,7 +255,7 @@ describe('TC-004: 新手引导验证', () => {
         path.resolve(__dirname, '../../src/core/TutorialManager.ts'),
         'utf-8'
       );
-      expect(content).toContain("eventBus.on('block:merged'");
+      expect(content).toContain("eventBus.on(GameEvents.BLOCK_MERGED");
     });
 
     it('合成提示消息包含合成规则说明', () => {
@@ -282,7 +282,7 @@ describe('TC-004: 新手引导验证', () => {
         path.resolve(__dirname, '../../src/core/TutorialManager.ts'),
         'utf-8'
       );
-      expect(content).toContain("eventBus.on('warning:started'");
+      expect(content).toContain("eventBus.on(GameEvents.WARNING_STARTED");
     });
 
     it('警告提示消息包含警戒线说明', () => {
@@ -351,7 +351,7 @@ describe('TC-004: 新手引导验证', () => {
         path.resolve(__dirname, '../../src/core/TutorialManager.ts'),
         'utf-8'
       );
-      expect(content).toContain("eventBus.on('obstacle:cleared'");
+      expect(content).toContain("eventBus.on(GameEvents.OBSTACLE_CLEARED");
     });
   });
 
@@ -400,7 +400,7 @@ describe('TC-005: 道具交互验证', () => {
         'utf-8'
       );
       expect(content).toContain('enterBombTargetMode');
-      expect(content).toContain("eventBus.emit('ui:propTargetMode'");
+      expect(content).toContain("eventBus.emit(GameEvents.UI_PROP_TARGET_MODE");
     });
   });
 
@@ -570,7 +570,7 @@ describe('P2-1: 计分系统数值平衡验证', () => {
   describe('addMergeScore 统一使用 SCORE_CONFIGS 表', () => {
     it('合成值为 SCORE_CONFIGS 中的值时使用表中的 baseScore', () => {
       const handler = vi.fn();
-      eventBus.on('score:updated', handler);
+      eventBus.on(GameEvents.SCORE_UPDATED, handler);
 
       ss.addMergeScore(16, false);
 
@@ -578,12 +578,12 @@ describe('P2-1: 计分系统数值平衡验证', () => {
       const data = handler.mock.calls[0][0];
       expect(data.baseScore).toBe(SCORE_CONFIGS[16].baseScore);
 
-      eventBus.off('score:updated', handler);
+      eventBus.off(GameEvents.SCORE_UPDATED, handler);
     });
 
     it('合成值为 SCORE_CONFIGS 中的值时使用表中的 chainMultiplier', () => {
       const handler = vi.fn();
-      eventBus.on('score:updated', handler);
+      eventBus.on(GameEvents.SCORE_UPDATED, handler);
 
       ss.addMergeScore(32, false);
 
@@ -591,12 +591,12 @@ describe('P2-1: 计分系统数值平衡验证', () => {
       const data = handler.mock.calls[0][0];
       expect(data.chainMultiplier).toBeCloseTo(SCORE_CONFIGS[32].chainMultiplier, 5);
 
-      eventBus.off('score:updated', handler);
+      eventBus.off(GameEvents.SCORE_UPDATED, handler);
     });
 
     it('合成值不在 SCORE_CONFIGS 中时使用 calculateScore 兜底', () => {
       const handler = vi.fn();
-      eventBus.on('score:updated', handler);
+      eventBus.on(GameEvents.SCORE_UPDATED, handler);
 
       ss.addMergeScore(3, false);
 
@@ -604,12 +604,12 @@ describe('P2-1: 计分系统数值平衡验证', () => {
       const data = handler.mock.calls[0][0];
       expect(data.baseScore).toBeGreaterThan(0);
 
-      eventBus.off('score:updated', handler);
+      eventBus.off(GameEvents.SCORE_UPDATED, handler);
     });
 
     it('高值合成 chainMultiplier > 1.0', () => {
       const handler = vi.fn();
-      eventBus.on('score:updated', handler);
+      eventBus.on(GameEvents.SCORE_UPDATED, handler);
 
       ss.addMergeScore(128, false);
 
@@ -617,7 +617,7 @@ describe('P2-1: 计分系统数值平衡验证', () => {
       const data = handler.mock.calls[0][0];
       expect(data.chainMultiplier).toBeGreaterThan(1.0);
 
-      eventBus.off('score:updated', handler);
+      eventBus.off(GameEvents.SCORE_UPDATED, handler);
     });
   });
 
@@ -650,7 +650,7 @@ describe('P2-1: 计分系统数值平衡验证', () => {
   describe('计分系统数值合理性', () => {
     it('连锁加成正确应用', () => {
       const handler = vi.fn();
-      eventBus.on('score:updated', handler);
+      eventBus.on(GameEvents.SCORE_UPDATED, handler);
 
       ss.addMergeScore(4, false);
       ss.addMergeScore(4, true);
@@ -661,12 +661,12 @@ describe('P2-1: 计分系统数值平衡验证', () => {
       const thirdCall = handler.mock.calls[2][0];
       expect(thirdCall.earnedScore).toBeGreaterThan(firstCall.earnedScore);
 
-      eventBus.off('score:updated', handler);
+      eventBus.off(GameEvents.SCORE_UPDATED, handler);
     });
 
     it('lucky 乘数正确应用', () => {
       const handler = vi.fn();
-      eventBus.on('score:updated', handler);
+      eventBus.on(GameEvents.SCORE_UPDATED, handler);
 
       ss.setLuckyMultiplier(2);
       ss.addMergeScore(4, false);
@@ -675,7 +675,7 @@ describe('P2-1: 计分系统数值平衡验证', () => {
       const data = handler.mock.calls[0][0];
       expect(data.earnedScore).toBe(SCORE_CONFIGS[4].baseScore * 2);
 
-      eventBus.off('score:updated', handler);
+      eventBus.off(GameEvents.SCORE_UPDATED, handler);
     });
   });
 

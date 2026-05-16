@@ -1,5 +1,5 @@
 import { Prop, PropConfig } from './Prop';
-import { eventBus } from '../../utils/EventBus';
+import { eventBus, GameEvents } from '../../utils/EventBus';
 import { Block } from '../Block';
 
 export class BombProp extends Prop {
@@ -16,7 +16,7 @@ export class BombProp extends Prop {
     if (!this.canUse()) return false;
     
     if (!target) {
-      this.eventBus.emit('props:bomb:requireTarget');
+      this.eventBus.emit(GameEvents.PROPS_BOMB_REQUIRE_TARGET);
       return false;
     }
 
@@ -24,7 +24,7 @@ export class BombProp extends Prop {
     this.lastUseTime = Date.now();
     
     console.log('[BombProp] 发射爆炸事件', { x: target.x, y: target.y, radius: this.radius });
-    this.eventBus.emit('props:bomb:explode', {
+    this.eventBus.emit(GameEvents.PROPS_BOMB_EXPLODE, {
       x: target.x,
       y: target.y,
       radius: this.radius,

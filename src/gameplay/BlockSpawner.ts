@@ -6,7 +6,7 @@ import { PropType } from '../gameplay/props/Prop';
 import { RainbowProp } from '../gameplay/props/RainbowProp';
 import { LevelConfig } from '../gameplay/LevelSystem';
 import { Container } from 'pixi.js';
-import { eventBus } from '../utils/EventBus';
+import { eventBus, GameEvents } from '../utils/EventBus';
 import gsap from 'gsap';
 import { BlockPool } from '../core/BlockPool';
 
@@ -91,7 +91,7 @@ export class BlockSpawner {
     }
 
     console.log(`[BlockSpawner] 投放方块 ${value}${isRainbowBlock ? '(彩虹)' : ''}, 下一个: ${this.currentValue}`);
-    eventBus.emit('block:dropped');
+    eventBus.emit(GameEvents.BLOCK_DROPPED);
 
     if (this.onBlockDropped) {
       this.onBlockDropped(block);

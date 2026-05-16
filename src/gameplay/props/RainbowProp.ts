@@ -1,5 +1,5 @@
 import { Prop, PropConfig } from './Prop';
-import { eventBus } from '../../utils/EventBus';
+import { eventBus, GameEvents } from '../../utils/EventBus';
 
 export class RainbowProp extends Prop {
   private eventBus = eventBus;
@@ -18,11 +18,11 @@ export class RainbowProp extends Prop {
     this.lastUseTime = Date.now();
     this.rainbowBlocksRemaining = 3;
 
-    this.eventBus.emit('props:rainbow:activated', {
+    this.eventBus.emit(GameEvents.PROPS_RAINBOW_ACTIVATED, {
       remainingBlocks: this.rainbowBlocksRemaining,
     });
 
-    this.eventBus.emit('gameplay:nextBlock', {
+    this.eventBus.emit(GameEvents.GAMEPLAY_NEXT_BLOCK, {
       isRainbow: true,
       remaining: this.rainbowBlocksRemaining,
     });
@@ -41,12 +41,12 @@ export class RainbowProp extends Prop {
 
   consumeRainbowBlock(): void {
     this.rainbowBlocksRemaining--;
-    this.eventBus.emit('props:rainbow:consumed', {
+    this.eventBus.emit(GameEvents.PROPS_RAINBOW_CONSUMED, {
       remainingBlocks: this.rainbowBlocksRemaining,
     });
 
     if (this.rainbowBlocksRemaining <= 0) {
-      this.eventBus.emit('props:rainbow:deactivated');
+      this.eventBus.emit(GameEvents.PROPS_RAINBOW_DEACTIVATED);
     }
   }
 

@@ -1,4 +1,4 @@
-import { eventBus } from '../utils/EventBus';
+import { eventBus, GameEvents } from '../utils/EventBus';
 
 export interface ScoreConfig {
   baseMultiplier: number;
@@ -68,7 +68,7 @@ export class ScoreSystem {
     }
     this.chainTimer = this.CHAIN_TIMEOUT;
 
-    eventBus.emit('score:updated', {
+    eventBus.emit(GameEvents.SCORE_UPDATED, {
       totalScore: this.score,
       earnedScore: finalScore,
       chainCount: this.chainCount,
@@ -84,7 +84,7 @@ export class ScoreSystem {
       if (this.chainTimer <= 0) {
         this.chainTimer = 0;
         this.chainCount = 0;
-        eventBus.emit('score:chainEnded');
+        eventBus.emit(GameEvents.SCORE_CHAIN_ENDED);
       }
     }
   }
@@ -123,7 +123,7 @@ export class ScoreSystem {
   resetCombo(): void {
     this.chainCount = 0;
     this.chainTimer = 0;
-    eventBus.emit('score:chainEnded');
+    eventBus.emit(GameEvents.SCORE_CHAIN_ENDED);
   }
 
   getMaxChainCount(): number {

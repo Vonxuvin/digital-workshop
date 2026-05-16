@@ -1,5 +1,5 @@
 import { Container, Graphics, Text } from 'pixi.js';
-import { eventBus } from '../../utils/EventBus';
+import { eventBus, GameEvents } from '../../utils/EventBus';
 
 export interface WarningConfig {
   warningThreshold: number;
@@ -90,7 +90,7 @@ export class WarningLine extends Container {
       if (!this.isWarning) {
         this.isWarning = true;
         this.warningDuration = 0;
-        eventBus.emit('warning:started');
+        eventBus.emit(GameEvents.WARNING_STARTED);
       }
       this.warningDuration += deltaMS;
 
@@ -99,7 +99,7 @@ export class WarningLine extends Container {
 
       if (this.warningDuration >= this.WARNING_THRESHOLD) {
         this.disabled = true;
-        eventBus.emit('game:over');
+        eventBus.emit(GameEvents.GAME_OVER);
         this.isWarning = false;
         this.countdownText.visible = false;
       }
@@ -111,7 +111,7 @@ export class WarningLine extends Container {
           this.warningDuration = 0;
           this.graceTimer = 0;
           this.countdownText.visible = false;
-          eventBus.emit('warning:ended');
+          eventBus.emit(GameEvents.WARNING_ENDED);
         }
       }
       this.drawLine(0xff4444, 0.8);

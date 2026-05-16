@@ -1,6 +1,6 @@
 import { Container, Text, Graphics } from 'pixi.js';
 import { Screen } from '../UIManager';
-import { eventBus } from '../../utils/EventBus';
+import { eventBus, GameEvents } from '../../utils/EventBus';
 
 export class SettingsScreen extends Screen {
   private contentContainer!: Container;
@@ -54,7 +54,7 @@ export class SettingsScreen extends Screen {
 
     this.closeButton = this.createButton('关闭', 0xE74C3C, () => {
       this.hide();
-      eventBus.emit('ui:settingsClosed');
+      eventBus.emit(GameEvents.UI_SETTINGS_CLOSED);
     });
     this.closeButton.position.set(200, 240);
     this.contentContainer.addChild(this.closeButton);

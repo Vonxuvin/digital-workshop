@@ -1,5 +1,5 @@
 import { Prop, PropConfig } from './Prop';
-import { eventBus } from '../../utils/EventBus';
+import { eventBus, GameEvents } from '../../utils/EventBus';
 import { AnimationManager } from '../../utils/AnimationManager';
 
 export class ShrinkProp extends Prop {
@@ -29,7 +29,7 @@ export class ShrinkProp extends Prop {
       this.startShrinkTimer();
     }
 
-    eventBus.emit('props:shrink:activate', {
+    eventBus.emit(GameEvents.PROPS_SHRINK_ACTIVATE, {
       factor: this.shrinkFactor,
       duration: this.shrinkDuration,
     });
@@ -59,7 +59,7 @@ export class ShrinkProp extends Prop {
     this.isActive = false;
     this.remainingMs = 0;
     this.stopShrinkTimer();
-    eventBus.emit('props:shrink:deactivate');
+    eventBus.emit(GameEvents.PROPS_SHRINK_DEACTIVATE);
   }
 
   pause(): void {

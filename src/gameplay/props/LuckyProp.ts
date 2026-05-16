@@ -1,5 +1,5 @@
 import { Prop, PropConfig } from './Prop';
-import { eventBus } from '../../utils/EventBus';
+import { eventBus, GameEvents } from '../../utils/EventBus';
 
 export class LuckyProp extends Prop {
   private lastUseTime: number = 0;
@@ -19,7 +19,7 @@ export class LuckyProp extends Prop {
     this.lastUseTime = Date.now();
     this.luckyRemainingDrops = this.luckyDropCount;
 
-    eventBus.emit('props:lucky:activate', {
+    eventBus.emit(GameEvents.PROPS_LUCKY_ACTIVATE, {
       multiplier: this.bonusMultiplier,
       remainingDrops: this.luckyRemainingDrops,
     });
@@ -30,11 +30,11 @@ export class LuckyProp extends Prop {
   consumeLuckyDrop(): void {
     if (this.luckyRemainingDrops > 0) {
       this.luckyRemainingDrops--;
-      eventBus.emit('props:lucky:dropConsumed', {
+      eventBus.emit(GameEvents.PROPS_LUCKY_DROP_CONSUMED, {
         remainingDrops: this.luckyRemainingDrops,
       });
       if (this.luckyRemainingDrops <= 0) {
-        eventBus.emit('props:lucky:deactivate');
+        eventBus.emit(GameEvents.PROPS_LUCKY_DEACTIVATE);
       }
     }
   }
