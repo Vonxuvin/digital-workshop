@@ -4,6 +4,7 @@ declare const wx: any;
 
 export class WXAdapter implements PlatformAdapter {
   private bannerAd: any = null;
+  private rewardedVideoAd: any = null;
 
   async init(): Promise<void> {
     console.log('[WXAdapter] 微信环境初始化');
@@ -32,26 +33,57 @@ export class WXAdapter implements PlatformAdapter {
   }
 
   async share(title: string, imageUrl?: string): Promise<void> {
-    wx.showShareMenu({ withShareTicket: true });
-    wx.onShareAppMessage(() => ({
-      title,
-      imageUrl,
-    }));
+    return new Promise((resolve, reject) => {
+      wx.shareAppMessage({
+        title,
+        imageUrl,
+        success: resolve,
+        fail: reject,
+      });
+    });
   }
 
   async showRewardedVideo(adUnitId: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      const rewardedVideoAd = wx.createRewardedVideoAd({ adUnitId });
-      rewardedVideoAd.onLoad(() => console.log('[Ad] 激励视频加载成功'));
-      rewardedVideoAd.onError((err: any) => {
+    return new Promise((resolve, reject) => {
+      if (!this.rewardedVideoAd) {
+        this.rewardedVideoAd = wx.createRewardedVideoAd({ adUnitId });
+      }
+
+      const onLoad = () => {
+        this.rewardedVideoAd.show().catch((err: any) => {
+          console.error('[Ad] 激励视频展示失败:', err);
+          cleanup();
+          resolve(false);
+        });
+      };
+
+      const onError = (err: any) => {
         console.error('[Ad] 激励视频错误:', err);
+        cleanup();
         resolve(false);
-      });
-      rewardedVideoAd.onClose((res: any) => {
+      };
+
+      const onClose = (res: any) => {
+        cleanup();
         resolve(res && res.isEnded);
-      });
-      rewardedVideoAd.show().catch(() => {
-        rewardedVideoAd.load().then(() => rewardedVideoAd.show());
+      };
+
+      const cleanup = () => {
+        this.rewardedVideoAd.offLoad(onLoad);
+        this.rewardedVideoAd.offError(onError);
+        this.rewardedVideoAd.offClose(onClose);
+      };
+
+      this.rewardedVideoAd.onLoad(onLoad);
+      this.rewardedVideoAd.onError(onError);
+      this.rewardedVideoAd.onClose(onClose);
+
+      this.rewardedVideoAd.show().catch(() => {
+        this.rewardedVideoAd.load().catch((err: any) => {
+          console.error('[Ad] 激励视频加载失败:', err);
+          cleanup();
+          resolve(false);
+        });
       });
     });
   }
@@ -69,11 +101,19 @@ export class WXAdapter implements PlatformAdapter {
       adUnitId,
       style: {
         left: 0,
-        top: systemInfo.windowHeight - 100,
+        top: systemInfo.windowHeight,
         width: systemInfo.windowWidth,
       },
     });
-    this.bannerAd.show();
+    this.bannerAd.onResize((size: any) => {
+      if (this.bannerAd) {
+        this.bannerAd.style.top = systemInfo.windowHeight - size.height;
+        this.bannerAd.style.left = (systemInfo.windowWidth - size.width) / 2;
+      }
+    });
+    this.bannerAd.show().catch((err: any) => {
+      console.error('[Ad] Banner广告展示失败:', err);
+    });
   }
 
   async hideBannerAd(): Promise<void> {
@@ -93,24 +133,42 @@ export class WXAdapter implements PlatformAdapter {
   }
 
   async setStorage(key: string, data: unknown): Promise<void> {
-    wx.setStorageSync(key, data);
+    return new Promise((resolve, reject) => {
+      wx.setStorage({
+        key,
+        data,
+        success: resolve,
+        fail: reject,
+      });
+    });
   }
 
   async getStorage<T>(key: string): Promise<T | null> {
-    try {
-      return wx.getStorageSync(key) as T;
-    } catch {
-      return null;
-    }
+    return new Promise((resolve) => {
+      wx.getStorage({
+        key,
+        success: (res: any) => resolve(res.data as T),
+        fail: () => resolve(null),
+      });
+    });
   }
 
   async removeStorage(key: string): Promise<void> {
-    wx.removeStorageSync(key);
+    return new Promise((resolve, reject) => {
+      wx.removeStorage({
+        key,
+        success: resolve,
+        fail: reject,
+      });
+    });
   }
 
   async getSystemInfo(): Promise<any> {
-    return new Promise((resolve) => {
-      wx.getSystemInfo({ success: resolve });
+    return new Promise((resolve, reject) => {
+      wx.getSystemInfo({
+        success: resolve,
+        fail: reject,
+      });
     });
   }
 

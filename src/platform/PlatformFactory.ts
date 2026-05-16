@@ -10,11 +10,16 @@ export function createPlatformAdapter(): PlatformAdapter {
   if (sharedInstance) {
     return sharedInstance;
   }
-  const isWechat = typeof wx !== 'undefined' && wx.getSystemInfoSync;
-  if (isWechat) {
-    console.log('[Platform] 使用微信适配器');
-    sharedInstance = new WXAdapter();
-  } else {
+  try {
+    const isWechat = typeof wx !== 'undefined' && typeof wx.getSystemInfoSync === 'function';
+    if (isWechat) {
+      console.log('[Platform] 使用微信适配器');
+      sharedInstance = new WXAdapter();
+    } else {
+      console.log('[Platform] 使用本地调试适配器');
+      sharedInstance = new MockAdapter();
+    }
+  } catch {
     console.log('[Platform] 使用本地调试适配器');
     sharedInstance = new MockAdapter();
   }

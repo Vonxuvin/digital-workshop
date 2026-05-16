@@ -18,20 +18,20 @@ export class MockAdapter implements PlatformAdapter {
     };
   }
 
-  async share(title: string): Promise<void> {
+  async share(title: string, _imageUrl?: string): Promise<void> {
     console.log('[MockAdapter] 分享:', title);
   }
 
-  async showRewardedVideo(): Promise<boolean> {
+  async showRewardedVideo(_adUnitId: string): Promise<boolean> {
     console.log('[MockAdapter] 显示激励视频（模拟成功）');
     return true;
   }
 
-  async showInterstitialAd(): Promise<void> {
+  async showInterstitialAd(_adUnitId: string): Promise<void> {
     console.log('[MockAdapter] 显示插屏广告（模拟）');
   }
 
-  async showBannerAd(): Promise<void> {
+  async showBannerAd(_adUnitId: string): Promise<void> {
     console.log('[MockAdapter] 显示 Banner 广告（模拟）');
   }
 
@@ -39,7 +39,7 @@ export class MockAdapter implements PlatformAdapter {
     console.log('[MockAdapter] 隐藏 Banner 广告（模拟）');
   }
 
-  async requestPayment(): Promise<void> {
+  async requestPayment(_orderInfo: unknown): Promise<void> {
     console.log('[MockAdapter] 发起支付（模拟成功）');
   }
 
@@ -55,15 +55,27 @@ export class MockAdapter implements PlatformAdapter {
     this.storage.delete(key);
   }
 
-  async getSystemInfo(): Promise<any> {
+  async getSystemInfo(): Promise<{
+    brand: string;
+    model: string;
+    screenWidth: number;
+    screenHeight: number;
+    windowWidth: number;
+    windowHeight: number;
+    pixelRatio: number;
+    platform: string;
+  }> {
+    const w = typeof globalThis !== 'undefined' && (globalThis as any).innerWidth ? (globalThis as any).innerWidth : 375;
+    const h = typeof globalThis !== 'undefined' && (globalThis as any).innerHeight ? (globalThis as any).innerHeight : 667;
+    const dpr = typeof globalThis !== 'undefined' && (globalThis as any).devicePixelRatio ? (globalThis as any).devicePixelRatio : 2;
     return {
       brand: 'browser',
       model: 'desktop',
-      screenWidth: window.innerWidth,
-      screenHeight: window.innerHeight,
-      windowWidth: window.innerWidth,
-      windowHeight: window.innerHeight,
-      pixelRatio: window.devicePixelRatio,
+      screenWidth: w,
+      screenHeight: h,
+      windowWidth: w,
+      windowHeight: h,
+      pixelRatio: dpr,
       platform: 'devtools',
     };
   }
