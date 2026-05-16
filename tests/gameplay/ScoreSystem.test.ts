@@ -108,14 +108,14 @@ it('should apply lucky multiplier to score calculation', () => {
     expect(ss.getCurrentScore()).toBe(1);
   });
 
-  it('should return baseScore of 1 for value with non-finite log2 tier', () => {
+  it('should return 0 score for value 0 (invalid value rejected)', () => {
     ss.addMergeScore(0);
-    expect(ss.getCurrentScore()).toBe(1);
+    expect(ss.getCurrentScore()).toBe(0);
   });
 
-  it('should return baseScore of 1 for negative value via calculateScore fallback', () => {
+  it('should return 0 score for negative value (invalid value rejected)', () => {
     ss.addMergeScore(-1);
-    expect(ss.getCurrentScore()).toBe(1);
+    expect(ss.getCurrentScore()).toBe(0);
   });
 
   it('should calculate score for unknown value using log2 fallback', () => {

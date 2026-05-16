@@ -134,7 +134,7 @@ describe('Full Game Loop Integration Tests', () => {
 
       expect(stateMachine.getCurrentState()).toBe('gameover');
       expect(stateMachine.canTransition('menu')).toBe(true);
-      expect(stateMachine.canTransition('playing')).toBe(true);
+      expect(stateMachine.canTransition('playing')).toBe(false);
     });
 
     it('should transition to levelComplete on level completion', () => {
@@ -264,6 +264,7 @@ describe('Full Game Loop Integration Tests', () => {
       stateMachine.transition('gameover');
       expect(stateMachine.getCurrentState()).toBe('gameover');
 
+      stateMachine.transition('menu');
       stateMachine.transition('playing');
       expect(stateMachine.getCurrentState()).toBe('playing');
     });

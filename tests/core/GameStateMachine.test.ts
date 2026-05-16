@@ -56,7 +56,7 @@ describe('GameStateMachine', () => {
     sm.transition('playing');
     sm.transition('gameover');
     expect(sm.canTransition('menu')).toBe(true);
-    expect(sm.canTransition('playing')).toBe(true);
+    expect(sm.canTransition('playing')).toBe(false);
   });
 
   it('should validate levelComplete transitions', () => {

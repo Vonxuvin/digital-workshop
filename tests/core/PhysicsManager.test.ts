@@ -65,9 +65,9 @@ describe('PhysicsManager', () => {
       expect(body.isStatic).toBe(false);
     });
 
-    it('does not add rectangle to bodies map', () => {
+    it('adds rectangle to bodies map', () => {
       pm.createRectangle(400, 500, 800, 20);
-      expect(pm.getAllBodies()).toHaveLength(0);
+      expect(pm.getAllBodies()).toHaveLength(1);
     });
   });
 

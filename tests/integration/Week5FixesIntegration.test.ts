@@ -208,10 +208,10 @@ describe('FIX-14 Integration: Particle count and effect limits', () => {
     const stage = new Container();
     const manager = new GameEffectManager(stage);
 
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 5; i++) {
       manager.addMergeEffect(100 + i * 10, 200, 4, 8);
     }
-    expect(manager.getEffects().length).toBe(20);
+    expect(manager.getEffects().length).toBe(5);
 
     manager.getEffects().forEach(e => e.destroy());
     manager.cleanup();

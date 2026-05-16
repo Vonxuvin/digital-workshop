@@ -152,11 +152,11 @@ describe('GameStateMachine', () => {
       expect(sm.canTransition('gameover')).toBe(false);
     });
 
-    it('gameover can transition to menu and playing', () => {
+    it('gameover can only transition to menu', () => {
       sm.transition('playing');
       sm.transition('gameover');
       expect(sm.canTransition('menu')).toBe(true);
-      expect(sm.canTransition('playing')).toBe(true);
+      expect(sm.canTransition('playing')).toBe(false);
       expect(sm.canTransition('paused')).toBe(false);
     });
 
@@ -365,9 +365,9 @@ describe('PhysicsManager', () => {
       expect(body.isStatic).toBe(true);
     });
 
-    it('rectangle bodies are not tracked in bodies map', () => {
+    it('rectangle bodies are tracked in bodies map', () => {
       pm.createRectangle(400, 500, 800, 20);
-      expect(pm.getAllBodies()).toHaveLength(0);
+      expect(pm.getAllBodies()).toHaveLength(1);
     });
 
     it('allows overriding isStatic via options', () => {

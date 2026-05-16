@@ -451,14 +451,12 @@ describe('Deep Integration Tests', () => {
         ss.reset();
       });
 
-      it('should handle merge with value 0 (edge case)', () => {
+      it('should handle merge with value 0 (edge case - rejected)', () => {
         const handler = vi.fn();
         eventBus.on('score:updated', handler);
         ss.addMergeScore(0, false);
-        expect(handler).toHaveBeenCalled();
-        const data = handler.mock.calls[0][0];
-        expect(data.earnedScore).toBe(1);
-        expect(ss.getCurrentScore()).toBe(1);
+        expect(handler).not.toHaveBeenCalled();
+        expect(ss.getCurrentScore()).toBe(0);
       });
 
       it('should handle merge with very large value (2048)', () => {
@@ -471,13 +469,12 @@ describe('Deep Integration Tests', () => {
         expect(ss.getCurrentScore()).toBeGreaterThan(0);
       });
 
-      it('should handle merge with negative value', () => {
+      it('should handle merge with negative value (rejected)', () => {
         const handler = vi.fn();
         eventBus.on('score:updated', handler);
         ss.addMergeScore(-1, false);
-        expect(handler).toHaveBeenCalled();
-        const data = handler.mock.calls[0][0];
-        expect(data.earnedScore).toBeGreaterThan(0);
+        expect(handler).not.toHaveBeenCalled();
+        expect(ss.getCurrentScore()).toBe(0);
       });
 
       it('should handle chain count with many consecutive merges (100+)', () => {
@@ -859,7 +856,7 @@ describe('Deep Integration Tests', () => {
         sm.transition('playing');
         sm.transition('gameover');
         expect(sm.canTransition('menu')).toBe(true);
-        expect(sm.canTransition('playing')).toBe(true);
+        expect(sm.canTransition('playing')).toBe(false);
         expect(sm.canTransition('paused')).toBe(false);
         expect(sm.canTransition('gameover')).toBe(false);
         expect(sm.canTransition('levelComplete')).toBe(false);

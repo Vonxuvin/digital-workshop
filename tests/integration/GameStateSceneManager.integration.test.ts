@@ -141,12 +141,14 @@ describe('GameStateSceneManager Integration Tests', () => {
       expect(stateMachine.getCurrentState()).toBe('paused');
     });
 
-    it('should allow gameover->playing for retry', () => {
+    it('should require gameover->menu->playing for retry', () => {
       stateMachine.transition('loading');
       stateMachine.transition('menu');
       stateMachine.transition('playing');
       stateMachine.transition('gameover');
 
+      expect(stateMachine.canTransition('playing')).toBe(false);
+      stateMachine.transition('menu');
       const result = stateMachine.transition('playing');
       expect(result).toBe(true);
       expect(stateMachine.getCurrentState()).toBe('playing');
