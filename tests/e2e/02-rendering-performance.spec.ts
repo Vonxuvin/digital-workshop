@@ -13,17 +13,70 @@ test.describe('渲染与性能 @regression', () => {
     test('Canvas渲染不应出现黑屏', async ({ page }) => {
       await navigateToGame(page);
 
-      const isBlackScreen = await page.evaluate(() => {
-        const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
-        if (!canvas) return true;
-        const gl = canvas.getContext('webgl') || canvas.getContext('webgl2');
-        if (!gl) return true;
+      const isBlackScreen = await page.evaluate(async () => {
+        const gameCanvas = document.getElementById('game-canvas') as HTMLCanvasElement;
+        if (!gameCanvas) return true;
+
         try {
-          const pixels = new Uint8Array(4);
-          gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-          return pixels[0] === 0 && pixels[1] === 0 && pixels[2] === 0 && pixels[3] === 0;
+          const game = (window as any).__gameInstance;
+          if (!game) return true;
+          const app = game.getApp?.() ?? game.app;
+          if (!app || !app.renderer) return true;
+
+          const renderer = app.renderer;
+
+          try {
+            if (typeof renderer.extract?.pixels === 'function') {
+              const pixels = renderer.extract.pixels({ target: app.stage, resolution: 1 });
+              if (pixels && pixels.length > 0) {
+                let nonBlackPixels = 0;
+                const step = Math.max(1, Math.floor(pixels.length / 4 / 500));
+                let sampledPixels = 0;
+
+                for (let i = 0; i < pixels.length; i += 4 * step) {
+                  sampledPixels++;
+                  if (pixels[i] > 10 || pixels[i + 1] > 10 || pixels[i + 2] > 10) {
+                    nonBlackPixels++;
+                  }
+                }
+
+                return sampledPixels > 0 && (nonBlackPixels / sampledPixels) < 0.05;
+              }
+            }
+          } catch {}
+
+          try {
+            const gl = (renderer as any).gl;
+            if (gl) {
+              const fbo = gl.getParameter(gl.FRAMEBUFFER_BINDING);
+              gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+              const w = gl.drawingBufferWidth;
+              const h = gl.drawingBufferHeight;
+              const pixels = new Uint8Array(w * h * 4);
+              gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+
+              gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+
+              let nonBlackPixels = 0;
+              const totalPixels = w * h;
+              const step = Math.max(1, Math.floor(totalPixels / 500));
+              let sampledPixels = 0;
+
+              for (let i = 0; i < pixels.length; i += 4 * step) {
+                sampledPixels++;
+                if (pixels[i] > 10 || pixels[i + 1] > 10 || pixels[i + 2] > 10) {
+                  nonBlackPixels++;
+                }
+              }
+
+              return sampledPixels > 0 && (nonBlackPixels / sampledPixels) < 0.05;
+            }
+          } catch {}
+
+          return true;
         } catch {
-          return false;
+          return true;
         }
       });
 

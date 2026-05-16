@@ -136,6 +136,7 @@ export class Game {
         autoDensity: true,
         preference: 'webgl',
         failIfMajorPerformanceCaveat: false,
+        preserveDrawingBuffer: true,
       };
       if (typeof window !== 'undefined') {
         initOptions.resizeTo = window;
