@@ -83,6 +83,10 @@ export class ParticleEffect extends PIXI.Container {
         particle.fill({ color: defaultColor, alpha: 0.1 });
         particle.circle(0, 0, 5 + Math.random() * 8);
         break;
+      default:
+        particle.fill({ color: defaultColor, alpha: 0.9 });
+        particle.circle(0, 0, 5);
+        break;
     }
 
     return particle;
@@ -114,6 +118,11 @@ export class ParticleEffect extends PIXI.Container {
           p.targetX = startX + (Math.random() - 0.5) * 40;
           p.targetY = startY - 40 - Math.random() * 30;
           p.duration = 1;
+          break;
+        default:
+          p.targetX = startX;
+          p.targetY = startY - 30;
+          p.duration = 0.8;
           break;
       }
     });

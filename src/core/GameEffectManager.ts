@@ -39,6 +39,7 @@ export class GameEffectManager {
       case 'high': return MAX_TOTAL_PARTICLES_HIGH;
       case 'medium': return MAX_TOTAL_PARTICLES_MEDIUM;
       case 'low': return MAX_TOTAL_PARTICLES_LOW;
+      default: return MAX_TOTAL_PARTICLES_HIGH;
     }
   }
 

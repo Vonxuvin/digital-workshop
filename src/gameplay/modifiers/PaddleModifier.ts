@@ -192,6 +192,8 @@ export class PaddleModifier extends ContainerModifier {
           }
         }
         break;
+      default:
+        break;
     }
 
     this.updatePaddlePosition();

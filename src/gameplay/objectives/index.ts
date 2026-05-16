@@ -11,5 +11,6 @@ export function createObjectiveChecker(type: ObjectiveType): ObjectiveChecker {
     case 'target_merge': return new MergeObjectiveChecker();
     case 'clear_obstacle': return new ClearObstacleChecker();
     case 'survival': return new SurvivalObjectiveChecker();
+    default: throw new Error(`Unknown objective type: ${type}`);
   }
 }

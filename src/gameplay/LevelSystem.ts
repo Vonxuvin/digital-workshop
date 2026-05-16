@@ -145,6 +145,8 @@ export class LevelSystem {
           this.completeLevel();
         }
         break;
+      default:
+        break;
     }
   }
 

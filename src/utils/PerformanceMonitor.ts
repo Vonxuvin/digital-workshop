@@ -61,6 +61,7 @@ export class PerformanceMonitor {
       case 'high': return 1.0;
       case 'medium': return 0.6;
       case 'low': return 0.3;
+      default: return 1.0;
     }
   }
 
