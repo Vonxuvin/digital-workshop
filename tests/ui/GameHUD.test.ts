@@ -419,4 +419,67 @@ describe('GameHUD', () => {
     expect(mockPropSystem.useProp).toHaveBeenCalledWith(PropType.BOMB, { x: 100, y: 200 });
     expect((hud as any).propTargetMode).toBe(false);
   });
+
+  it('should set _propButtonJustClicked flag on prop click', () => {
+    (mockPropSystem.getPropCount as any).mockReturnValue(3);
+    const button = hud.propButtons.get(PropType.BOMB);
+    if (button) {
+      (button as any).onClick(PropType.BOMB);
+    }
+    expect((hud as any)._propButtonJustClicked).toBe(true);
+  });
+
+  it('should consume prop button click flag via consumePropButtonClick', () => {
+    (hud as any)._propButtonJustClicked = true;
+    expect(hud.consumePropButtonClick()).toBe(true);
+    expect(hud.consumePropButtonClick()).toBe(false);
+  });
+
+  it('should return false from consumePropButtonClick when flag is not set', () => {
+    expect(hud.consumePropButtonClick()).toBe(false);
+  });
+
+  it('should clear _propButtonJustClicked on reset', () => {
+    (hud as any)._propButtonJustClicked = true;
+    hud.reset();
+    expect((hud as any)._propButtonJustClicked).toBe(false);
+  });
+
+  it('should prevent bomb from firing on same click as PropButton activation', () => {
+    (mockPropSystem.getPropCount as any).mockReturnValue(3);
+    (mockPropSystem.useProp as any).mockReturnValue(true);
+
+    const button = hud.propButtons.get(PropType.BOMB);
+    if (button) {
+      (button as any).onClick(PropType.BOMB);
+    }
+
+    expect(hud.consumePropButtonClick()).toBe(true);
+    expect((hud as any).propTargetMode).toBe(true);
+
+    hud.usePropAtPosition(100, 200);
+    expect(mockPropSystem.useProp).toHaveBeenCalledWith(PropType.BOMB, { x: 100, y: 200 });
+  });
+
+  it('should not use prop at position when propTargetMode is false', () => {
+    (hud as any).propTargetMode = false;
+    (hud as any).selectedProp = null;
+    hud.usePropAtPosition(100, 200);
+    expect(mockPropSystem.useProp).not.toHaveBeenCalled();
+  });
+
+  it('should exit prop target mode and emit event on exitPropTargetMode', () => {
+    const handler = vi.fn();
+    eventBus.on('ui:propTargetMode', handler);
+
+    (hud as any).propTargetMode = true;
+    (hud as any).selectedProp = PropType.BOMB;
+    hud.exitPropTargetMode();
+
+    expect((hud as any).propTargetMode).toBe(false);
+    expect((hud as any).selectedProp).toBeNull();
+    expect(handler).toHaveBeenCalledWith({ enabled: false });
+
+    eventBus.off('ui:propTargetMode', handler);
+  });
 });

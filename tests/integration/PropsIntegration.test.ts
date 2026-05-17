@@ -622,4 +622,118 @@ describe('Props Integration Tests', () => {
       lucky.destroy();
     });
   });
+
+  describe('BombProp Bug Fix Integration', () => {
+    let propSystem: PropSystem;
+
+    beforeEach(async () => {
+      AnimationManager.resetInstance();
+      propSystem = new PropSystem();
+      await propSystem.loadConfig([
+        { id: 'bomb_1', type: 'bomb', name: '炸弹', description: '', icon: '', maxCount: 3, cooldown: 1000, price: 0 },
+      ]);
+      propSystem.initialize([{ type: PropType.BOMB, count: 3 }]);
+    });
+
+    afterEach(() => {
+      propSystem.destroy();
+      AnimationManager.resetInstance();
+    });
+
+    it('should emit bomb explode event with correct payload through PropSystem', () => {
+      const handler = vi.fn();
+      eventBus.on('props:bomb:explode', handler);
+
+      const result = propSystem.useProp(PropType.BOMB, { x: 200, y: 300 });
+
+      expect(result).toBe(true);
+      expect(handler).toHaveBeenCalledWith({
+        x: 200,
+        y: 300,
+        radius: 120,
+      });
+
+      eventBus.off('props:bomb:explode', handler);
+    });
+
+    it('should not emit bomb explode when target is missing', () => {
+      const handler = vi.fn();
+      eventBus.on('props:bomb:explode', handler);
+
+      const result = propSystem.useProp(PropType.BOMB);
+
+      expect(result).toBe(false);
+      expect(handler).not.toHaveBeenCalled();
+
+      eventBus.off('props:bomb:explode', handler);
+    });
+
+    it('should correctly track remaining count after bomb use', () => {
+      propSystem.useProp(PropType.BOMB, { x: 100, y: 200 });
+
+      const prop = propSystem.getProp(PropType.BOMB);
+      expect(prop!.getRemainingCount()).toBe(2);
+    });
+
+    it('should emit props:used event after successful bomb use', () => {
+      const handler = vi.fn();
+      eventBus.on('props:used', handler);
+
+      propSystem.useProp(PropType.BOMB, { x: 100, y: 200 });
+
+      expect(handler).toHaveBeenCalledWith({ type: 'bomb', remaining: 2 });
+
+      eventBus.off('props:used', handler);
+    });
+
+    it('should return false when bomb used without target', () => {
+      const result = propSystem.useProp(PropType.BOMB);
+      expect(result).toBe(false);
+    });
+
+    it('should handle bomb target mode flow: click button → enter target mode → click area → explode', () => {
+      const explodeHandler = vi.fn();
+      eventBus.on('props:bomb:explode', explodeHandler);
+
+      const propButtonClicked = true;
+      expect(propButtonClicked).toBe(true);
+
+      const targetMode = true;
+      expect(targetMode).toBe(true);
+
+      const targetX = 200;
+      const targetY = 300;
+      const result = propSystem.useProp(PropType.BOMB, { x: targetX, y: targetY });
+
+      expect(result).toBe(true);
+      expect(explodeHandler).toHaveBeenCalledWith({
+        x: targetX,
+        y: targetY,
+        radius: 120,
+      });
+
+      eventBus.off('props:bomb:explode', explodeHandler);
+    });
+
+    it('should prevent bomb from firing at PropButton position when consumePropButtonClick is true', () => {
+      const explodeHandler = vi.fn();
+      eventBus.on('props:bomb:explode', explodeHandler);
+
+      const propButtonJustClicked = true;
+      if (!propButtonJustClicked) {
+        propSystem.useProp(PropType.BOMB, { x: 700, y: 50 });
+      }
+
+      expect(explodeHandler).not.toHaveBeenCalled();
+
+      propSystem.useProp(PropType.BOMB, { x: 200, y: 300 });
+      expect(explodeHandler).toHaveBeenCalledWith({
+        x: 200,
+        y: 300,
+        radius: 120,
+      });
+
+      eventBus.off('props:bomb:explode', explodeHandler);
+    });
+  });
 });

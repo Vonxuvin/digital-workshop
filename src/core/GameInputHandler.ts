@@ -45,11 +45,12 @@ export class GameInputHandler {
     this.syncInputScale();
 
     this.input.onDown((state) => {
-      if (!this.gameScene.getBlockSpawner().getCanDrop() || !this.sceneManager.isPlaying()) return;
+      if (!this.sceneManager.isPlaying()) return;
       if (this.gameScene.getBombTargetMode()) {
         this.gameHUD.showCrosshair(state.position.x, state.position.y);
         return;
       }
+      if (!this.gameScene.getBlockSpawner().getCanDrop()) return;
       const dropY = this.calculateDropY(state.position.y);
       this.gameScene.getPreview().show(this.gameScene.getBlockSpawner().getCurrentValue(), state.position.x, dropY);
     });
@@ -65,6 +66,7 @@ export class GameInputHandler {
     });
 
     this.input.onUp(() => {
+      if (this.gameHUD.consumePropButtonClick()) return;
       if (this.gameScene.getBombTargetMode() && this.sceneManager.isPlaying()) {
         const pos = this.input.getState().position;
         this.gameScene.usePropAtPosition(pos.x, pos.y);

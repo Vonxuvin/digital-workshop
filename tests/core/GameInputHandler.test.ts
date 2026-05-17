@@ -65,6 +65,7 @@ function createMockGameHUD() {
     showCrosshair: vi.fn(),
     updateCrosshair: vi.fn(),
     hideCrosshair: vi.fn(),
+    consumePropButtonClick: vi.fn(() => false),
   };
 }
 
@@ -205,5 +206,44 @@ describe('GameInputHandler', () => {
     handler.setup();
     input._upCbs[0]();
     expect(gameScene._preview.setNextValue).toHaveBeenCalled();
+  });
+
+  it('should skip onUp processing when prop button was just clicked', () => {
+    gameHUD.consumePropButtonClick.mockReturnValue(true);
+    handler.setup();
+    input._upCbs[0]();
+    expect(gameScene.dropBlockWithShrinkCheck).not.toHaveBeenCalled();
+    expect(gameScene.usePropAtPosition).not.toHaveBeenCalled();
+  });
+
+  it('should show crosshair in bomb target mode even when cannot drop', () => {
+    gameScene.getBombTargetMode.mockReturnValue(true);
+    gameScene._blockSpawner.getCanDrop.mockReturnValue(false);
+    handler.setup();
+    input._downCbs[0]({ position: { x: 200, y: 300 }, isDown: true });
+    expect(gameHUD.showCrosshair).toHaveBeenCalledWith(200, 300);
+  });
+
+  it('should not show preview in bomb target mode when cannot drop', () => {
+    gameScene._blockSpawner.getCanDrop.mockReturnValue(false);
+    handler.setup();
+    input._downCbs[0]({ position: { x: 200, y: 300 }, isDown: true });
+    expect(gameScene._preview.show).not.toHaveBeenCalled();
+  });
+
+  it('should process bomb target mode onDown before canDrop check', () => {
+    gameScene.getBombTargetMode.mockReturnValue(true);
+    gameScene._blockSpawner.getCanDrop.mockReturnValue(false);
+    handler.setup();
+    input._downCbs[0]({ position: { x: 200, y: 300 }, isDown: true });
+    expect(gameHUD.showCrosshair).toHaveBeenCalled();
+  });
+
+  it('should not process onUp bomb target mode when prop button just clicked', () => {
+    gameScene.getBombTargetMode.mockReturnValue(true);
+    gameHUD.consumePropButtonClick.mockReturnValue(true);
+    handler.setup();
+    input._upCbs[0]();
+    expect(gameScene.usePropAtPosition).not.toHaveBeenCalled();
   });
 });

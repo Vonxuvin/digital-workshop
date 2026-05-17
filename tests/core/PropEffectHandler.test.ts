@@ -152,7 +152,7 @@ describe('PropEffectHandler', () => {
       blockSpawner.getBlocks.mockReturnValue([block]);
 
       handler.handleBombExplode({ x: 110, y: 200, radius: 120 });
-      expect(effectManager.addExplosionEffect).toHaveBeenCalledWith(110, 200, expect.any(Number));
+      expect(effectManager.addExplosionEffect).toHaveBeenCalledWith(110, 200, 10);
     });
 
     it('should clip explosion radius at right container bound', () => {
@@ -162,7 +162,25 @@ describe('PropEffectHandler', () => {
       blockSpawner.getBlocks.mockReturnValue([block]);
 
       handler.handleBombExplode({ x: 390, y: 200, radius: 120 });
-      expect(effectManager.addExplosionEffect).toHaveBeenCalledWith(390, 200, expect.any(Number));
+      expect(effectManager.addExplosionEffect).toHaveBeenCalledWith(390, 200, 10);
+    });
+
+    it('should produce zero radius when center is at container edge', () => {
+      handler.setContainerBounds(100, 400);
+      handler.handleBombExplode({ x: 100, y: 200, radius: 120 });
+      expect(effectManager.addExplosionEffect).toHaveBeenCalledWith(100, 200, 0);
+    });
+
+    it('should not produce negative radius when center is outside container', () => {
+      handler.setContainerBounds(100, 400);
+      handler.handleBombExplode({ x: 50, y: 200, radius: 120 });
+      expect(effectManager.addExplosionEffect).toHaveBeenCalledWith(50, 200, 0);
+    });
+
+    it('should use full radius when explosion fits within container', () => {
+      handler.setContainerBounds(0, 800);
+      handler.handleBombExplode({ x: 400, y: 300, radius: 120 });
+      expect(effectManager.addExplosionEffect).toHaveBeenCalledWith(400, 300, 120);
     });
 
     it('should not affect blocks far from explosion', () => {

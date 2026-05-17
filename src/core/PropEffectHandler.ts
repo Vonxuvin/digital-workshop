@@ -76,12 +76,13 @@ export class PropEffectHandler {
     const leftBound = this.containerOffsetX;
     const rightBound = this.containerOffsetX + this.containerWidth;
     let effectiveRadius = data.radius;
-    if (data.x - data.radius < leftBound) {
-      effectiveRadius = Math.min(effectiveRadius, data.x - leftBound + data.radius);
+    if (data.x - effectiveRadius < leftBound) {
+      effectiveRadius = data.x - leftBound;
     }
-    if (data.x + data.radius > rightBound) {
-      effectiveRadius = Math.min(effectiveRadius, rightBound - data.x + data.radius);
+    if (data.x + effectiveRadius > rightBound) {
+      effectiveRadius = rightBound - data.x;
     }
+    effectiveRadius = Math.max(0, effectiveRadius);
 
     const affectedBlocks = bombProp.getAffectedBlocks(this.blockSpawner.getBlocks(), data.x, data.y);
     for (const block of affectedBlocks) {

@@ -28,6 +28,7 @@ export class GameHUD extends Container {
   private _propsContainer!: Container;
   private selectedProp: PropType | null = null;
   private propTargetMode = false;
+  private _propButtonJustClicked = false;
   private screenWidth = 0;
   private screenHeight = 0;
   private _currentButtonSize = 60;
@@ -152,6 +153,8 @@ export class GameHUD extends Container {
     const count = this.propSystem.getPropCount(type);
     if (count <= 0) return;
 
+    this._propButtonJustClicked = true;
+
     if (type === PropType.BOMB) {
       if (this.selectedProp === PropType.BOMB) {
         this.exitBombTargetMode();
@@ -191,6 +194,14 @@ export class GameHUD extends Container {
     this.setPropSelected(null);
     this.hideCrosshair();
     eventBus.emit(GameEvents.UI_PROP_TARGET_MODE, { enabled: false });
+  }
+
+  consumePropButtonClick(): boolean {
+    if (this._propButtonJustClicked) {
+      this._propButtonJustClicked = false;
+      return true;
+    }
+    return false;
   }
 
   private exitBombTargetMode(): void {
@@ -444,6 +455,7 @@ export class GameHUD extends Container {
     this.currentScore = 0;
     this.displayScore = 0;
     this.scoreProxy.value = 0;
+    this._propButtonJustClicked = false;
     if (this.scoreTween) {
       this.scoreTween.kill();
       this.scoreTween = null;
