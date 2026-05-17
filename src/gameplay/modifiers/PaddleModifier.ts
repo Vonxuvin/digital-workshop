@@ -204,8 +204,9 @@ export class PaddleModifier extends ContainerModifier {
     const dt = deltaMS / 1000;
     this.xPosition += this.slideSpeed * this.slideDirection * dt * 60;
 
-    const minX = this.xRange;
-    const maxX = this.containerWidth - this.xRange;
+    const halfPaddleWidth = this.extendLength / 2;
+    const minX = this.xRange + halfPaddleWidth;
+    const maxX = this.containerWidth - this.xRange - halfPaddleWidth;
 
     if (this.xPosition >= maxX) {
       this.xPosition = maxX;
