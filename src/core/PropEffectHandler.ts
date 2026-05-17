@@ -27,6 +27,8 @@ export class PropEffectHandler {
   private bombTargetMode = false;
   private shrinkActive = false;
   private shrinkFactor = 1;
+  private containerOffsetX: number = 0;
+  private containerWidth: number = 800;
   private originalBodyData: Map<string, { originalCircleRadius: number | undefined; currentScale: number }> = new Map();
 
   constructor(
@@ -59,6 +61,11 @@ export class PropEffectHandler {
     this.scoreSystem = scoreSystem;
   }
 
+  setContainerBounds(offsetX: number, width: number): void {
+    this.containerOffsetX = offsetX;
+    this.containerWidth = width;
+  }
+
   handleBombExplode(data: { x: number; y: number; radius: number }): void {
     const bombProp = this.propSystem.getProp(PropType.BOMB);
     if (!bombProp) {
@@ -66,16 +73,27 @@ export class PropEffectHandler {
       return;
     }
 
+    const leftBound = this.containerOffsetX;
+    const rightBound = this.containerOffsetX + this.containerWidth;
+    let effectiveRadius = data.radius;
+    if (data.x - data.radius < leftBound) {
+      effectiveRadius = Math.min(effectiveRadius, data.x - leftBound + data.radius);
+    }
+    if (data.x + data.radius > rightBound) {
+      effectiveRadius = Math.min(effectiveRadius, rightBound - data.x + data.radius);
+    }
+
     const affectedBlocks = bombProp.getAffectedBlocks(this.blockSpawner.getBlocks(), data.x, data.y);
     for (const block of affectedBlocks) {
       if (block.isDestroyed) continue;
+      if (block.x < leftBound || block.x > rightBound) continue;
       this.blockSpawner.removeBlock(block);
       this.mergeSystem.unregisterBlock(block);
       this.physics.removeBody(block.body);
       block.destroy();
     }
 
-    this.effectManager.addExplosionEffect(data.x, data.y, data.radius);
+    this.effectManager.addExplosionEffect(data.x, data.y, effectiveRadius);
 
     if (this.levelSystem) {
       this.gameHUD.setObjectiveProgress(this.levelSystem.getProgress());

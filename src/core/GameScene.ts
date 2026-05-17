@@ -119,6 +119,7 @@ export class GameScene {
     this.containerHeight = this.containerRenderer.getContainerHeight();
     this.containerOffsetX = this.containerRenderer.getContainerOffsetX();
     this.groundY = this.containerRenderer.getGroundY();
+    this.propEffectHandler.setContainerBounds(this.containerOffsetX, this.containerWidth);
   }
 
   rebuildPhysicsWalls(): void {
