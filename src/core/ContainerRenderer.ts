@@ -74,9 +74,9 @@ export class ContainerRenderer {
 
     const ground = this.physics.createRectangle(offsetX + w / 2, this.groundY + 25, w, 50);
     ground.label = 'ground';
-    const leftWall = this.physics.createRectangle(offsetX - 22, h / 2, 50, h);
+    const leftWall = this.physics.createRectangle(offsetX - 25, h / 2, 50, h);
     leftWall.label = 'wall_left';
-    const rightWall = this.physics.createRectangle(offsetX + w + 22, h / 2, 50, h);
+    const rightWall = this.physics.createRectangle(offsetX + w + 25, h / 2, 50, h);
     rightWall.label = 'wall_right';
 
     this.physicsWalls = [ground, leftWall, rightWall];
