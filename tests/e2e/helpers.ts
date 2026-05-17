@@ -48,35 +48,53 @@ export async function navigateToGame(page: Page, startPlaying = true) {
   await page.goto(GAME_URL);
   await page.waitForLoadState('domcontentloaded');
   await page.waitForSelector('#game-canvas', { timeout: 20000 });
-  await page.waitForFunction(
-    () => {
-      const game = (window as any).__gameInstance;
-      if (!game) return false;
-      try {
-        const stateMachine = game.getStateMachine?.();
-        if (!stateMachine) return false;
-        const state = stateMachine.getCurrentState?.();
-        return state !== 'boot';
-      } catch {
-        return false;
-      }
-    },
-    { timeout: 30000 }
-  );
-  await page.waitForFunction(
-    () => {
-      const game = (window as any).__gameInstance;
-      if (!game) return false;
-      try {
-        const stateMachine = game.getStateMachine?.();
-        if (!stateMachine) return false;
-        return stateMachine.getCurrentState?.() === 'menu';
-      } catch {
-        return false;
-      }
-    },
-    { timeout: 30000 }
-  );
+
+  try {
+    await page.waitForFunction(
+      () => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const stateMachine = game.getStateMachine?.();
+          if (!stateMachine) return false;
+          const state = stateMachine.getCurrentState?.();
+          return state !== 'boot';
+        } catch {
+          return false;
+        }
+      },
+      { timeout: 20000 }
+    );
+  } catch {
+    const webglAvailable = await isWebGLAvailable(page);
+    if (!webglAvailable) {
+      test.skip(true, '游戏初始化超时且WebGL不可用，跳过测试');
+    }
+    throw new Error('[navigateToGame] 游戏未能离开boot状态(20s超时)');
+  }
+
+  try {
+    await page.waitForFunction(
+      () => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const stateMachine = game.getStateMachine?.();
+          if (!stateMachine) return false;
+          return stateMachine.getCurrentState?.() === 'menu';
+        } catch {
+          return false;
+        }
+      },
+      { timeout: 15000 }
+    );
+  } catch {
+    const webglAvailable = await isWebGLAvailable(page);
+    if (!webglAvailable) {
+      test.skip(true, '游戏未到达menu状态且WebGL不可用，跳过测试');
+    }
+    throw new Error('[navigateToGame] 游戏未能到达menu状态(15s超时)');
+  }
   if (startPlaying) {
     const startResult = await page.evaluate(() => {
       const game = (window as any).__gameInstance;

@@ -146,11 +146,17 @@ export class Game {
       }
 
       try {
-        await this.app.init(initOptions);
+        const INIT_TIMEOUT = 15000;
+        const initPromise = this.app.init(initOptions);
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('WebGL初始化超时')), INIT_TIMEOUT);
+        });
+        await Promise.race([initPromise, timeoutPromise]);
       } catch (initErr: unknown) {
         const errMsg = initErr instanceof Error ? initErr.message : String(initErr);
         if (errMsg.includes('CanvasRenderer is not yet implemented') ||
-            errMsg.includes('No available renderer')) {
+            errMsg.includes('No available renderer') ||
+            errMsg.includes('WebGL初始化超时')) {
           console.warn('[Game] WebGL/WebGPU 渲染器初始化失败，这是沙盒环境的已知限制');
           console.warn('[Game] 游戏将在降级模式下运行');
           if (this.stateMachine.getCurrentState() === 'boot') {
