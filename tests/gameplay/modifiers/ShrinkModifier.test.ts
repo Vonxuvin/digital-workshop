@@ -16,6 +16,7 @@ describe('ShrinkModifier', () => {
 
     physics = {
       getEngine: vi.fn().mockReturnValue(engine),
+      getAllBodies: vi.fn().mockReturnValue([]),
     } as unknown as PhysicsManager;
 
     stageContainer = new Container();
@@ -214,6 +215,35 @@ describe('ShrinkModifier', () => {
     createWalls();
     modifier.start();
     expect(modifier.isActive()).toBe(true);
+    modifier.destroy();
+  });
+
+  it('should push blocks inside when shrinking (B-14)', () => {
+    const block = Matter.Bodies.circle(380, 300, 20, { label: 'block_test' });
+    Matter.Composite.add(engine.world, [block]);
+
+    const mockPhysics = {
+      getEngine: vi.fn().mockReturnValue(engine),
+      getAllBodies: vi.fn().mockReturnValue([block]),
+    } as unknown as PhysicsManager;
+
+    const modifier = new ShrinkModifier(
+      createConfig({ targetWidth: 200, shrinkSpeed: 200, startDelay: 0 }),
+      mockPhysics, 400, 600, 580, stageContainer, 0
+    );
+
+    createWalls();
+    modifier.start();
+
+    for (let i = 0; i < 10; i++) {
+      (modifier as any).onTick(500);
+    }
+
+    const currentWidth = modifier.getCurrentWidth();
+    const centerX = 200;
+    const rightBound = centerX + currentWidth / 2;
+    expect(block.position.x + 20).toBeLessThanOrEqual(rightBound + 1);
+
     modifier.destroy();
   });
 });

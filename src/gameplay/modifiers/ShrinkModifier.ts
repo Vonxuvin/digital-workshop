@@ -169,6 +169,29 @@ export class ShrinkModifier extends ContainerModifier {
         this.currentWidth - shrinkAmount * 2
       );
       this.updateWallPositions();
+      this.pushBlocksInside();
+    }
+  }
+
+  private pushBlocksInside(): void {
+    const centerX = this.containerOffsetX + this.originalWidth / 2;
+    const halfWidth = this.currentWidth / 2;
+    const leftBound = centerX - halfWidth;
+    const rightBound = centerX + halfWidth;
+
+    const bodies = this.physics.getAllBodies();
+    for (const body of bodies) {
+      if (body.isStatic) continue;
+      const radius = body.circleRadius || 20;
+      const pos = body.position;
+
+      if (pos.x - radius < leftBound) {
+        Matter.Body.setPosition(body, { x: leftBound + radius, y: pos.y });
+        Matter.Body.setVelocity(body, { x: Math.abs(body.velocity.x) * 0.5, y: body.velocity.y });
+      } else if (pos.x + radius > rightBound) {
+        Matter.Body.setPosition(body, { x: rightBound - radius, y: pos.y });
+        Matter.Body.setVelocity(body, { x: -Math.abs(body.velocity.x) * 0.5, y: body.velocity.y });
+      }
     }
   }
 
