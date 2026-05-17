@@ -46,7 +46,7 @@ test.describe('Score Counter - 数字计数器验证 @regression', () => {
         try {
           const hud = game.getGameHUD?.();
           if (!hud) return false;
-          return hud.getScoreTextDisplay?.() !== undefined;
+          return hud.scoreText !== null && hud.scoreText !== undefined;
         } catch {
           return false;
         }
