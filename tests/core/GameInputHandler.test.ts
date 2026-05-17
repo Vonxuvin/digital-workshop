@@ -1,0 +1,209 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { GameInputHandler } from '../../src/core/GameInputHandler';
+import { GameStateMachine } from '../../src/core/GameStateMachine';
+
+function createMockApp() {
+  return {
+    screen: { width: 400, height: 600 },
+  };
+}
+
+function createMockInput() {
+  const downCbs: Function[] = [];
+  const moveCbs: Function[] = [];
+  const upCbs: Function[] = [];
+  return {
+    onDown: vi.fn((cb) => downCbs.push(cb)),
+    onMove: vi.fn((cb) => moveCbs.push(cb)),
+    onUp: vi.fn((cb) => upCbs.push(cb)),
+    getState: vi.fn(() => ({ position: { x: 200, y: 300 }, isDown: true })),
+    setScale: vi.fn(),
+    _downCbs: downCbs,
+    _moveCbs: moveCbs,
+    _upCbs: upCbs,
+  };
+}
+
+function createMockGameScene() {
+  const preview = {
+    visible: true,
+    show: vi.fn(),
+    updatePosition: vi.fn(),
+    hide: vi.fn(),
+    getTargetX: vi.fn(() => 200),
+    y: 80,
+    setNextValue: vi.fn(),
+  };
+  const blockSpawner = {
+    getCanDrop: vi.fn(() => true),
+    getCurrentValue: vi.fn(() => 2),
+    startCooldown: vi.fn(),
+  };
+  return {
+    getBlockSpawner: vi.fn(() => blockSpawner),
+    getPreview: vi.fn(() => preview),
+    getBombTargetMode: vi.fn(() => false),
+    usePropAtPosition: vi.fn(),
+    dropBlockWithShrinkCheck: vi.fn(),
+    getContainerOffsetX: vi.fn(() => 0),
+    getContainerHeight: vi.fn(() => 600),
+    _preview: preview,
+    _blockSpawner: blockSpawner,
+  };
+}
+
+function createMockSceneManager() {
+  return {
+    isPlaying: vi.fn(() => true),
+    pauseGame: vi.fn(),
+    resumeGame: vi.fn(),
+  };
+}
+
+function createMockGameHUD() {
+  return {
+    showCrosshair: vi.fn(),
+    updateCrosshair: vi.fn(),
+    hideCrosshair: vi.fn(),
+  };
+}
+
+function createMockCanvas() {
+  return {
+    getBoundingClientRect: vi.fn(() => ({ width: 400, height: 600, x: 0, y: 0 })),
+  };
+}
+
+describe('GameInputHandler', () => {
+  let handler: GameInputHandler;
+  let app: ReturnType<typeof createMockApp>;
+  let input: ReturnType<typeof createMockInput>;
+  let gameScene: ReturnType<typeof createMockGameScene>;
+  let sceneManager: ReturnType<typeof createMockSceneManager>;
+  let stateMachine: GameStateMachine;
+  let gameHUD: ReturnType<typeof createMockGameHUD>;
+  let canvas: ReturnType<typeof createMockCanvas>;
+
+  beforeEach(() => {
+    app = createMockApp();
+    input = createMockInput();
+    gameScene = createMockGameScene();
+    sceneManager = createMockSceneManager();
+    stateMachine = new GameStateMachine();
+    gameHUD = createMockGameHUD();
+    canvas = createMockCanvas();
+
+    handler = new GameInputHandler(
+      app as any,
+      input as any,
+      gameScene as any,
+      sceneManager as any,
+      stateMachine,
+      gameHUD as any,
+      canvas as any,
+    );
+  });
+
+  afterEach(() => {
+    handler.destroy();
+  });
+
+  it('should setup input listeners', () => {
+    handler.setup();
+    expect(input.onDown).toHaveBeenCalled();
+    expect(input.onMove).toHaveBeenCalled();
+    expect(input.onUp).toHaveBeenCalled();
+  });
+
+  it('should sync input scale on setup', () => {
+    handler.setup();
+    expect(input.setScale).toHaveBeenCalled();
+  });
+
+  it('should show preview on input down', () => {
+    handler.setup();
+    input._downCbs[0]({ position: { x: 200, y: 300 }, isDown: true });
+    expect(gameScene._preview.show).toHaveBeenCalled();
+  });
+
+  it('should update preview position on move', () => {
+    handler.setup();
+    input._moveCbs[0]({ position: { x: 250, y: 300 }, isDown: true });
+    expect(gameScene._preview.updatePosition).toHaveBeenCalledWith(250);
+  });
+
+  it('should drop block on input up', () => {
+    handler.setup();
+    input._upCbs[0]();
+    expect(gameScene.dropBlockWithShrinkCheck).toHaveBeenCalled();
+    expect(gameScene._preview.hide).toHaveBeenCalled();
+  });
+
+  it('should handle bomb target mode on down', () => {
+    gameScene.getBombTargetMode.mockReturnValue(true);
+    handler.setup();
+    input._downCbs[0]({ position: { x: 200, y: 300 }, isDown: true });
+    expect(gameHUD.showCrosshair).toHaveBeenCalled();
+  });
+
+  it('should handle bomb target mode on up', () => {
+    gameScene.getBombTargetMode.mockReturnValue(true);
+    handler.setup();
+    input._upCbs[0]();
+    expect(gameScene.usePropAtPosition).toHaveBeenCalled();
+    expect(gameHUD.hideCrosshair).toHaveBeenCalled();
+  });
+
+  it('should update crosshair on move in bomb target mode', () => {
+    gameScene.getBombTargetMode.mockReturnValue(true);
+    handler.setup();
+    input._moveCbs[0]({ position: { x: 250, y: 350 }, isDown: true });
+    expect(gameHUD.updateCrosshair).toHaveBeenCalledWith(250, 350);
+  });
+
+  it('should setup keyboard listeners', () => {
+    handler.setupKeyboard();
+  });
+
+  it('should sync input scale', () => {
+    handler.syncInputScale();
+    expect(input.setScale).toHaveBeenCalledWith(1, 1);
+  });
+
+  it('should destroy and remove keyboard listener', () => {
+    handler.setupKeyboard();
+    handler.destroy();
+  });
+
+  it('should not show preview when cannot drop', () => {
+    gameScene._blockSpawner.getCanDrop.mockReturnValue(false);
+    handler.setup();
+    input._downCbs[0]({ position: { x: 200, y: 300 }, isDown: true });
+    expect(gameScene._preview.show).not.toHaveBeenCalled();
+  });
+
+  it('should not show preview when not playing', () => {
+    sceneManager.isPlaying.mockReturnValue(false);
+    handler.setup();
+    input._downCbs[0]({ position: { x: 200, y: 300 }, isDown: true });
+    expect(gameScene._preview.show).not.toHaveBeenCalled();
+  });
+
+  it('should not update preview when not down', () => {
+    handler.setup();
+    input._moveCbs[0]({ position: { x: 250, y: 300 }, isDown: false });
+    expect(gameScene._preview.updatePosition).not.toHaveBeenCalled();
+  });
+
+  it('should start cooldown after drop', () => {
+    handler.setup();
+    input._upCbs[0]();
+    expect(gameScene._blockSpawner.startCooldown).toHaveBeenCalled();
+  });
+
+  it('should set next value after drop', () => {
+    handler.setup();
+    input._upCbs[0]();
+    expect(gameScene._preview.setNextValue).toHaveBeenCalled();
+  });
+});
