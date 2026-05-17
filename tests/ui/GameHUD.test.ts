@@ -483,3 +483,183 @@ describe('GameHUD', () => {
     eventBus.off('ui:propTargetMode', handler);
   });
 });
+
+describe('GameHUD Score Animation', () => {
+  let hud: GameHUD;
+  let mockPropSystem: PropSystem;
+
+  beforeEach(() => {
+    mockPropSystem = {
+      getPropCount: vi.fn().mockReturnValue(3),
+      getAllProps: vi.fn().mockReturnValue([
+        { type: PropType.BOMB, config: { id: 'bomb' } as any, remaining: 3 },
+        { type: PropType.RAINBOW, config: { id: 'rainbow' } as any, remaining: 2 },
+      ]),
+      useProp: vi.fn(),
+      getProp: vi.fn(),
+      reset: vi.fn(),
+      pause: vi.fn(),
+      resume: vi.fn(),
+      destroy: vi.fn(),
+    } as unknown as PropSystem;
+
+    hud = new GameHUD(mockPropSystem);
+  });
+
+  afterEach(() => {
+    hud.destroy();
+  });
+
+  it('should start score animation when SCORE_UPDATED event fires', () => {
+    eventBus.emit('score:updated', {
+      totalScore: 20,
+      earnedScore: 10,
+      chainCount: 2,
+    });
+    expect((hud as any).scoreTween).toBeDefined();
+    expect((hud as any).currentScore).toBe(20);
+  });
+
+  it('should update currentScore but not displayScore immediately on event', () => {
+    eventBus.emit('score:updated', {
+      totalScore: 50,
+      earnedScore: 30,
+      chainCount: 1,
+    });
+    expect((hud as any).currentScore).toBe(50);
+  });
+
+  it('should not recreate tween on consecutive SCORE_UPDATED with same totalScore', () => {
+    eventBus.emit('score:updated', {
+      totalScore: 30,
+      earnedScore: 10,
+      chainCount: 1,
+    });
+    const firstTween = (hud as any).scoreTween;
+    expect(firstTween).toBeDefined();
+    eventBus.emit('score:updated', {
+      totalScore: 30,
+      earnedScore: 10,
+      chainCount: 1,
+    });
+    expect((hud as any).scoreTween).toBe(firstTween);
+  });
+
+  it('should kill and recreate tween when totalScore changes during animation', () => {
+    eventBus.emit('score:updated', {
+      totalScore: 10,
+      earnedScore: 10,
+      chainCount: 1,
+    });
+    const firstTween = (hud as any).scoreTween;
+    eventBus.emit('score:updated', {
+      totalScore: 50,
+      earnedScore: 40,
+      chainCount: 2,
+    });
+    const secondTween = (hud as any).scoreTween;
+    expect(secondTween).not.toBe(firstTween);
+    expect((hud as any).currentScore).toBe(50);
+  });
+
+  it('should update displayScore during animation updates', () => {
+    eventBus.emit('score:updated', {
+      totalScore: 100,
+      earnedScore: 100,
+      chainCount: 1,
+    });
+    (hud as any).displayScore = 0;
+    (hud as any).scoreProxy.value = 0;
+    (hud as any).scoreTween = null;
+    hud.update(0.016);
+    expect((hud as any).displayScore).toBeGreaterThanOrEqual(1);
+  });
+
+  it('should complete animation with skipAnimation setting displayScore to currentScore', () => {
+    eventBus.emit('score:updated', {
+      totalScore: 200,
+      earnedScore: 50,
+      chainCount: 3,
+    });
+    hud.skipAnimation();
+    expect((hud as any).displayScore).toBe(200);
+    expect((hud as any).currentScore).toBe(200);
+    expect((hud as any).scoreTween).toBeNull();
+    expect(hud.scoreText.text).toContain('200');
+  });
+
+  it('should reset displayScore to 0 when reset is called', () => {
+    eventBus.emit('score:updated', {
+      totalScore: 500,
+      earnedScore: 100,
+      chainCount: 2,
+    });
+    hud.reset();
+    expect((hud as any).currentScore).toBe(0);
+    expect((hud as any).displayScore).toBe(0);
+    expect((hud as any).scoreTween).toBeNull();
+    expect(hud.scoreText.text).toBe('Score: 0');
+  });
+
+  it('should not call animateScore from update when tween is active', () => {
+    eventBus.emit('score:updated', {
+      totalScore: 50,
+      earnedScore: 10,
+      chainCount: 1,
+    });
+    const tween = (hud as any).scoreTween;
+    expect(tween).toBeDefined();
+    const displayBefore = (hud as any).displayScore;
+    hud.update(0.016);
+    expect((hud as any).scoreTween).toBe(tween);
+  });
+
+  it('should use fallback interpolation when tween is null and display < current', () => {
+    (hud as any).currentScore = 30;
+    (hud as any).displayScore = 5;
+    (hud as any).scoreTween = null;
+    hud.update(0.016);
+    expect((hud as any).displayScore).toBeGreaterThan(5);
+    expect((hud as any).displayScore).toBeLessThanOrEqual(30);
+  });
+
+  it('should not exceed currentScore in fallback interpolation', () => {
+    (hud as any).currentScore = 10;
+    (hud as any).displayScore = 9;
+    (hud as any).scoreTween = null;
+    hud.update(0.016);
+    expect((hud as any).displayScore).toBe(10);
+  });
+
+  it('should not update when displayScore equals currentScore', () => {
+    (hud as any).currentScore = 50;
+    (hud as any).displayScore = 50;
+    (hud as any).scoreTween = null;
+    const displayBefore = (hud as any).displayScore;
+    hud.update(0.016);
+    expect((hud as any).displayScore).toBe(displayBefore);
+  });
+
+  it('should handle rapid consecutive score events', () => {
+    for (let i = 1; i <= 5; i++) {
+      eventBus.emit('score:updated', {
+        totalScore: i * 10,
+        earnedScore: 10,
+        chainCount: 1,
+      });
+    }
+    expect((hud as any).currentScore).toBe(50);
+    expect((hud as any).scoreTween).toBeDefined();
+  });
+
+  it('should allow fallback update to reach exact currentScore', () => {
+    (hud as any).currentScore = 3;
+    (hud as any).displayScore = 0;
+    (hud as any).scoreTween = null;
+    for (let i = 0; i < 20; i++) {
+      hud.update(0.016);
+    }
+    expect((hud as any).displayScore).toBe(3);
+    expect(hud.scoreText.text).toContain('3');
+  });
+});
