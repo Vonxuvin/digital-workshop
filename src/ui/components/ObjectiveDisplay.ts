@@ -31,6 +31,7 @@ const OBJECTIVE_UNITS: Record<ObjectiveType, string> = {
 };
 
 export class ObjectiveDisplay extends Container {
+  private backgroundPanel: Graphics;
   private iconText: Text;
   private objectiveLabel: Text;
   private progressText: Text;
@@ -41,11 +42,17 @@ export class ObjectiveDisplay extends Container {
   private nearCompleteThreshold = 0.8;
   private pulseTween: { active: boolean; phase: number } = { active: false, phase: 0 };
   private barWidth: number;
+  private _alwaysVisible = true;
+  private panelPadding = 8;
+  private panelHeight = 42;
 
-  constructor(width: number = 200) {
+  constructor(width: number = 280) {
     super();
 
     this.barWidth = width;
+
+    this.backgroundPanel = new Graphics();
+    this.addChild(this.backgroundPanel);
 
     this.iconText = new Text({
       text: '',
@@ -55,8 +62,8 @@ export class ObjectiveDisplay extends Container {
         fill: 0xffffff,
       },
     });
-    this.iconText.x = 0;
-    this.iconText.y = 0;
+    this.iconText.x = this.panelPadding;
+    this.iconText.y = this.panelPadding;
     this.addChild(this.iconText);
 
     this.objectiveLabel = new Text({
@@ -68,8 +75,8 @@ export class ObjectiveDisplay extends Container {
         fontWeight: 'bold',
       },
     });
-    this.objectiveLabel.x = 20;
-    this.objectiveLabel.y = 0;
+    this.objectiveLabel.x = this.panelPadding + 20;
+    this.objectiveLabel.y = this.panelPadding;
     this.addChild(this.objectiveLabel);
 
     this.progressText = new Text({
@@ -81,12 +88,12 @@ export class ObjectiveDisplay extends Container {
       },
     });
     this.progressText.x = width - 60;
-    this.progressText.y = 0;
+    this.progressText.y = this.panelPadding;
     this.addChild(this.progressText);
 
-    this.progressBar = new UIProgressBar(width, 10, 0x333333, 0x4ECDC4);
-    this.progressBar.x = 0;
-    this.progressBar.y = 20;
+    this.progressBar = new UIProgressBar(width - this.panelPadding * 2, 10, 0x333333, 0x4ECDC4);
+    this.progressBar.x = this.panelPadding;
+    this.progressBar.y = this.panelPadding + 22;
     this.addChild(this.progressBar);
 
     this.nearCompleteIndicator = new Graphics();
@@ -94,6 +101,18 @@ export class ObjectiveDisplay extends Container {
     this.nearCompleteIndicator.y = 0;
     this.nearCompleteIndicator.visible = false;
     this.addChild(this.nearCompleteIndicator);
+
+    this.drawBackground();
+  }
+
+  private drawBackground(): void {
+    this.backgroundPanel.clear();
+    const w = this.barWidth;
+    const h = this.panelHeight;
+    this.backgroundPanel.roundRect(0, 0, w, h, 8);
+    this.backgroundPanel.fill({ color: 0x0d0d1a, alpha: 0.85 });
+    this.backgroundPanel.roundRect(0, 0, w, h, 8);
+    this.backgroundPanel.stroke({ width: 1, color: 0x4a4a8a, alpha: 0.4 });
   }
 
   setObjective(data: ObjectiveDisplayData): void {
@@ -101,12 +120,36 @@ export class ObjectiveDisplay extends Container {
     this.iconText.text = OBJECTIVE_ICONS[data.type] || '🎯';
     this.objectiveLabel.text = `${OBJECTIVE_LABELS[data.type] || '目标'}: ${this.formatTarget(data)}`;
     this.updateProgress(data);
+    if (this._alwaysVisible) {
+      this.visible = true;
+    }
   }
 
   updateProgress(data: ObjectiveDisplayData): void {
     this._currentData = data;
     const progress = this.calculateProgress(data);
     this.progressBar.setProgress(progress);
+
+    this.progressText.text = this.formatProgress(data);
+
+    const wasNearComplete = this._isNearComplete;
+    this._isNearComplete = progress >= this.nearCompleteThreshold && progress < 1;
+
+    if (this._isNearComplete && !wasNearComplete) {
+      this.onNearComplete();
+    } else if (!this._isNearComplete && wasNearComplete) {
+      this.clearNearCompleteIndicator();
+    }
+
+    if (progress >= 1) {
+      this.onComplete();
+    }
+  }
+
+  forceUpdateProgress(data: ObjectiveDisplayData): void {
+    this._currentData = data;
+    const progress = this.calculateProgress(data);
+    this.progressBar.forceSetProgress(progress);
 
     this.progressText.text = this.formatProgress(data);
 
@@ -220,17 +263,37 @@ export class ObjectiveDisplay extends Container {
     return this._currentData;
   }
 
+  setAlwaysVisible(value: boolean): void {
+    this._alwaysVisible = value;
+    if (value && this._currentData) {
+      this.visible = true;
+    }
+  }
+
+  isAlwaysVisible(): boolean {
+    return this._alwaysVisible;
+  }
+
+  getBackgroundPanel(): Graphics {
+    return this.backgroundPanel;
+  }
+
+  get objectiveBarWidth(): number {
+    return this.barWidth;
+  }
+
   reset(): void {
     this._currentData = null;
     this._isNearComplete = false;
     this.iconText.text = '';
     this.objectiveLabel.text = '';
     this.progressText.text = '';
-    this.progressBar.setProgress(0);
+    this.progressBar.forceSetProgress(0);
     this.progressBar.setColors(0x333333, 0x4ECDC4);
     this.objectiveLabel.style.fill = 0xcccccc;
     this.progressText.style.fill = 0x999999;
     this.nearCompleteIndicator.visible = false;
+    this.drawBackground();
   }
 
   static getObjectiveLabel(type: ObjectiveType): string {
@@ -255,6 +318,7 @@ export class ObjectiveDisplay extends Container {
 
   destroy(): void {
     this.nearCompleteIndicator.destroy();
+    this.backgroundPanel.destroy();
     super.destroy();
   }
 }

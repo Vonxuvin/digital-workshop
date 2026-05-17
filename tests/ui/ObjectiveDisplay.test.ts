@@ -307,6 +307,98 @@ describe('ObjectiveDisplay', () => {
       expect(display.progressBar.progress).toBe(1);
     });
   });
+
+  describe('background panel', () => {
+    it('should have a background panel', () => {
+      expect(display.getBackgroundPanel()).toBeDefined();
+    });
+
+    it('should draw background panel with correct dimensions', () => {
+      const panel = display.getBackgroundPanel();
+      expect(panel).toBeDefined();
+    });
+
+    it('should redraw background on reset', () => {
+      display.setObjective({ type: 'score', target: 100, currentValue: 50 });
+      display.reset();
+      const panel = display.getBackgroundPanel();
+      expect(panel).toBeDefined();
+    });
+  });
+
+  describe('always visible mode', () => {
+    it('should be always visible by default', () => {
+      expect(display.isAlwaysVisible()).toBe(true);
+    });
+
+    it('should set always visible to false', () => {
+      display.setAlwaysVisible(false);
+      expect(display.isAlwaysVisible()).toBe(false);
+    });
+
+    it('should make display visible when setting always visible with data', () => {
+      display.setAlwaysVisible(true);
+      display.setObjective({ type: 'score', target: 100, currentValue: 0 });
+      expect(display.visible).toBe(true);
+    });
+
+    it('should not auto-show when always visible is false', () => {
+      display.setAlwaysVisible(false);
+      display.visible = false;
+      display.setObjective({ type: 'score', target: 100, currentValue: 0 });
+      expect(display.visible).toBe(false);
+    });
+  });
+
+  describe('forceUpdateProgress', () => {
+    it('should immediately update progress bar without animation', () => {
+      display.setObjective({ type: 'score', target: 100, currentValue: 0 });
+      expect(display.progressBar.progress).toBe(0);
+
+      display.forceUpdateProgress({ type: 'score', target: 100, currentValue: 75 });
+      expect(display.progressBar.progress).toBeCloseTo(0.75);
+      expect(display.progressBar.displayProgressValue).toBeCloseTo(0.75);
+    });
+
+    it('should immediately set progress to 1 on completion', () => {
+      display.setObjective({ type: 'score', target: 100, currentValue: 0 });
+      display.forceUpdateProgress({ type: 'score', target: 100, currentValue: 100 });
+      expect(display.progressBar.progress).toBe(1);
+      expect(display.progressBar.displayProgressValue).toBe(1);
+    });
+
+    it('should update progress text on force update', () => {
+      display.setObjective({ type: 'score', target: 100, currentValue: 0 });
+      display.forceUpdateProgress({ type: 'score', target: 100, currentValue: 50 });
+      expect(display.getCurrentData()?.currentValue).toBe(50);
+    });
+
+    it('should handle near complete state on force update', () => {
+      display.setObjective({ type: 'score', target: 100, currentValue: 0 });
+      display.forceUpdateProgress({ type: 'score', target: 100, currentValue: 85 });
+      expect(display.isNearComplete()).toBe(true);
+    });
+
+    it('should handle complete state on force update', () => {
+      display.setObjective({ type: 'score', target: 100, currentValue: 0 });
+      display.forceUpdateProgress({ type: 'score', target: 100, currentValue: 100 });
+      expect(display.isNearComplete()).toBe(false);
+    });
+  });
+
+  describe('objectiveBarWidth getter', () => {
+    it('should return the bar width', () => {
+      const d = new ObjectiveDisplay(280);
+      expect(d.objectiveBarWidth).toBe(280);
+      d.destroy();
+    });
+
+    it('should return default width when using default constructor', () => {
+      const d = new ObjectiveDisplay();
+      expect(d.objectiveBarWidth).toBe(280);
+      d.destroy();
+    });
+  });
 });
 
 describe('LevelObjectiveOverlay', () => {
@@ -497,8 +589,9 @@ describe('GameHUD ObjectiveDisplay Integration', () => {
   it('should position objectiveDisplay in layout', () => {
     hud.layout(800, 600);
     const display = hud.objectiveDisplay;
-    expect(display.x).toBe(550);
-    expect(display.y).toBe(85);
+    const expectedX = Math.max(10, (800 - (display.objectiveBarWidth || 280)) / 2);
+    expect(display.x).toBe(expectedX);
+    expect(display.y).toBe(5);
   });
 
   it('should handle all objective types', () => {

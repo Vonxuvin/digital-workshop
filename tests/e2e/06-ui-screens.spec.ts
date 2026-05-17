@@ -759,4 +759,239 @@ test.describe('UI界面 @regression', () => {
       expect(hasBothInfoAndBar).toBeTruthy();
     });
   });
+
+  test.describe('通关条件固定显示优化 @regression', () => {
+    test('ObjectiveDisplay 应具有背景面板', async ({ page }) => {
+      await navigateToGame(page);
+
+      const hasBackgroundPanel = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return false;
+          const display = hud.objectiveDisplay;
+          if (!display) return false;
+          return display.getBackgroundPanel?.() !== null && display.getBackgroundPanel?.() !== undefined;
+        } catch {
+          return false;
+        }
+      });
+
+      expect(hasBackgroundPanel).toBeTruthy();
+    });
+
+    test('ObjectiveDisplay 应默认为始终可见模式', async ({ page }) => {
+      await navigateToGame(page);
+
+      const isAlwaysVisible = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return false;
+          const display = hud.objectiveDisplay;
+          if (!display) return false;
+          return display.isAlwaysVisible?.() === true;
+        } catch {
+          return false;
+        }
+      });
+
+      expect(isAlwaysVisible).toBeTruthy();
+    });
+
+    test('ObjectiveDisplay 应使用280px宽度', async ({ page }) => {
+      await navigateToGame(page);
+
+      const hasCorrectWidth = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return false;
+          const display = hud.objectiveDisplay;
+          if (!display) return false;
+          return display.objectiveBarWidth === 280;
+        } catch {
+          return false;
+        }
+      });
+
+      expect(hasCorrectWidth).toBeTruthy();
+    });
+
+    test('ObjectiveDisplay 应位于屏幕顶部居中位置', async ({ page }) => {
+      await navigateToGame(page);
+
+      const isTopCentered = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return false;
+          const display = hud.objectiveDisplay;
+          if (!display) return false;
+          return display.y === 5 && display.x > 0;
+        } catch {
+          return false;
+        }
+      });
+
+      expect(isTopCentered).toBeTruthy();
+    });
+  });
+
+  test.describe('进度条强制刷新机制 @regression', () => {
+    test('UIProgressBar 应支持 forceSetProgress 方法', async ({ page }) => {
+      await navigateToGame(page);
+
+      const hasForceSetProgress = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return false;
+          const display = hud.objectiveDisplay;
+          if (!display) return false;
+          const bar = display.progressBar;
+          if (!bar) return false;
+          return typeof bar.forceSetProgress === 'function';
+        } catch {
+          return false;
+        }
+      });
+
+      expect(hasForceSetProgress).toBeTruthy();
+    });
+
+    test('UIProgressBar 应支持 displayProgressValue getter', async ({ page }) => {
+      await navigateToGame(page);
+
+      const hasDisplayProgressValue = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return false;
+          const display = hud.objectiveDisplay;
+          if (!display) return false;
+          const bar = display.progressBar;
+          if (!bar) return false;
+          return typeof bar.displayProgressValue === 'number';
+        } catch {
+          return false;
+        }
+      });
+
+      expect(hasDisplayProgressValue).toBeTruthy();
+    });
+
+    test('GameHUD 应支持 forceUpdateObjectiveProgress 方法', async ({ page }) => {
+      await navigateToGame(page);
+
+      const hasForceUpdate = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return false;
+          return typeof hud.forceUpdateObjectiveProgress === 'function';
+        } catch {
+          return false;
+        }
+      });
+
+      expect(hasForceUpdate).toBeTruthy();
+    });
+
+    test('ObjectiveDisplay 应支持 forceUpdateProgress 方法', async ({ page }) => {
+      await navigateToGame(page);
+
+      const hasForceUpdateProgress = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return false;
+          const display = hud.objectiveDisplay;
+          if (!display) return false;
+          return typeof display.forceUpdateProgress === 'function';
+        } catch {
+          return false;
+        }
+      });
+
+      expect(hasForceUpdateProgress).toBeTruthy();
+    });
+  });
+
+  test.describe('界面布局整合验证 @regression', () => {
+    test('ObjectiveDisplay 应同时展示目标条件和进度条', async ({ page }) => {
+      await navigateToGame(page);
+      await ensureGameScene(page);
+
+      const hasIntegratedDisplay = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return false;
+          const display = hud.objectiveDisplay;
+          if (!display) return false;
+          const data = display.getCurrentData?.();
+          const bar = display.progressBar;
+          const bg = display.getBackgroundPanel?.();
+          return data !== null && bar !== null && bg !== null;
+        } catch {
+          return false;
+        }
+      });
+
+      expect(hasIntegratedDisplay).toBeTruthy();
+    });
+
+    test('ObjectiveDisplay 不应遮挡游戏操作区域', async ({ page }) => {
+      await navigateToGame(page);
+      await ensureGameScene(page);
+
+      const doesNotBlockGameplay = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return false;
+          const display = hud.objectiveDisplay;
+          if (!display) return false;
+          return display.y <= 10 && display.objectiveBarWidth <= 300;
+        } catch {
+          return false;
+        }
+      });
+
+      expect(doesNotBlockGameplay).toBeTruthy();
+    });
+
+    test('ObjectiveDisplay 在不同屏幕尺寸下应保持居中', async ({ page }) => {
+      await navigateToGame(page);
+
+      const isResponsive = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return false;
+          const display = hud.objectiveDisplay;
+          if (!display) return false;
+          const barWidth = display.objectiveBarWidth || 280;
+          const expectedX = Math.max(10, (hud.screenWidth - barWidth) / 2);
+          return Math.abs(display.x - expectedX) < 1;
+        } catch {
+          return false;
+        }
+      });
+
+      expect(isResponsive).toBeTruthy();
+    });
+  });
 });

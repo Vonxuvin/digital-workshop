@@ -197,8 +197,9 @@ describe('GameHUD', () => {
   it('should position objectiveDisplay in layout', () => {
     hud.layout(800, 600);
     const display = hud.objectiveDisplay;
-    expect(display.x).toBe(550);
-    expect(display.y).toBe(85);
+    const expectedX = Math.max(10, (800 - (display.objectiveBarWidth || 280)) / 2);
+    expect(display.x).toBe(expectedX);
+    expect(display.y).toBe(5);
   });
 
   it('should reset timerText visibility and text on reset', () => {
@@ -590,8 +591,9 @@ describe('GameHUD', () => {
 
   it('should position ObjectiveDisplay at unified location after layout', () => {
     hud.layout(800, 600);
-    expect(hud.objectiveDisplay.x).toBe(550);
-    expect(hud.objectiveDisplay.y).toBe(85);
+    const expectedX = Math.max(10, (800 - (hud.objectiveDisplay.objectiveBarWidth || 280)) / 2);
+    expect(hud.objectiveDisplay.x).toBe(expectedX);
+    expect(hud.objectiveDisplay.y).toBe(5);
   });
 
   it('should show objective info persistently in HUD', () => {
@@ -613,6 +615,46 @@ describe('GameHUD', () => {
     hud.updateObjectiveProgress(150);
     hud.reset();
     expect(hud.objectiveDisplay.getCurrentData()).toBeNull();
+  });
+
+  it('should support forceUpdateObjectiveProgress', () => {
+    hud.setObjectiveInfo('score', 300);
+    hud.forceUpdateObjectiveProgress(150);
+    expect(hud.objectiveDisplay.getCurrentData()?.currentValue).toBe(150);
+    expect(hud.objectiveDisplay.progressBar.displayProgressValue).toBeCloseTo(0.5);
+  });
+
+  it('should not force update when no objective set', () => {
+    hud.forceUpdateObjectiveProgress(100);
+    expect(hud.objectiveDisplay.getCurrentData()).toBeNull();
+  });
+
+  it('should have always visible objective display', () => {
+    expect(hud.objectiveDisplay.isAlwaysVisible()).toBe(true);
+  });
+
+  it('should position objective display at top center', () => {
+    hud.layout(800, 600);
+    const display = hud.objectiveDisplay;
+    expect(display.y).toBe(5);
+    expect(display.x).toBeGreaterThan(0);
+    expect(display.x).toBeLessThan(400);
+  });
+
+  it('should position objective display centered on different screen sizes', () => {
+    hud.layout(1024, 768);
+    const display = hud.objectiveDisplay;
+    const expectedX = Math.max(10, (1024 - (display.objectiveBarWidth || 280)) / 2);
+    expect(display.x).toBe(expectedX);
+    expect(display.y).toBe(5);
+  });
+
+  it('should have background panel on objective display', () => {
+    expect(hud.objectiveDisplay.getBackgroundPanel()).toBeDefined();
+  });
+
+  it('should use wider objective display (280px)', () => {
+    expect(hud.objectiveDisplay.objectiveBarWidth).toBe(280);
   });
 });
 

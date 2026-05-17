@@ -458,8 +458,9 @@ describe('Objective Display Integration', () => {
 
     it('should have unified ObjectiveDisplay position', () => {
       hud.layout(800, 600);
-      expect(hud.objectiveDisplay.x).toBe(550);
-      expect(hud.objectiveDisplay.y).toBe(85);
+      const expectedX = Math.max(10, (800 - (hud.objectiveDisplay.objectiveBarWidth || 280)) / 2);
+      expect(hud.objectiveDisplay.x).toBe(expectedX);
+      expect(hud.objectiveDisplay.y).toBe(5);
     });
   });
 
@@ -560,6 +561,240 @@ describe('Objective Display Integration', () => {
       hud.updateObjectiveProgress(levelSystem.getCurrentProgressValue());
       expect(hud.objectiveDisplay.getCurrentData()?.type).toBe('score');
       expect(hud.objectiveDisplay.getCurrentData()?.target).toBe(100);
+    });
+  });
+
+  describe('Objective always visible integration', () => {
+    let hud: GameHUD;
+    let mockPropSystem: PropSystem;
+    let levelSystem: LevelSystem;
+
+    const scoreConfig: LevelConfig = {
+      id: 1, name: '得分关卡', objective: { type: 'score', target: 100 },
+      container: { width: 400, height: 600, shape: 'rectangle' },
+      spawn: { availableNumbers: [1, 2, 4] },
+      rewards: { stars: [50, 80, 100] },
+    };
+
+    beforeEach(() => {
+      mockPropSystem = {
+        getPropCount: vi.fn().mockReturnValue(3),
+        getAllProps: vi.fn().mockReturnValue([]),
+        useProp: vi.fn(),
+        getProp: vi.fn(),
+        reset: vi.fn(),
+        pause: vi.fn(),
+        resume: vi.fn(),
+        destroy: vi.fn(),
+      } as unknown as PropSystem;
+      hud = new GameHUD(mockPropSystem);
+    });
+
+    afterEach(() => {
+      if (levelSystem) levelSystem.destroy();
+      hud.destroy();
+    });
+
+    it('should keep objective visible throughout gameplay', () => {
+      levelSystem = new LevelSystem(scoreConfig);
+      levelSystem.start();
+      hud.setObjectiveInfo(
+        levelSystem.getObjectiveType(),
+        levelSystem.getObjectiveTarget(),
+        levelSystem.getTimeLimit(),
+      );
+
+      expect(hud.objectiveDisplay.getCurrentData()).not.toBeNull();
+      expect(hud.objectiveDisplay.isAlwaysVisible()).toBe(true);
+
+      eventBus.emit('score:updated', { totalScore: 50 });
+      hud.updateObjectiveProgress(levelSystem.getCurrentProgressValue());
+      expect(hud.objectiveDisplay.getCurrentData()).not.toBeNull();
+
+      eventBus.emit('score:updated', { totalScore: 100 });
+      hud.updateObjectiveProgress(levelSystem.getCurrentProgressValue());
+      expect(hud.objectiveDisplay.getCurrentData()).not.toBeNull();
+    });
+
+    it('should restore objective info after reset and re-set', () => {
+      levelSystem = new LevelSystem(scoreConfig);
+      levelSystem.start();
+      hud.setObjectiveInfo(
+        levelSystem.getObjectiveType(),
+        levelSystem.getObjectiveTarget(),
+        levelSystem.getTimeLimit(),
+      );
+
+      eventBus.emit('score:updated', { totalScore: 50 });
+      hud.updateObjectiveProgress(levelSystem.getCurrentProgressValue());
+
+      hud.reset();
+      expect(hud.objectiveDisplay.getCurrentData()).toBeNull();
+
+      hud.setObjectiveInfo('score', 100);
+      expect(hud.objectiveDisplay.getCurrentData()).not.toBeNull();
+      expect(hud.objectiveDisplay.getCurrentData()?.target).toBe(100);
+    });
+
+    it('should force update progress immediately', () => {
+      levelSystem = new LevelSystem(scoreConfig);
+      levelSystem.start();
+      hud.setObjectiveInfo(
+        levelSystem.getObjectiveType(),
+        levelSystem.getObjectiveTarget(),
+        levelSystem.getTimeLimit(),
+      );
+
+      eventBus.emit('score:updated', { totalScore: 75 });
+      hud.forceUpdateObjectiveProgress(levelSystem.getCurrentProgressValue());
+      expect(hud.objectiveDisplay.progressBar.progress).toBeCloseTo(0.75);
+      expect(hud.objectiveDisplay.progressBar.displayProgressValue).toBeCloseTo(0.75);
+    });
+  });
+
+  describe('Progress bar force refresh integration', () => {
+    let levelSystem: LevelSystem;
+    let hud: GameHUD;
+    let mockPropSystem: PropSystem;
+
+    const scoreConfig: LevelConfig = {
+      id: 1, name: '得分关卡', objective: { type: 'score', target: 200 },
+      container: { width: 400, height: 600, shape: 'rectangle' },
+      spawn: { availableNumbers: [1, 2, 4] },
+      rewards: { stars: [100, 150, 200] },
+    };
+
+    const survivalConfig: LevelConfig = {
+      id: 2, name: '生存关卡', objective: { type: 'survival', target: 30, timeLimit: 30 },
+      container: { width: 400, height: 600, shape: 'rectangle' },
+      spawn: { availableNumbers: [1, 2, 4] },
+      rewards: { stars: [10, 20, 30] },
+    };
+
+    beforeEach(() => {
+      mockPropSystem = {
+        getPropCount: vi.fn().mockReturnValue(3),
+        getAllProps: vi.fn().mockReturnValue([]),
+        useProp: vi.fn(),
+        getProp: vi.fn(),
+        reset: vi.fn(),
+        pause: vi.fn(),
+        resume: vi.fn(),
+        destroy: vi.fn(),
+      } as unknown as PropSystem;
+      hud = new GameHUD(mockPropSystem);
+    });
+
+    afterEach(() => {
+      if (levelSystem) levelSystem.destroy();
+      hud.destroy();
+    });
+
+    it('should force refresh score progress bar accurately', () => {
+      levelSystem = new LevelSystem(scoreConfig);
+      levelSystem.start();
+      hud.setObjectiveInfo(
+        levelSystem.getObjectiveType(),
+        levelSystem.getObjectiveTarget(),
+        levelSystem.getTimeLimit(),
+      );
+
+      eventBus.emit('score:updated', { totalScore: 100 });
+      hud.forceUpdateObjectiveProgress(levelSystem.getCurrentProgressValue());
+      expect(hud.objectiveDisplay.progressBar.progress).toBeCloseTo(0.5);
+      expect(hud.objectiveDisplay.progressBar.displayProgressValue).toBeCloseTo(0.5);
+    });
+
+    it('should force refresh survival progress bar accurately', () => {
+      levelSystem = new LevelSystem(survivalConfig);
+      levelSystem.start();
+      hud.setObjectiveInfo(
+        levelSystem.getObjectiveType(),
+        levelSystem.getObjectiveTarget(),
+        levelSystem.getTimeLimit(),
+      );
+
+      levelSystem.update(15000);
+      hud.forceUpdateObjectiveProgress(levelSystem.getCurrentProgressValue());
+      expect(hud.objectiveDisplay.progressBar.progress).toBeCloseTo(0.5);
+      expect(hud.objectiveDisplay.progressBar.displayProgressValue).toBeCloseTo(0.5);
+    });
+
+    it('should handle rapid force refresh without lag', () => {
+      levelSystem = new LevelSystem(scoreConfig);
+      levelSystem.start();
+      hud.setObjectiveInfo(
+        levelSystem.getObjectiveType(),
+        levelSystem.getObjectiveTarget(),
+        levelSystem.getTimeLimit(),
+      );
+
+      for (let s = 0; s <= 200; s += 20) {
+        eventBus.emit('score:updated', { totalScore: s });
+        hud.forceUpdateObjectiveProgress(levelSystem.getCurrentProgressValue());
+        const expectedProgress = Math.min(s / 200, 1);
+        expect(hud.objectiveDisplay.progressBar.progress).toBeCloseTo(expectedProgress);
+        expect(hud.objectiveDisplay.progressBar.displayProgressValue).toBeCloseTo(expectedProgress);
+      }
+    });
+  });
+
+  describe('Layout integration with centered objective panel', () => {
+    let hud: GameHUD;
+    let mockPropSystem: PropSystem;
+
+    beforeEach(() => {
+      mockPropSystem = {
+        getPropCount: vi.fn().mockReturnValue(3),
+        getAllProps: vi.fn().mockReturnValue([]),
+        useProp: vi.fn(),
+        getProp: vi.fn(),
+        reset: vi.fn(),
+        pause: vi.fn(),
+        resume: vi.fn(),
+        destroy: vi.fn(),
+      } as unknown as PropSystem;
+      hud = new GameHUD(mockPropSystem);
+    });
+
+    afterEach(() => {
+      hud.destroy();
+    });
+
+    it('should center objective panel on standard screen', () => {
+      hud.layout(800, 600);
+      const display = hud.objectiveDisplay;
+      const expectedX = Math.max(10, (800 - display.objectiveBarWidth) / 2);
+      expect(display.x).toBe(expectedX);
+      expect(display.y).toBe(5);
+    });
+
+    it('should center objective panel on wide screen', () => {
+      hud.layout(1200, 800);
+      const display = hud.objectiveDisplay;
+      const expectedX = Math.max(10, (1200 - display.objectiveBarWidth) / 2);
+      expect(display.x).toBe(expectedX);
+      expect(display.y).toBe(5);
+    });
+
+    it('should center objective panel on narrow screen', () => {
+      hud.layout(375, 667);
+      const display = hud.objectiveDisplay;
+      const expectedX = Math.max(10, (375 - display.objectiveBarWidth) / 2);
+      expect(display.x).toBe(expectedX);
+      expect(display.y).toBe(5);
+    });
+
+    it('should not overlap with score display', () => {
+      hud.layout(800, 600);
+      const display = hud.objectiveDisplay;
+      expect(display.y).toBeLessThanOrEqual(10);
+      expect(display.x).toBeGreaterThan(100);
+    });
+
+    it('should have background panel visible', () => {
+      hud.layout(800, 600);
+      expect(hud.objectiveDisplay.getBackgroundPanel()).toBeDefined();
     });
   });
 });

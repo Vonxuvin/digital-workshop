@@ -171,6 +171,9 @@ export class GameScene {
 
     this.physics.start();
     this.levelSystem?.start();
+    if (this.levelSystem) {
+      this.gameHUD.updateObjectiveProgress(this.levelSystem.getCurrentProgressValue());
+    }
     this.drawContainerWalls();
     this.blockSpawner.spawnObstacles(config.obstacles, this.containerWidth, this.groundY, this.containerOffsetX);
     this.startAutoSpawn();
@@ -205,6 +208,11 @@ export class GameScene {
     this.resetGame();
     this.propSystem.reset();
     this.propEffectHandler.initializeProps();
+    this.gameHUD.setObjectiveInfo(
+      this.currentLevelConfig.objective.type,
+      this.currentLevelConfig.objective.target,
+      this.currentLevelConfig.objective.timeLimit,
+    );
     this.physics.start();
     this.levelSystem?.start();
     this.drawContainerWalls();

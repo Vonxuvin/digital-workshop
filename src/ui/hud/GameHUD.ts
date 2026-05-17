@@ -333,7 +333,8 @@ export class GameHUD extends Container {
   }
 
   private createObjectiveDisplay(): void {
-    this._objectiveDisplay = new ObjectiveDisplay(200);
+    this._objectiveDisplay = new ObjectiveDisplay(280);
+    this._objectiveDisplay.setAlwaysVisible(true);
     this._objectiveDisplay.x = -100;
     this._objectiveDisplay.y = 105;
     this.addChild(this._objectiveDisplay);
@@ -361,6 +362,17 @@ export class GameHUD extends Container {
       timeLimit: this._currentTimeLimit,
     };
     this._objectiveDisplay.updateProgress(data);
+  }
+
+  forceUpdateObjectiveProgress(currentValue: number): void {
+    if (!this._currentObjectiveType) return;
+    const data: ObjectiveDisplayData = {
+      type: this._currentObjectiveType,
+      target: this._currentObjectiveTarget,
+      currentValue,
+      timeLimit: this._currentTimeLimit,
+    };
+    this._objectiveDisplay.forceUpdateProgress(data);
   }
 
   private setupEventListeners(): void {
@@ -469,8 +481,10 @@ export class GameHUD extends Container {
     this._pauseButton.x = screenWidth - 50;
     this._pauseButton.y = 30;
     this.timerText.x = screenWidth / 2;
-    this._objectiveDisplay.x = screenWidth - 250;
-    this._objectiveDisplay.y = 85;
+
+    const objectiveWidth = this._objectiveDisplay.objectiveBarWidth || 280;
+    this._objectiveDisplay.x = Math.max(10, (screenWidth - objectiveWidth) / 2);
+    this._objectiveDisplay.y = 5;
   }
 
   reset(): void {

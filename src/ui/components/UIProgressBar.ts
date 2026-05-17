@@ -51,8 +51,23 @@ export class UIProgressBar extends Container {
     this.animateProgress();
   }
 
+  forceSetProgress(value: number): void {
+    this._progress = Math.max(0, Math.min(1, value));
+    if (this.progressTween) {
+      this.progressTween.kill();
+      this.progressTween = null;
+    }
+    this.displayProgress = this._progress;
+    this.progressProxy.value = this._progress;
+    this.drawFill(this.displayProgress);
+  }
+
   get progress(): number {
     return this._progress;
+  }
+
+  get displayProgressValue(): number {
+    return this.displayProgress;
   }
 
   private animateProgress(): void {
