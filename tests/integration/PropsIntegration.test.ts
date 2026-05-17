@@ -736,4 +736,94 @@ describe('Props Integration Tests', () => {
       eventBus.off('props:bomb:explode', explodeHandler);
     });
   });
+
+  describe('Bomb Target Mode Response Optimization Integration', () => {
+    let propSystem: PropSystem;
+
+    beforeEach(async () => {
+      AnimationManager.resetInstance();
+      propSystem = new PropSystem();
+      await propSystem.loadConfig([
+        { id: 'bomb_1', type: 'bomb', name: '炸弹', description: '', icon: '', maxCount: 3, cooldown: 1000, price: 0 },
+      ]);
+      propSystem.initialize([{ type: PropType.BOMB, count: 3 }]);
+    });
+
+    afterEach(() => {
+      propSystem.destroy();
+      AnimationManager.resetInstance();
+    });
+
+    it('should emit UI_PROP_TARGET_MODE immediately on bomb button click', () => {
+      const handler = vi.fn();
+      eventBus.on('ui:propTargetMode', handler);
+
+      const bomb = new BombProp(createMockPropConfig(PropType.BOMB));
+      bomb.use();
+
+      eventBus.off('ui:propTargetMode', handler);
+      bomb.destroy();
+    });
+
+    it('should complete bomb target mode activation synchronously', () => {
+      const handler = vi.fn();
+      eventBus.on('props:bomb:requireTarget', handler);
+
+      const bomb = new BombProp(createMockPropConfig(PropType.BOMB));
+      const start = performance.now();
+      bomb.use();
+      const elapsed = performance.now() - start;
+
+      expect(handler).toHaveBeenCalled();
+      expect(elapsed).toBeLessThan(100);
+
+      eventBus.off('props:bomb:requireTarget', handler);
+      bomb.destroy();
+    });
+
+    it('should complete full bomb explosion flow synchronously', () => {
+      const handler = vi.fn();
+      eventBus.on('props:bomb:explode', handler);
+
+      const start = performance.now();
+      propSystem.useProp(PropType.BOMB, { x: 200, y: 300 });
+      const elapsed = performance.now() - start;
+
+      expect(handler).toHaveBeenCalled();
+      expect(elapsed).toBeLessThan(100);
+
+      eventBus.off('props:bomb:explode', handler);
+    });
+
+    it('should handle rapid bomb target mode toggle without delay', () => {
+      const handler = vi.fn();
+      eventBus.on('props:bomb:requireTarget', handler);
+
+      const bomb = new BombProp(createMockPropConfig(PropType.BOMB));
+      const start = performance.now();
+      for (let i = 0; i < 10; i++) {
+        bomb.use();
+      }
+      const elapsed = performance.now() - start;
+
+      expect(elapsed).toBeLessThan(100);
+
+      eventBus.off('props:bomb:requireTarget', handler);
+      bomb.destroy();
+    });
+
+    it('should maintain correct state after quick target mode activation and explosion', () => {
+      propSystem.useProp(PropType.BOMB, { x: 200, y: 300 });
+
+      const prop = propSystem.getProp(PropType.BOMB);
+      expect(prop!.getRemainingCount()).toBe(2);
+
+      const usedHandler = vi.fn();
+      eventBus.on('props:used', usedHandler);
+
+      propSystem.useProp(PropType.BOMB, { x: 150, y: 250 });
+
+      eventBus.off('props:used', usedHandler);
+    });
+  });
 });

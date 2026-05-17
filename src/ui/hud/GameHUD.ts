@@ -43,6 +43,7 @@ export class GameHUD extends Container {
   get propsContainerX(): number { return this._propsContainer?.x ?? 0; }
   get propsBarWidth(): number { return this._propsContainer?.width ?? 0; }
   get currentButtonSize(): number { return this._currentButtonSize; }
+  get isPropTargetMode(): boolean { return this.propTargetMode; }
 
   getObjectiveBar(): UIProgressBar { return this._objectiveBar; }
 
@@ -174,6 +175,11 @@ export class GameHUD extends Container {
   private enterBombTargetMode(): void {
     this.selectedProp = PropType.BOMB;
     this.propTargetMode = true;
+    const centerX = this.screenWidth / 2;
+    const centerY = this.screenHeight / 2;
+    if (centerX > 0 && centerY > 0) {
+      this.showCrosshair(centerX, centerY);
+    }
     eventBus.emit(GameEvents.UI_PROP_TARGET_MODE, { type: PropType.BOMB, enabled: true });
   }
 

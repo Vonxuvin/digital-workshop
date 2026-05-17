@@ -111,6 +111,7 @@ export class PropButton extends PIXI.Container {
       ease: 'power2.out',
       onComplete: () => { this.scaleTween = null; },
     });
+    this.onClick(this.propType);
   }
 
   private handlePointerUp(): void {
@@ -123,7 +124,6 @@ export class PropButton extends PIXI.Container {
       ease: 'power2.out',
       onComplete: () => { this.scaleTween = null; },
     });
-    this.onClick(this.propType);
   }
 
   private handlePointerOver(): void {

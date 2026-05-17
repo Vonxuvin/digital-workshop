@@ -68,6 +68,7 @@ function createMockGameHUD() {
     updateCrosshair: vi.fn(),
     hideCrosshair: vi.fn(),
     consumePropButtonClick: vi.fn(() => false),
+    isPropTargetMode: false,
   };
 }
 
@@ -373,5 +374,55 @@ describe('GameInputHandler', () => {
     expect(gameScene._preview.show).toHaveBeenCalled();
     input._downCbs[0]({ position: { x: 200, y: 550 }, isDown: true });
     expect(gameScene._preview.show).toHaveBeenCalledTimes(1);
+  });
+
+  it('should show crosshair when HUD isPropTargetMode is true even if gameScene bombTargetMode is false', () => {
+    gameScene.getBombTargetMode.mockReturnValue(false);
+    gameHUD.isPropTargetMode = true;
+    handler.setup();
+    input._downCbs[0]({ position: { x: 200, y: 300 }, isDown: true });
+    expect(gameHUD.showCrosshair).toHaveBeenCalledWith(200, 300);
+  });
+
+  it('should update crosshair on move when HUD isPropTargetMode is true', () => {
+    gameScene.getBombTargetMode.mockReturnValue(false);
+    gameHUD.isPropTargetMode = true;
+    handler.setup();
+    input._moveCbs[0]({ position: { x: 250, y: 350 }, isDown: true });
+    expect(gameHUD.updateCrosshair).toHaveBeenCalledWith(250, 350);
+  });
+
+  it('should fire bomb on up when HUD isPropTargetMode is true', () => {
+    gameScene.getBombTargetMode.mockReturnValue(false);
+    gameHUD.isPropTargetMode = true;
+    handler.setup();
+    input._upCbs[0]();
+    expect(gameScene.usePropAtPosition).toHaveBeenCalled();
+    expect(gameHUD.hideCrosshair).toHaveBeenCalled();
+  });
+
+  it('should not show preview on down when HUD isPropTargetMode is true', () => {
+    gameScene.getBombTargetMode.mockReturnValue(false);
+    gameHUD.isPropTargetMode = true;
+    handler.setup();
+    input._downCbs[0]({ position: { x: 200, y: 300 }, isDown: true });
+    expect(gameScene._preview.show).not.toHaveBeenCalled();
+  });
+
+  it('should not update preview on move when HUD isPropTargetMode is true', () => {
+    gameScene.getBombTargetMode.mockReturnValue(false);
+    gameHUD.isPropTargetMode = true;
+    handler.setup();
+    input._downCbs[0]({ position: { x: 200, y: 300 }, isDown: true });
+    input._moveCbs[0]({ position: { x: 250, y: 300 }, isDown: true });
+    expect(gameScene._preview.updatePosition).not.toHaveBeenCalled();
+  });
+
+  it('should use isInTargetMode combining both gameScene and HUD states', () => {
+    gameScene.getBombTargetMode.mockReturnValue(true);
+    gameHUD.isPropTargetMode = false;
+    handler.setup();
+    input._downCbs[0]({ position: { x: 200, y: 300 }, isDown: true });
+    expect(gameHUD.showCrosshair).toHaveBeenCalled();
   });
 });

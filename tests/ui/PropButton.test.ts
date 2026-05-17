@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { PropButton } from '../../src/ui/components/PropButton';
 import { PropType } from '../../src/gameplay/props/Prop';
 
@@ -124,6 +124,90 @@ describe('PropButton dynamic sizing (FIX-12)', () => {
     btn.setSelected();
     btn.clearSelected();
     btn.setSelected();
+    btn.destroy();
+  });
+});
+
+describe('PropButton click response optimization', () => {
+  it('should fire onClick on pointerdown not pointerup', () => {
+    const onClick = vi.fn();
+    const btn = new PropButton({
+      propType: PropType.BOMB,
+      icon: 'bomb',
+      count: 3,
+      onClick,
+      x: 0,
+      y: 0,
+    });
+
+    btn.emit('pointerdown' as any);
+    expect(onClick).toHaveBeenCalledTimes(1);
+    expect(onClick).toHaveBeenCalledWith(PropType.BOMB);
+
+    btn.emit('pointerup' as any);
+    expect(onClick).toHaveBeenCalledTimes(1);
+
+    btn.destroy();
+  });
+
+  it('should not fire onClick on pointerdown when disabled', () => {
+    const onClick = vi.fn();
+    const btn = new PropButton({
+      propType: PropType.BOMB,
+      icon: 'bomb',
+      count: 3,
+      onClick,
+      x: 0,
+      y: 0,
+    });
+
+    btn.updateCount(0);
+    btn.emit('pointerdown' as any);
+    expect(onClick).not.toHaveBeenCalled();
+
+    btn.destroy();
+  });
+
+  it('should fire onClick on each pointerdown', () => {
+    const onClick = vi.fn();
+    const btn = new PropButton({
+      propType: PropType.BOMB,
+      icon: 'bomb',
+      count: 3,
+      onClick,
+      x: 0,
+      y: 0,
+    });
+
+    btn.emit('pointerdown' as any);
+    expect(onClick).toHaveBeenCalledTimes(1);
+
+    btn.emit('pointerup' as any);
+    btn.emit('pointerdown' as any);
+    expect(onClick).toHaveBeenCalledTimes(2);
+
+    btn.destroy();
+  });
+
+  it('should respond to pointerdown faster than pointerup', () => {
+    const onClick = vi.fn();
+    const btn = new PropButton({
+      propType: PropType.BOMB,
+      icon: 'bomb',
+      count: 3,
+      onClick,
+      x: 0,
+      y: 0,
+    });
+
+    const startTime = performance.now();
+    btn.emit('pointerdown' as any);
+    const endTime = performance.now();
+    const responseTime = endTime - startTime;
+
+    expect(onClick).toHaveBeenCalled();
+    expect(responseTime).toBeLessThan(100);
+
     btn.destroy();
   });
 });

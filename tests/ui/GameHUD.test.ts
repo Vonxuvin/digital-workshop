@@ -482,6 +482,59 @@ describe('GameHUD', () => {
 
     eventBus.off('ui:propTargetMode', handler);
   });
+
+  it('should expose isPropTargetMode getter', () => {
+    expect(hud.isPropTargetMode).toBe(false);
+    (hud as any).propTargetMode = true;
+    expect(hud.isPropTargetMode).toBe(true);
+  });
+
+  it('should show crosshair immediately on enterBombTargetMode when screen dimensions are set', () => {
+    hud.layout(800, 600);
+    const showCrosshairSpy = vi.spyOn(hud, 'showCrosshair');
+    (mockPropSystem.getPropCount as any).mockReturnValue(3);
+    const button = hud.propButtons.get(PropType.BOMB);
+    if (button) {
+      (button as any).onClick(PropType.BOMB);
+    }
+    expect((hud as any).propTargetMode).toBe(true);
+    expect(showCrosshairSpy).toHaveBeenCalledWith(400, 300);
+    showCrosshairSpy.mockRestore();
+  });
+
+  it('should not show crosshair on enterBombTargetMode when screen dimensions are zero', () => {
+    const showCrosshairSpy = vi.spyOn(hud, 'showCrosshair');
+    (mockPropSystem.getPropCount as any).mockReturnValue(3);
+    const button = hud.propButtons.get(PropType.BOMB);
+    if (button) {
+      (button as any).onClick(PropType.BOMB);
+    }
+    expect((hud as any).propTargetMode).toBe(true);
+    expect(showCrosshairSpy).not.toHaveBeenCalled();
+    showCrosshairSpy.mockRestore();
+  });
+
+  it('should hide crosshair on exitBombTargetMode', () => {
+    hud.layout(800, 600);
+    (mockPropSystem.getPropCount as any).mockReturnValue(3);
+    const button = hud.propButtons.get(PropType.BOMB);
+    if (button) {
+      (button as any).onClick(PropType.BOMB);
+    }
+    expect((hud as any).crosshair.visible).toBe(true);
+    const button2 = hud.propButtons.get(PropType.BOMB);
+    if (button2) {
+      (button2 as any).onClick(PropType.BOMB);
+    }
+    expect((hud as any).propTargetMode).toBe(false);
+    expect((hud as any).crosshair.visible).toBe(false);
+  });
+
+  it('should reset isPropTargetMode to false on reset', () => {
+    (hud as any).propTargetMode = true;
+    hud.reset();
+    expect(hud.isPropTargetMode).toBe(false);
+  });
 });
 
 describe('GameHUD Score Animation', () => {
