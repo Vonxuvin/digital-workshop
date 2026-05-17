@@ -664,7 +664,7 @@ describe('Deep Integration Tests', () => {
         const warningHeight = wl.getWarningHeight();
         const handler = vi.fn();
         eventBus.on('warning:started', handler);
-        wl.update([{ y: warningHeight - 1, radius: 0, speed: 0 }], 16.67);
+        wl.update([{ y: warningHeight - 1, radius: 0, speed: 0 }], 250);
         expect(handler).toHaveBeenCalled();
         eventBus.off('warning:started', handler);
       });
@@ -682,7 +682,7 @@ describe('Deep Integration Tests', () => {
         const warningHeight = wl.getWarningHeight();
         const handler = vi.fn();
         eventBus.on('warning:started', handler);
-        wl.update([{ y: warningHeight - 1, radius: 0, speed: 0 }], 16.67);
+        wl.update([{ y: warningHeight - 1, radius: 0, speed: 0 }], 250);
         expect(handler).toHaveBeenCalled();
         expect(wl.getWarningDuration()).toBeGreaterThan(0);
         eventBus.off('warning:started', handler);
@@ -699,7 +699,7 @@ describe('Deep Integration Tests', () => {
 
       it('should accumulate warning duration with precision', () => {
         const warningHeight = wl.getWarningHeight();
-        wl.update([{ y: warningHeight - 10, radius: 5, speed: 0 }], 16.67);
+        wl.update([{ y: warningHeight - 10, radius: 5, speed: 0 }], 250);
         const duration1 = wl.getWarningDuration();
         wl.update([{ y: warningHeight - 10, radius: 5, speed: 0 }], 16.67);
         const duration2 = wl.getWarningDuration();
@@ -720,7 +720,7 @@ describe('Deep Integration Tests', () => {
 
       it('should reset warning duration when blocks move below line after grace period', () => {
         const warningHeight = wl.getWarningHeight();
-        wl.update([{ y: warningHeight - 10, radius: 5, speed: 0 }], 16.67);
+        wl.update([{ y: warningHeight - 10, radius: 5, speed: 0 }], 250);
         expect(wl.getWarningDuration()).toBeGreaterThan(0);
         wl.update([{ y: warningHeight + 100, radius: 5, speed: 0 }], 16.67);
         expect(wl.getWarningDuration()).toBeGreaterThan(0);

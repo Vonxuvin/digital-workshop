@@ -462,7 +462,7 @@ describe('WarningLine Deep Tests', () => {
       const wh = wl.getWarningHeight();
       const handler = vi.fn();
       eventBus.on('warning:started', handler);
-      wl.update([{ y: wh - 1, radius: 0, speed: 0 }], 16.67);
+      wl.update([{ y: wh - 1, radius: 0, speed: 0 }], 250);
       expect(handler).toHaveBeenCalled();
       eventBus.off('warning:started', handler);
     });
@@ -489,7 +489,7 @@ describe('WarningLine Deep Tests', () => {
       const wh = wl.getWarningHeight();
       const handler = vi.fn();
       eventBus.on('warning:started', handler);
-      wl.update([{ y: wh + 10, radius: 20, speed: 0 }], 16.67);
+      wl.update([{ y: wh + 10, radius: 20, speed: 0 }], 250);
       expect(handler).toHaveBeenCalled();
       eventBus.off('warning:started', handler);
     });
@@ -507,7 +507,7 @@ describe('WarningLine Deep Tests', () => {
   describe('Delta normalization (deltaMS)', () => {
     it('should accumulate warning duration based on delta', () => {
       const wh = wl.getWarningHeight();
-      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
+      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 250);
       const d1 = wl.getWarningDuration();
       wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
       const d2 = wl.getWarningDuration();
@@ -516,9 +516,11 @@ describe('WarningLine Deep Tests', () => {
 
     it('should accumulate faster with larger delta', () => {
       const wh = wl.getWarningHeight();
+      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 250);
       wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 33.34);
       const durationWithDelta2 = wl.getWarningDuration();
       wl.reset();
+      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 250);
       wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
       const durationWithDelta1 = wl.getWarningDuration();
       expect(durationWithDelta2).toBeGreaterThan(durationWithDelta1);
@@ -560,7 +562,7 @@ describe('WarningLine Deep Tests', () => {
   describe('Reset clears all state', () => {
     it('should clear warning duration and isWarning state', () => {
       const wh = wl.getWarningHeight();
-      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
+      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 250);
       expect(wl.getWarningDuration()).toBeGreaterThan(0);
 
       wl.reset();
@@ -572,11 +574,11 @@ describe('WarningLine Deep Tests', () => {
       const handler = vi.fn();
       eventBus.on('warning:started', handler);
 
-      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
+      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 250);
       expect(handler).toHaveBeenCalledTimes(1);
 
       wl.reset();
-      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
+      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 250);
       expect(handler).toHaveBeenCalledTimes(2);
       eventBus.off('warning:started', handler);
     });
