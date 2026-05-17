@@ -458,7 +458,10 @@ describe('AudioManager', () => {
       });
       const config: SoundConfig = { key: 'testError', url: 'error.mp3', volume: 0.5, loop: false };
       await audioManager.loadSound(config);
-      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('testError'));
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.stringContaining('testError'),
+      );
       expect((audioManager as any).sounds.has('testError')).toBe(false);
       warnSpy.mockRestore();
     });
@@ -526,12 +529,14 @@ describe('AudioManager', () => {
     it('should catch AudioContext creation error', async () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const originalAC = (window as any).AudioContext;
-      (window as any).AudioContext = vi.fn().mockImplementation(() => {
-        throw new Error('AudioContext error');
-      });
+      (window as any).AudioContext = class { constructor() { throw new Error('AudioContext error'); } };
       const am = new AudioManager();
       await am.init();
-      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('音频上下文初始化失败'), expect.any(Error));
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.stringContaining('音频上下文初始化失败'),
+        expect.anything(),
+      );
       (window as any).AudioContext = originalAC;
       warnSpy.mockRestore();
       am.destroy();
