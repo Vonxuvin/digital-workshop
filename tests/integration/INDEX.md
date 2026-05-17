@@ -80,6 +80,14 @@
 | LuckyProp 消耗递减 | `should decrement drops on consume` | ✓ |
 | LuckyProp 停用事件 | `should emit props:lucky:deactivate when all drops consumed` | ✓ |
 | LuckyProp 冷却时间 | `should enforce cooldown` | ✓ |
+| LuckyProp 配置冷却时间 | `should use config.cooldown value for cooldown timing` | ✓ |
+| LuckyProp 消耗事件 | `should emit props:lucky:dropConsumed for each consumed drop` | ✓ |
+| LuckyProp 完整生命周期 | `should correctly track remaining drops through full lifecycle` | ✓ |
+| LuckyProp 幸运倍率计分 | `should apply lucky multiplier to score after prop activation` | ✓ |
+| LuckyProp 倍率重置 | `should reset lucky multiplier after all drops consumed` | ✓ |
+| LuckyProp 配置冷却验证 | `should use config.cooldown for lucky prop timing` | ✓ |
+| LuckyProp 事件生命周期 | `should emit correct events through full lucky prop lifecycle` | ✓ |
+| LuckyProp 多次合并倍率 | `should correctly handle lucky prop score multiplier across multiple merges` | ✓ |
 | PropSystem 加载配置 | `should load config and initialize all prop types` | ✓ |
 | PropSystem 使用炸弹 | `should use bomb prop through PropSystem` | ✓ |
 | PropSystem 使用彩虹 | `should use rainbow prop through PropSystem` | ✓ |

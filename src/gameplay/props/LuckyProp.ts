@@ -3,7 +3,6 @@ import { eventBus, GameEvents } from '../../utils/EventBus';
 
 export class LuckyProp extends Prop {
   private lastUseTime: number = 0;
-  private cooldownMs: number = 3000;
   private bonusMultiplier: number = 2;
   private luckyRemainingDrops: number = 0;
   private readonly luckyDropCount = 3;
@@ -49,7 +48,7 @@ export class LuckyProp extends Prop {
 
   cooldownReady(): boolean {
     if (this.usedCount === 0) return true;
-    return Date.now() - this.lastUseTime >= this.cooldownMs;
+    return Date.now() - this.lastUseTime >= this.config.cooldown;
   }
 
   destroy(): void {

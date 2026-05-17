@@ -380,4 +380,213 @@ test.describe('道具系统 @regression', () => {
       expect(canDestroy).toBeTruthy();
     });
   });
+
+  test.describe('四叶菜道具(幸运投放)功能验证 @regression', () => {
+    test('四叶菜道具应能通过PropSystem使用', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false, reason: 'no-game' };
+        try {
+          const propSystem = game.getPropSystem?.();
+          if (!propSystem) return { success: false, reason: 'no-prop-system' };
+          const luckyProp = propSystem.getProp?.('lucky');
+          if (!luckyProp) return { success: false, reason: 'no-lucky-prop' };
+          return {
+            success: true,
+            canUse: typeof luckyProp.canUse === 'function',
+            isLuckyActive: typeof luckyProp.isLuckyActive === 'function',
+            getLuckyMultiplier: typeof luckyProp.getLuckyMultiplier === 'function',
+          };
+        } catch (e: any) {
+          return { success: false, reason: e?.message ?? 'unknown' };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+    });
+
+    test('四叶菜道具使用后应激活幸运模式', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false, reason: 'no-game' };
+        try {
+          const propSystem = game.getPropSystem?.();
+          if (!propSystem) return { success: false, reason: 'no-prop-system' };
+
+          const useResult = propSystem.useProp?.('lucky');
+          const luckyProp = propSystem.getProp?.('lucky');
+
+          return {
+            success: true,
+            useResult,
+            isLuckyActive: luckyProp?.isLuckyActive?.() ?? false,
+            luckyMultiplier: luckyProp?.getLuckyMultiplier?.() ?? 0,
+          };
+        } catch (e: any) {
+          return { success: false, reason: e?.message ?? 'unknown' };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      expect(result.useResult).toBe(true);
+      expect(result.isLuckyActive).toBe(true);
+      expect(result.luckyMultiplier).toBe(2);
+    });
+
+    test('四叶菜道具激活后BlockSpawner应处于幸运模式', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false, reason: 'no-game' };
+        try {
+          const propSystem = game.getPropSystem?.();
+          if (!propSystem) return { success: false, reason: 'no-prop-system' };
+
+          propSystem.useProp?.('lucky');
+
+          const scene = game.getGameScene?.();
+          if (!scene) return { success: false, reason: 'no-scene' };
+
+          const spawner = scene.getBlockSpawner?.();
+          if (!spawner) return { success: false, reason: 'no-spawner' };
+
+          return {
+            success: true,
+            currentValue: spawner.getCurrentValue?.() ?? -1,
+          };
+        } catch (e: any) {
+          return { success: false, reason: e?.message ?? 'unknown' };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+    });
+
+    test('四叶菜道具激活后ScoreSystem应设置幸运倍率', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false, reason: 'no-game' };
+        try {
+          const propSystem = game.getPropSystem?.();
+          if (!propSystem) return { success: false, reason: 'no-prop-system' };
+
+          propSystem.useProp?.('lucky');
+
+          const scoreSystem = game.getScoreSystem?.();
+          if (!scoreSystem) return { success: false, reason: 'no-score-system' };
+
+          return {
+            success: true,
+            hasSetLuckyMultiplier: typeof scoreSystem.setLuckyMultiplier === 'function',
+          };
+        } catch (e: any) {
+          return { success: false, reason: e?.message ?? 'unknown' };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      expect(result.hasSetLuckyMultiplier).toBeTruthy();
+    });
+
+    test('四叶菜道具冷却时间应使用配置值', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false, reason: 'no-game' };
+        try {
+          const propSystem = game.getPropSystem?.();
+          if (!propSystem) return { success: false, reason: 'no-prop-system' };
+
+          const luckyProp = propSystem.getProp?.('lucky');
+          if (!luckyProp) return { success: false, reason: 'no-lucky-prop' };
+
+          const config = luckyProp.getConfig?.();
+          return {
+            success: true,
+            cooldown: config?.cooldown ?? -1,
+          };
+        } catch (e: any) {
+          return { success: false, reason: e?.message ?? 'unknown' };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      expect(result.cooldown).toBe(2000);
+    });
+
+    test('四叶菜道具消耗3次投放后应自动停用', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false, reason: 'no-game' };
+        try {
+          const propSystem = game.getPropSystem?.();
+          if (!propSystem) return { success: false, reason: 'no-prop-system' };
+
+          propSystem.useProp?.('lucky');
+          const luckyProp = propSystem.getProp?.('lucky');
+
+          luckyProp?.consumeLuckyDrop?.();
+          luckyProp?.consumeLuckyDrop?.();
+          luckyProp?.consumeLuckyDrop?.();
+
+          return {
+            success: true,
+            isLuckyActive: luckyProp?.isLuckyActive?.() ?? true,
+            luckyMultiplier: luckyProp?.getLuckyMultiplier?.() ?? 2,
+          };
+        } catch (e: any) {
+          return { success: false, reason: e?.message ?? 'unknown' };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      expect(result.isLuckyActive).toBe(false);
+      expect(result.luckyMultiplier).toBe(1);
+    });
+
+    test('四叶菜道具使用后剩余次数应减少', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false, reason: 'no-game' };
+        try {
+          const propSystem = game.getPropSystem?.();
+          if (!propSystem) return { success: false, reason: 'no-prop-system' };
+
+          const beforeCount = propSystem.getPropCount?.('lucky') ?? -1;
+          propSystem.useProp?.('lucky');
+          const afterCount = propSystem.getPropCount?.('lucky') ?? -1;
+
+          return {
+            success: true,
+            beforeCount,
+            afterCount,
+          };
+        } catch (e: any) {
+          return { success: false, reason: e?.message ?? 'unknown' };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      expect(result.afterCount).toBeLessThan(result.beforeCount);
+    });
+  });
 });

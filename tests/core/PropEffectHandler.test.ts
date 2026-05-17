@@ -423,12 +423,36 @@ describe('PropEffectHandler', () => {
       handler.handleLuckyActivate({ multiplier: 2, remainingDrops: 5 });
       expect(blockSpawner.setLuckyMode).toHaveBeenCalledWith(true, 2);
     });
+
+    it('should set lucky multiplier on score system', () => {
+      const mockScoreSystem = { setLuckyMultiplier: vi.fn() };
+      handler.setScoreSystem(mockScoreSystem as any);
+      handler.handleLuckyActivate({ multiplier: 2, remainingDrops: 3 });
+      expect(mockScoreSystem.setLuckyMultiplier).toHaveBeenCalledWith(2);
+    });
+
+    it('should not crash when score system is null', () => {
+      handler.setScoreSystem(null);
+      expect(() => handler.handleLuckyActivate({ multiplier: 2, remainingDrops: 3 })).not.toThrow();
+    });
   });
 
   describe('handleLuckyDeactivate', () => {
     it('should reset lucky mode', () => {
       handler.handleLuckyDeactivate();
       expect(blockSpawner.setLuckyMode).toHaveBeenCalledWith(false, 1);
+    });
+
+    it('should reset lucky multiplier on score system', () => {
+      const mockScoreSystem = { setLuckyMultiplier: vi.fn() };
+      handler.setScoreSystem(mockScoreSystem as any);
+      handler.handleLuckyDeactivate();
+      expect(mockScoreSystem.setLuckyMultiplier).toHaveBeenCalledWith(1);
+    });
+
+    it('should not crash when score system is null', () => {
+      handler.setScoreSystem(null);
+      expect(() => handler.handleLuckyDeactivate()).not.toThrow();
     });
   });
 

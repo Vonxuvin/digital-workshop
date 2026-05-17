@@ -278,6 +278,9 @@ export class BlockSpawner {
   setLuckyMode(enabled: boolean, multiplier: number): void {
     this.luckyMode = enabled;
     this.luckyMultiplier = multiplier;
+    if (enabled) {
+      this.currentValue = this.getRandomValue();
+    }
   }
 
   getCurrentValue(): number {

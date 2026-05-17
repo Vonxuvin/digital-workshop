@@ -9,6 +9,7 @@ import { LuckyProp } from '../../src/gameplay/props/LuckyProp';
 import { PhysicsManager } from '../../src/core/PhysicsManager';
 import { AnimationManager } from '../../src/utils/AnimationManager';
 import { eventBus } from '../../src/utils/EventBus';
+import { ScoreSystem } from '../../src/gameplay/ScoreSystem';
 
 function createMockPropConfig(type: PropType): PropConfig {
   return {
@@ -372,10 +373,69 @@ describe('Props Integration Tests', () => {
       lucky.use();
       expect(lucky.cooldownReady()).toBe(false);
 
-      vi.advanceTimersByTime(3500);
+      vi.advanceTimersByTime(1100);
       expect(lucky.cooldownReady()).toBe(true);
 
       vi.useRealTimers();
+    });
+
+    it('should use config.cooldown value for cooldown timing', () => {
+      const customConfig: PropConfig = {
+        id: 'prop_lucky_custom',
+        type: PropType.LUCKY,
+        name: '幸运',
+        description: 'Test lucky',
+        icon: 'lucky',
+        maxCount: 3,
+        cooldown: 2000,
+        price: 0,
+      };
+      const customLucky = new LuckyProp(customConfig);
+      vi.useFakeTimers();
+
+      customLucky.use();
+      expect(customLucky.cooldownReady()).toBe(false);
+
+      vi.advanceTimersByTime(1999);
+      expect(customLucky.cooldownReady()).toBe(false);
+
+      vi.advanceTimersByTime(1);
+      expect(customLucky.cooldownReady()).toBe(true);
+
+      vi.useRealTimers();
+      customLucky.destroy();
+    });
+
+    it('should emit props:lucky:dropConsumed for each consumed drop', () => {
+      const handler = vi.fn();
+      eventBus.on('props:lucky:dropConsumed', handler);
+
+      lucky.use();
+      lucky.consumeLuckyDrop();
+      expect(handler).toHaveBeenCalledWith({ remainingDrops: 2 });
+
+      lucky.consumeLuckyDrop();
+      expect(handler).toHaveBeenCalledWith({ remainingDrops: 1 });
+
+      eventBus.off('props:lucky:dropConsumed', handler);
+    });
+
+    it('should correctly track remaining drops through full lifecycle', () => {
+      lucky.use();
+      expect(lucky.isLuckyActive()).toBe(true);
+      expect(lucky.getLuckyMultiplier()).toBe(2);
+
+      lucky.consumeLuckyDrop();
+      expect(lucky.isLuckyActive()).toBe(true);
+      expect(lucky.getLuckyMultiplier()).toBe(2);
+
+      lucky.consumeLuckyDrop();
+      expect(lucky.isLuckyActive()).toBe(true);
+      expect(lucky.getLuckyMultiplier()).toBe(2);
+
+      lucky.consumeLuckyDrop();
+      expect(lucky.isLuckyActive()).toBe(false);
+      expect(lucky.getLuckyMultiplier()).toBe(1);
     });
   });
 
@@ -824,6 +884,125 @@ describe('Props Integration Tests', () => {
       propSystem.useProp(PropType.BOMB, { x: 150, y: 250 });
 
       eventBus.off('props:used', usedHandler);
+    });
+  });
+
+  describe('LuckyProp Bug Fix Integration', () => {
+    let propSystem: PropSystem;
+    let scoreSystem: ScoreSystem;
+
+    beforeEach(async () => {
+      AnimationManager.resetInstance();
+      propSystem = new PropSystem();
+      scoreSystem = new ScoreSystem();
+      await propSystem.loadConfig([
+        { id: 'lucky_1', type: 'lucky', name: '幸运', description: '', icon: 'lucky', maxCount: 3, cooldown: 2000, price: 0 },
+      ]);
+      propSystem.initialize([{ type: PropType.LUCKY, count: 3 }]);
+    });
+
+    afterEach(() => {
+      propSystem.destroy();
+      scoreSystem.reset();
+      AnimationManager.resetInstance();
+    });
+
+    it('should apply lucky multiplier to score after prop activation', () => {
+      const luckyProp = propSystem.getProp(PropType.LUCKY);
+      expect(luckyProp).toBeDefined();
+
+      propSystem.useProp(PropType.LUCKY);
+      expect(luckyProp!.isLuckyActive()).toBe(true);
+
+      scoreSystem.setLuckyMultiplier(luckyProp!.getLuckyMultiplier());
+      scoreSystem.addMergeScore(4);
+      const luckyScore = scoreSystem.getCurrentScore();
+
+      scoreSystem.reset();
+      scoreSystem.addMergeScore(4);
+      const normalScore = scoreSystem.getCurrentScore();
+
+      expect(luckyScore).toBe(normalScore * 2);
+    });
+
+    it('should reset lucky multiplier after all drops consumed', () => {
+      const luckyProp = propSystem.getProp(PropType.LUCKY);
+      propSystem.useProp(PropType.LUCKY);
+
+      scoreSystem.setLuckyMultiplier(luckyProp!.getLuckyMultiplier());
+      expect(scoreSystem.getCurrentScore()).toBe(0);
+
+      luckyProp!.consumeLuckyDrop();
+      luckyProp!.consumeLuckyDrop();
+      luckyProp!.consumeLuckyDrop();
+
+      expect(luckyProp!.isLuckyActive()).toBe(false);
+      expect(luckyProp!.getLuckyMultiplier()).toBe(1);
+    });
+
+    it('should use config.cooldown for lucky prop timing', () => {
+      vi.useFakeTimers();
+      const luckyProp = propSystem.getProp(PropType.LUCKY);
+
+      propSystem.useProp(PropType.LUCKY);
+      expect(luckyProp!.cooldownReady()).toBe(false);
+
+      vi.advanceTimersByTime(1999);
+      expect(luckyProp!.cooldownReady()).toBe(false);
+
+      vi.advanceTimersByTime(1);
+      expect(luckyProp!.cooldownReady()).toBe(true);
+
+      vi.useRealTimers();
+    });
+
+    it('should emit correct events through full lucky prop lifecycle', () => {
+      const activateHandler = vi.fn();
+      const dropConsumedHandler = vi.fn();
+      const deactivateHandler = vi.fn();
+
+      eventBus.on('props:lucky:activate', activateHandler);
+      eventBus.on('props:lucky:dropConsumed', dropConsumedHandler);
+      eventBus.on('props:lucky:deactivate', deactivateHandler);
+
+      propSystem.useProp(PropType.LUCKY);
+      expect(activateHandler).toHaveBeenCalledWith({ multiplier: 2, remainingDrops: 3 });
+
+      const luckyProp = propSystem.getProp(PropType.LUCKY);
+      luckyProp!.consumeLuckyDrop();
+      expect(dropConsumedHandler).toHaveBeenCalledWith({ remainingDrops: 2 });
+
+      luckyProp!.consumeLuckyDrop();
+      luckyProp!.consumeLuckyDrop();
+      expect(deactivateHandler).toHaveBeenCalled();
+
+      eventBus.off('props:lucky:activate', activateHandler);
+      eventBus.off('props:lucky:dropConsumed', dropConsumedHandler);
+      eventBus.off('props:lucky:deactivate', deactivateHandler);
+    });
+
+    it('should correctly handle lucky prop score multiplier across multiple merges', () => {
+      const luckyProp = propSystem.getProp(PropType.LUCKY);
+      propSystem.useProp(PropType.LUCKY);
+      scoreSystem.setLuckyMultiplier(luckyProp!.getLuckyMultiplier());
+
+      scoreSystem.addMergeScore(2);
+      const score1 = scoreSystem.getCurrentScore();
+
+      scoreSystem.addMergeScore(4);
+      const score2 = scoreSystem.getCurrentScore();
+
+      expect(score2).toBeGreaterThan(score1);
+
+      luckyProp!.consumeLuckyDrop();
+      luckyProp!.consumeLuckyDrop();
+      luckyProp!.consumeLuckyDrop();
+
+      scoreSystem.setLuckyMultiplier(1);
+      scoreSystem.addMergeScore(2);
+      const score3 = scoreSystem.getCurrentScore();
+      const scoreWithoutLucky = score3 - score2;
+      expect(scoreWithoutLucky).toBeLessThan(score1);
     });
   });
 });
