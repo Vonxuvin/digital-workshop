@@ -113,9 +113,6 @@ export class UIManager {
   }
 
   private ensureModalOverlayDrawn(): void {
-    if (this.modalOverlayDrawn) {
-      return;
-    }
     this.modalOverlay.clear();
     this.modalOverlay.rect(0, 0, this.app.screen.width, this.app.screen.height);
     this.modalOverlay.fill({ color: 0x000000, alpha: 0.5 });
@@ -134,7 +131,6 @@ export class UIManager {
     if (this.currentScreen) {
       this.currentScreen.resize?.(width, height);
     }
-    this.modalOverlayDrawn = false;
     if (this.modalOverlay.visible) {
       this.ensureModalOverlayDrawn();
     }
