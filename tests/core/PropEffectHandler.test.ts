@@ -228,6 +228,90 @@ describe('PropEffectHandler', () => {
       expect(handler.isShrinkActive()).toBe(true);
       expect(handler.getShrinkFactor()).toBe(0.7);
     });
+
+    it('should maintain bottom position after shrink - ball on ground', () => {
+      const groundY = 590;
+      const radius = 40;
+      const body = Matter.Bodies.circle(200, groundY - radius, radius);
+      const block = new Block(body, 8);
+      const originalBottomY = body.position.y + radius;
+      blockSpawner.getBlocks.mockReturnValue([block]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      const newRadius = body.circleRadius!;
+      const newBottomY = body.position.y + newRadius;
+      expect(newBottomY).toBeCloseTo(originalBottomY, 1);
+    });
+
+    it('should move center downward to keep bottom contact after shrink', () => {
+      const groundY = 590;
+      const radius = 40;
+      const body = Matter.Bodies.circle(200, groundY - radius, radius);
+      const originalCenterY = body.position.y;
+      const block = new Block(body, 8);
+      blockSpawner.getBlocks.mockReturnValue([block]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      expect(body.position.y).toBeGreaterThan(originalCenterY);
+    });
+
+    it('should preserve X position after shrink', () => {
+      const body = Matter.Bodies.circle(200, 500, 30);
+      const block = new Block(body, 4);
+      const originalX = body.position.x;
+      blockSpawner.getBlocks.mockReturnValue([block]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      expect(body.position.x).toBeCloseTo(originalX, 1);
+    });
+
+    it('should maintain bottom position for multiple blocks', () => {
+      const groundY = 590;
+      const body1 = Matter.Bodies.circle(150, groundY - 20, 20);
+      const block1 = new Block(body1, 1);
+      const body2 = Matter.Bodies.circle(250, groundY - 40, 40);
+      const block2 = new Block(body2, 8);
+      const originalBottom1 = body1.position.y + 20;
+      const originalBottom2 = body2.position.y + 40;
+      blockSpawner.getBlocks.mockReturnValue([block1, block2]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      const newBottom1 = body1.position.y + body1.circleRadius!;
+      const newBottom2 = body2.position.y + body2.circleRadius!;
+      expect(newBottom1).toBeCloseTo(originalBottom1, 1);
+      expect(newBottom2).toBeCloseTo(originalBottom2, 1);
+    });
+
+    it('should wake sleeping body after shrink', () => {
+      const body = Matter.Bodies.circle(200, 500, 30);
+      Matter.Sleeping.set(body, true);
+      const block = new Block(body, 4);
+      blockSpawner.getBlocks.mockReturnValue([block]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      expect(body.isSleeping).toBe(false);
+    });
+
+    it('should correctly adjust position with different shrink factors', () => {
+      const groundY = 590;
+      const radius = 40;
+      const body = Matter.Bodies.circle(200, groundY - radius, radius);
+      const block = new Block(body, 8);
+      const originalBottomY = body.position.y + radius;
+      blockSpawner.getBlocks.mockReturnValue([block]);
+
+      handler.handleShrinkActivate({ factor: 0.7, duration: 5000 });
+
+      const newRadius = body.circleRadius!;
+      const newBottomY = body.position.y + newRadius;
+      expect(newBottomY).toBeCloseTo(originalBottomY, 1);
+      expect(newRadius).toBeCloseTo(radius * 0.7, 1);
+    });
   });
 
   describe('handleShrinkDeactivate', () => {
@@ -245,6 +329,92 @@ describe('PropEffectHandler', () => {
     it('should do nothing when not active', () => {
       handler.handleShrinkDeactivate();
       expect(handler.isShrinkActive()).toBe(false);
+    });
+
+    it('should maintain bottom position after deactivate - ball on ground', () => {
+      const groundY = 590;
+      const radius = 40;
+      const body = Matter.Bodies.circle(200, groundY - radius, radius);
+      const block = new Block(body, 8);
+      blockSpawner.getBlocks.mockReturnValue([block]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      const shrunkBottomY = body.position.y + body.circleRadius!;
+
+      handler.handleShrinkDeactivate();
+
+      const restoredBottomY = body.position.y + body.circleRadius!;
+      expect(restoredBottomY).toBeCloseTo(shrunkBottomY, 1);
+    });
+
+    it('should move center upward when restoring size', () => {
+      const groundY = 590;
+      const radius = 40;
+      const body = Matter.Bodies.circle(200, groundY - radius, radius);
+      const block = new Block(body, 8);
+      blockSpawner.getBlocks.mockReturnValue([block]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+      const shrunkCenterY = body.position.y;
+
+      handler.handleShrinkDeactivate();
+
+      expect(body.position.y).toBeLessThan(shrunkCenterY);
+    });
+
+    it('should preserve X position after deactivate', () => {
+      const body = Matter.Bodies.circle(200, 500, 30);
+      const block = new Block(body, 4);
+      blockSpawner.getBlocks.mockReturnValue([block]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+      const shrunkX = body.position.x;
+
+      handler.handleShrinkDeactivate();
+
+      expect(body.position.x).toBeCloseTo(shrunkX, 1);
+    });
+
+    it('should wake sleeping body after deactivate', () => {
+      const body = Matter.Bodies.circle(200, 500, 30);
+      const block = new Block(body, 4);
+      blockSpawner.getBlocks.mockReturnValue([block]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+      Matter.Sleeping.set(body, true);
+
+      handler.handleShrinkDeactivate();
+
+      expect(body.isSleeping).toBe(false);
+    });
+
+    it('should maintain bottom position through full shrink-restore cycle', () => {
+      const groundY = 590;
+      const radius = 40;
+      const body = Matter.Bodies.circle(200, groundY - radius, radius);
+      const block = new Block(body, 8);
+      const originalBottomY = body.position.y + radius;
+      blockSpawner.getBlocks.mockReturnValue([block]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+      handler.handleShrinkDeactivate();
+
+      const finalBottomY = body.position.y + body.circleRadius!;
+      expect(finalBottomY).toBeCloseTo(originalBottomY, 0);
+    });
+
+    it('should restore circleRadius to original value', () => {
+      const radius = 30;
+      const body = Matter.Bodies.circle(200, 500, radius);
+      const block = new Block(body, 4);
+      blockSpawner.getBlocks.mockReturnValue([block]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+      expect(body.circleRadius).toBeCloseTo(radius * 0.5, 1);
+
+      handler.handleShrinkDeactivate();
+      expect(body.circleRadius).toBeCloseTo(radius, 0);
     });
   });
 
@@ -345,6 +515,68 @@ describe('PropEffectHandler', () => {
       handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
       handler.applyShrinkToBlock(block);
       expect(block.scale.x).toBe(0.5);
+    });
+
+    it('should maintain bottom position when applying shrink to new block', () => {
+      const groundY = 590;
+      const radius = 40;
+      const body = Matter.Bodies.circle(200, groundY - radius, radius);
+      const block = new Block(body, 8);
+      const originalBottomY = body.position.y + radius;
+      blockSpawner.getBlocks.mockReturnValue([block]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      const newBlock = new Block(Matter.Bodies.circle(300, groundY - 30, 30), 4);
+      const newBlockOriginalBottomY = newBlock.body.position.y + 30;
+      blockSpawner.getBlocks.mockReturnValue([block, newBlock]);
+
+      handler.applyShrinkToBlock(newBlock);
+
+      const newBlockNewRadius = newBlock.body.circleRadius!;
+      const newBlockNewBottomY = newBlock.body.position.y + newBlockNewRadius;
+      expect(newBlockNewBottomY).toBeCloseTo(newBlockOriginalBottomY, 1);
+    });
+
+    it('should wake sleeping body when applying shrink', () => {
+      const body = Matter.Bodies.circle(200, 500, 30);
+      const block = new Block(body, 4);
+      blockSpawner.getBlocks.mockReturnValue([block]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      const newBlock = new Block(Matter.Bodies.circle(300, 500, 25), 2);
+      Matter.Sleeping.set(newBlock.body, true);
+      blockSpawner.getBlocks.mockReturnValue([block, newBlock]);
+
+      handler.applyShrinkToBlock(newBlock);
+
+      expect(newBlock.body.isSleeping).toBe(false);
+    });
+
+    it('should not apply shrink to destroyed block', () => {
+      const body = Matter.Bodies.circle(100, 200, 20);
+      const block = new Block(body, 2);
+      blockSpawner.getBlocks.mockReturnValue([block]);
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      block.destroy();
+      handler.applyShrinkToBlock(block);
+    });
+
+    it('should preserve X position when applying shrink to new block', () => {
+      const body = Matter.Bodies.circle(200, 500, 30);
+      const block = new Block(body, 4);
+      blockSpawner.getBlocks.mockReturnValue([block]);
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      const newBlock = new Block(Matter.Bodies.circle(300, 500, 25), 2);
+      const originalX = newBlock.body.position.x;
+      blockSpawner.getBlocks.mockReturnValue([block, newBlock]);
+
+      handler.applyShrinkToBlock(newBlock);
+
+      expect(newBlock.body.position.x).toBeCloseTo(originalX, 1);
     });
   });
 

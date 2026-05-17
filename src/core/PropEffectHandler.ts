@@ -121,15 +121,20 @@ export class PropEffectHandler {
     const blocks = this.blockSpawner.getBlocks();
     for (const block of blocks) {
       if (block.isDestroyed || !block.body) continue;
+      const originalRadius = block.body.circleRadius || 0;
+      const bottomY = block.body.position.y + originalRadius;
       this.originalBodyData.set(block.body.label, {
         originalCircleRadius: block.body.circleRadius,
         currentScale: data.factor,
       });
       block.scale.set(data.factor);
       Matter.Body.scale(block.body, data.factor, data.factor);
-      if (block.body.circleRadius !== undefined) {
-        block.body.circleRadius *= data.factor;
-      }
+      const newRadius = block.body.circleRadius || 0;
+      Matter.Body.setPosition(block.body, {
+        x: block.body.position.x,
+        y: bottomY - newRadius,
+      });
+      Matter.Sleeping.set(block.body, false);
     }
   }
 
@@ -139,6 +144,8 @@ export class PropEffectHandler {
     const blocks = this.blockSpawner.getBlocks();
     for (const block of blocks) {
       if (block.isDestroyed || !block.body) continue;
+      const currentRadius = block.body.circleRadius || 0;
+      const bottomY = block.body.position.y + currentRadius;
       const original = this.originalBodyData.get(block.body.label);
       if (original) {
         const inverseScale = 1 / original.currentScale;
@@ -149,10 +156,13 @@ export class PropEffectHandler {
       } else {
         const inverseScale = 1 / this.shrinkFactor;
         Matter.Body.scale(block.body, inverseScale, inverseScale);
-        if (block.body.circleRadius !== undefined) {
-          block.body.circleRadius /= this.shrinkFactor;
-        }
       }
+      const newRadius = block.body.circleRadius || 0;
+      Matter.Body.setPosition(block.body, {
+        x: block.body.position.x,
+        y: bottomY - newRadius,
+      });
+      Matter.Sleeping.set(block.body, false);
       block.scale.set(1);
     }
     this.originalBodyData.clear();
@@ -237,15 +247,20 @@ export class PropEffectHandler {
   applyShrinkToBlock(block: Block): void {
     if (!this.shrinkActive || block.isDestroyed || !block.body) return;
     const factor = this.shrinkFactor;
+    const originalRadius = block.body.circleRadius || 0;
+    const bottomY = block.body.position.y + originalRadius;
     this.originalBodyData.set(block.body.label, {
       originalCircleRadius: block.body.circleRadius,
       currentScale: factor,
     });
     block.scale.set(factor);
     Matter.Body.scale(block.body, factor, factor);
-    if (block.body.circleRadius !== undefined) {
-      block.body.circleRadius *= factor;
-    }
+    const newRadius = block.body.circleRadius || 0;
+    Matter.Body.setPosition(block.body, {
+      x: block.body.position.x,
+      y: bottomY - newRadius,
+    });
+    Matter.Sleeping.set(block.body, false);
   }
 
   clearBombTargetMode(): void {
