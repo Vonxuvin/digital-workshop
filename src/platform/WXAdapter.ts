@@ -1,10 +1,68 @@
 import { PlatformAdapter } from './PlatformAdapter';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const wx: any;
 
+interface WXSystemInfo {
+  brand: string;
+  model: string;
+  screenWidth: number;
+  screenHeight: number;
+  windowWidth: number;
+  windowHeight: number;
+  pixelRatio: number;
+  platform: string;
+}
+
+interface WXLoginResult {
+  code: string;
+}
+
+interface WXUserProfileResult {
+  userInfo: {
+    nickName: string;
+    avatarUrl: string;
+  };
+}
+
+interface WXRewardedVideoCloseResult {
+  isEnded: boolean;
+}
+
+interface WXBannerAdResizeResult {
+  width: number;
+  height: number;
+}
+
+interface WXStorageResult<T> {
+  data: T;
+}
+
+interface WXBannerAd {
+  show(): Promise<void>;
+  hide(): void;
+  onResize(callback: (size: WXBannerAdResizeResult) => void): void;
+  style: { top: number; left: number };
+}
+
+interface WXRewardedVideoAd {
+  show(): Promise<void>;
+  load(): Promise<void>;
+  onLoad(callback: () => void): void;
+  offLoad(callback: () => void): void;
+  onError(callback: (err: unknown) => void): void;
+  offError(callback: (err: unknown) => void): void;
+  onClose(callback: (res: WXRewardedVideoCloseResult) => void): void;
+  offClose(callback: (res: WXRewardedVideoCloseResult) => void): void;
+}
+
+interface WXInterstitialAd {
+  show(): Promise<void>;
+}
+
 export class WXAdapter implements PlatformAdapter {
-  private bannerAd: any = null;
-  private rewardedVideoAd: any = null;
+  private bannerAd: WXBannerAd | null = null;
+  private rewardedVideoAd: WXRewardedVideoAd | null = null;
 
   async init(): Promise<void> {
     console.log('[WXAdapter] 微信环境初始化');
@@ -13,7 +71,7 @@ export class WXAdapter implements PlatformAdapter {
   async login(): Promise<{ code: string }> {
     return new Promise((resolve, reject) => {
       wx.login({
-        success: (res: any) => resolve({ code: res.code }),
+        success: (res: WXLoginResult) => resolve({ code: res.code }),
         fail: reject,
       });
     });
@@ -23,7 +81,7 @@ export class WXAdapter implements PlatformAdapter {
     return new Promise((resolve, reject) => {
       wx.getUserProfile({
         desc: '用于完善用户资料',
-        success: (res: any) => resolve({
+        success: (res: WXUserProfileResult) => resolve({
           nickName: res.userInfo.nickName,
           avatarUrl: res.userInfo.avatarUrl,
         }),
@@ -44,42 +102,42 @@ export class WXAdapter implements PlatformAdapter {
   }
 
   async showRewardedVideo(adUnitId: string): Promise<boolean> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       if (!this.rewardedVideoAd) {
         this.rewardedVideoAd = wx.createRewardedVideoAd({ adUnitId });
       }
 
       const onLoad = () => {
-        this.rewardedVideoAd.show().catch((err: any) => {
+        this.rewardedVideoAd!.show().catch((err: unknown) => {
           console.error('[Ad] 激励视频展示失败:', err);
           cleanup();
           resolve(false);
         });
       };
 
-      const onError = (err: any) => {
+      const onError = (err: unknown) => {
         console.error('[Ad] 激励视频错误:', err);
         cleanup();
         resolve(false);
       };
 
-      const onClose = (res: any) => {
+      const onClose = (res: WXRewardedVideoCloseResult) => {
         cleanup();
         resolve(res && res.isEnded);
       };
 
       const cleanup = () => {
-        this.rewardedVideoAd.offLoad(onLoad);
-        this.rewardedVideoAd.offError(onError);
-        this.rewardedVideoAd.offClose(onClose);
+        this.rewardedVideoAd!.offLoad(onLoad);
+        this.rewardedVideoAd!.offError(onError);
+        this.rewardedVideoAd!.offClose(onClose);
       };
 
-      this.rewardedVideoAd.onLoad(onLoad);
-      this.rewardedVideoAd.onError(onError);
-      this.rewardedVideoAd.onClose(onClose);
+      this.rewardedVideoAd?.onLoad(onLoad);
+      this.rewardedVideoAd?.onError(onError);
+      this.rewardedVideoAd?.onClose(onClose);
 
-      this.rewardedVideoAd.show().catch(() => {
-        this.rewardedVideoAd.load().catch((err: any) => {
+      this.rewardedVideoAd?.show().catch(() => {
+        this.rewardedVideoAd?.load().catch((err: unknown) => {
           console.error('[Ad] 激励视频加载失败:', err);
           cleanup();
           resolve(false);
@@ -89,8 +147,8 @@ export class WXAdapter implements PlatformAdapter {
   }
 
   async showInterstitialAd(adUnitId: string): Promise<void> {
-    const interstitialAd = wx.createInterstitialAd({ adUnitId });
-    interstitialAd.show().catch((err: any) => {
+    const interstitialAd: WXInterstitialAd = wx.createInterstitialAd({ adUnitId });
+    interstitialAd.show().catch((err: unknown) => {
       console.error('[Ad] 插屏广告错误:', err);
     });
   }
@@ -105,13 +163,13 @@ export class WXAdapter implements PlatformAdapter {
         width: systemInfo.windowWidth,
       },
     });
-    this.bannerAd.onResize((size: any) => {
+    this.bannerAd?.onResize((size: WXBannerAdResizeResult) => {
       if (this.bannerAd) {
         this.bannerAd.style.top = systemInfo.windowHeight - size.height;
         this.bannerAd.style.left = (systemInfo.windowWidth - size.width) / 2;
       }
     });
-    this.bannerAd.show().catch((err: any) => {
+    this.bannerAd?.show().catch((err: unknown) => {
       console.error('[Ad] Banner广告展示失败:', err);
     });
   }
@@ -122,10 +180,10 @@ export class WXAdapter implements PlatformAdapter {
     }
   }
 
-  async requestPayment(orderInfo: unknown): Promise<void> {
+  async requestPayment(orderInfo: Record<string, unknown>): Promise<void> {
     return new Promise((resolve, reject) => {
       wx.requestPayment({
-        ...orderInfo as any,
+        ...orderInfo,
         success: resolve,
         fail: reject,
       });
@@ -147,7 +205,7 @@ export class WXAdapter implements PlatformAdapter {
     return new Promise((resolve) => {
       wx.getStorage({
         key,
-        success: (res: any) => resolve(res.data as T),
+        success: (res: WXStorageResult<T>) => resolve(res.data),
         fail: () => resolve(null),
       });
     });
@@ -163,7 +221,7 @@ export class WXAdapter implements PlatformAdapter {
     });
   }
 
-  async getSystemInfo(): Promise<any> {
+  async getSystemInfo(): Promise<WXSystemInfo> {
     return new Promise((resolve, reject) => {
       wx.getSystemInfo({
         success: resolve,

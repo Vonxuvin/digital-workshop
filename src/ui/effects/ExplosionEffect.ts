@@ -9,6 +9,7 @@ export class ExplosionEffect extends PIXI.Container implements IEffect {
   private timeline: gsap.core.Timeline | null = null;
   private pooledObjects: PIXI.Graphics[] = [];
   private graphicsPool: GraphicsPool | null;
+  private particleTargets: Map<PIXI.Graphics, { x: number; y: number }> = new Map();
 
   constructor(centerX: number, centerY: number, radius: number, onComplete?: () => void, graphicsPool?: GraphicsPool) {
     super();
@@ -58,8 +59,7 @@ export class ExplosionEffect extends PIXI.Container implements IEffect {
 
       const targetX = cx + Math.cos(angle) * distance;
       const targetY = cy + Math.sin(angle) * distance;
-      (particle as any)._targetX = targetX;
-      (particle as any)._targetY = targetY;
+      this.particleTargets.set(particle, { x: targetX, y: targetY });
     }
 
     const flash = this.acquireGraphics();
@@ -88,8 +88,10 @@ export class ExplosionEffect extends PIXI.Container implements IEffect {
     });
 
     particles.forEach((particle, i) => {
-      const targetX = (particle as any)._targetX;
-      const targetY = (particle as any)._targetY;
+      const target = this.particleTargets.get(particle);
+      if (!target) return;
+      const targetX = target.x;
+      const targetY = target.y;
       this.timeline!.to(particle, { x: targetX, y: targetY, alpha: 0, duration: 0.6, ease: 'power2.out' }, i * 0.02);
       this.timeline!.to(particle.scale, { x: 0.5, y: 0.5, duration: 0.6, ease: 'power2.out' }, i * 0.02);
     });

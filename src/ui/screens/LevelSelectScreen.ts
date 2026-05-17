@@ -1,4 +1,4 @@
-import { Container, Graphics, Text } from 'pixi.js';
+import { Container, Graphics, Text, FederatedPointerEvent } from 'pixi.js';
 import gsap from 'gsap';
 import { Screen } from '../UIManager';
 import { SaveManager } from '../../core/SaveManager';
@@ -320,13 +320,13 @@ export class LevelSelectScreen extends Screen {
     this.scrollIndicator.visible = true;
   }
 
-  private onPointerDown(e: any): void {
+  private onPointerDown(e: FederatedPointerEvent): void {
     this.isDragging = true;
     this.dragStartY = e.global.y;
     this.dragStartScrollY = this.scrollY;
   }
 
-  private onPointerMove(e: any): void {
+  private onPointerMove(e: FederatedPointerEvent): void {
     if (!this.isDragging) return;
     const deltaY = this.dragStartY - e.global.y;
     this.scrollY = Math.max(0, Math.min(this.maxScrollY, this.dragStartScrollY + deltaY));

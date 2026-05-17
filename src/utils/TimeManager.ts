@@ -54,7 +54,7 @@ export class TimeManager {
     this.gameTimeline.add(tween);
   }
 
-  createTween(targets: any, vars: gsap.TweenVars): gsap.core.Tween {
+  createTween(targets: gsap.TweenTarget, vars: gsap.TweenVars): gsap.core.Tween {
     return gsap.to(targets, {
       ...vars,
       scrollTrigger: undefined,

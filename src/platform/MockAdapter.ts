@@ -65,9 +65,9 @@ export class MockAdapter implements PlatformAdapter {
     pixelRatio: number;
     platform: string;
   }> {
-    const w = typeof globalThis !== 'undefined' && (globalThis as any).innerWidth ? (globalThis as any).innerWidth : 375;
-    const h = typeof globalThis !== 'undefined' && (globalThis as any).innerHeight ? (globalThis as any).innerHeight : 667;
-    const dpr = typeof globalThis !== 'undefined' && (globalThis as any).devicePixelRatio ? (globalThis as any).devicePixelRatio : 2;
+    const w = typeof globalThis !== 'undefined' && (globalThis as unknown as { innerWidth?: number }).innerWidth ? (globalThis as unknown as { innerWidth: number }).innerWidth : 375;
+    const h = typeof globalThis !== 'undefined' && (globalThis as unknown as { innerHeight?: number }).innerHeight ? (globalThis as unknown as { innerHeight: number }).innerHeight : 667;
+    const dpr = typeof globalThis !== 'undefined' && (globalThis as unknown as { devicePixelRatio?: number }).devicePixelRatio ? (globalThis as unknown as { devicePixelRatio: number }).devicePixelRatio : 2;
     return {
       brand: 'browser',
       model: 'desktop',

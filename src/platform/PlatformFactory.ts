@@ -2,6 +2,7 @@ import { PlatformAdapter } from './PlatformAdapter';
 import { WXAdapter } from './WXAdapter';
 import { MockAdapter } from './MockAdapter';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const wx: any;
 
 let sharedInstance: PlatformAdapter | null = null;

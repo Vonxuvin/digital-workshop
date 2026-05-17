@@ -1,6 +1,8 @@
 import { Game } from './core/Game';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const wx: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const GameGlobal: any;
 
 async function initWechatGame(): Promise<void> {

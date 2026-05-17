@@ -19,6 +19,8 @@ export class MainMenuScreen extends Screen {
   private initialized = false;
   private audioManager: AudioManager;
 
+  private buttonTargets: Map<Container, number> = new Map();
+
   constructor(audioManager: AudioManager) {
     super();
     this.audioManager = audioManager;
@@ -225,7 +227,7 @@ export class MainMenuScreen extends Screen {
 
     this.allButtons.forEach((btn, i) => {
       const targetY = btn.y;
-      (btn as any)._targetY = targetY;
+      this.buttonTargets.set(btn, targetY);
       btn.y = targetY + 80;
       btn.alpha = 0;
     });
@@ -233,8 +235,10 @@ export class MainMenuScreen extends Screen {
     gsap.to(this, { alpha: 1, duration: 0.4, ease: 'power2.out' });
 
     this.allButtons.forEach((btn, i) => {
+      const targetY = this.buttonTargets.get(btn);
+      if (targetY === undefined) return;
       gsap.to(btn, {
-        y: (btn as any)._targetY,
+        y: targetY,
         alpha: 1,
         duration: 0.25,
         delay: i * 0.1,

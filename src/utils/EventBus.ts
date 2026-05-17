@@ -4,9 +4,11 @@ import { GameEvents, GameEvent } from './GameEvents';
 export { GameEvents } from './GameEvents';
 export type { GameEvent } from './GameEvents';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type EventCallback<T = any> = (payload: T) => void;
 
 export class EventBus {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private events: Map<string, ((...args: any[]) => void)[]> = new Map();
   private namespaces: Map<string, Set<string>> = new Map();
 
@@ -62,7 +64,9 @@ export class EventBus {
   }
 
   emit<E extends GameEvent>(event: E, ...args: EventPayloadMap[E] extends void ? [] : [EventPayloadMap[E]]): void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   emit(event: string, ...args: any[]): void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   emit(event: string, ...args: any[]): void {
     const callbacks = this.events.get(event);
     if (callbacks) {
@@ -136,7 +140,9 @@ export class NamespacedEventBus {
   }
 
   emit<E extends GameEvent>(event: E, ...args: EventPayloadMap[E] extends void ? [] : [EventPayloadMap[E]]): void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   emit(event: string, ...args: any[]): void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   emit(event: string, ...args: any[]): void {
     this.bus.emit(event, ...args);
   }

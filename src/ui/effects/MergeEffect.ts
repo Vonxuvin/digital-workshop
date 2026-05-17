@@ -16,6 +16,7 @@ export class MergeEffect extends PIXI.Container implements IEffect {
   private timeline: gsap.core.Timeline | null = null;
   private pooledObjects: PIXI.Graphics[] = [];
   private graphicsPool: GraphicsPool | null;
+  private particleTargets: Map<PIXI.Graphics, { x: number; y: number }> = new Map();
 
   constructor(options: MergeEffectOptions, onComplete?: () => void, graphicsPool?: GraphicsPool) {
     super();
@@ -91,8 +92,7 @@ export class MergeEffect extends PIXI.Container implements IEffect {
 
       const targetX = cx + Math.cos(angle) * (60 + Math.random() * 40);
       const targetY = cy + Math.sin(angle) * (60 + Math.random() * 40);
-      (particle as any)._targetX = targetX;
-      (particle as any)._targetY = targetY;
+      this.particleTargets.set(particle, { x: targetX, y: targetY });
     }
 
     this.timeline = gsap.timeline({
@@ -115,8 +115,10 @@ export class MergeEffect extends PIXI.Container implements IEffect {
     this.timeline!.to(ring2, { alpha: 0, duration: 0.4, ease: 'power2.out' }, 0.1);
 
     particles.forEach((particle, i) => {
-      const targetX = (particle as any)._targetX;
-      const targetY = (particle as any)._targetY;
+      const target = this.particleTargets.get(particle);
+      if (!target) return;
+      const targetX = target.x;
+      const targetY = target.y;
       this.timeline!.to(particle, { x: targetX, y: targetY, duration: 0.5, ease: 'power2.out' }, i * 0.03);
       this.timeline!.to(particle, { alpha: 0, duration: 0.5, ease: 'power2.out' }, i * 0.03);
       this.timeline!.to(particle.scale, { x: 0.3, y: 0.3, duration: 0.5, ease: 'power2.out' }, i * 0.03);

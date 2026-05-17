@@ -62,7 +62,7 @@ export class AudioManager {
     
     try {
       if (typeof window !== 'undefined' && window.AudioContext) {
-        this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        this.audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
       }
     } catch (error) {
       console.warn('[AudioManager] 音频上下文初始化失败:', error);

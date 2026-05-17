@@ -39,7 +39,7 @@ export class Layout {
   }
 
   static grid(
-    items: any[],
+    items: unknown[],
     cols: number,
     itemWidth: number,
     itemHeight: number,
