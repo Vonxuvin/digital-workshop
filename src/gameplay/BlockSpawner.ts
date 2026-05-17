@@ -242,7 +242,7 @@ export class BlockSpawner {
     let writeIdx = 0;
     for (let readIdx = 0; readIdx < this.blocks.length; readIdx++) {
       const block = this.blocks[readIdx];
-      if (block.isDestroyed || block.y > screenHeight + 100) {
+      if (block.isDestroyed || block.y > screenHeight + 100 || block.y < -500) {
         this.mergeSystem.unregisterBlock(block);
         this.physics.removeBody(block.body);
         this.blockPool.release(block);
