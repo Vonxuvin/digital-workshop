@@ -24,9 +24,9 @@ export class GameContainer extends Container {
     this.walls.clear();
     this.walls.rect(0, this.containerHeight - 50, this.containerWidth, 50);
     this.walls.fill({ color: 0x2d2d44 });
-    this.walls.rect(0, 0, 2, this.containerHeight);
+    this.walls.rect(-2, 0, 2, this.containerHeight);
     this.walls.fill({ color: 0x2d2d44 });
-    this.walls.rect(this.containerWidth - 2, 0, 2, this.containerHeight);
+    this.walls.rect(this.containerWidth, 0, 2, this.containerHeight);
     this.walls.fill({ color: 0x2d2d44 });
   }
 

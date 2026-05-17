@@ -53,20 +53,22 @@ export class BlockPreview extends Container {
 
   show(value: number, x: number, dropY: number): void {
     this.currentValue = value;
-    this.targetX = x;
-    this.previewY = dropY;
     const config = getBlockConfig(value);
     this.radius = config.radius;
 
+    const boundedX = Math.max(this.minX + this.radius, Math.min(this.maxX - this.radius, x));
+    this.targetX = boundedX;
+    this.previewY = dropY;
+
     this.visible = true;
-    this.x = x;
+    this.x = boundedX;
     this.y = dropY;
 
     this.valueText.text = String(value);
 
     this.drawPreview();
-    this.drawTrail(x, dropY);
-    this.drawLandingMarker(x, dropY);
+    this.drawTrail(boundedX, dropY);
+    this.drawLandingMarker(boundedX, dropY);
     this.hideNextPreview();
   }
 
@@ -114,11 +116,12 @@ export class BlockPreview extends Container {
   private drawLandingMarker(x: number, y: number): void {
     this.landingMarker.clear();
 
-    this.landingMarker.circle(0, 0, this.radius + 3);
+    const markerRadius = this.radius + 3;
+    this.landingMarker.circle(0, 0, markerRadius);
     this.landingMarker.stroke({ width: 1.5, color: 0xffffff, alpha: 0.3 });
 
     this.landingMarker.x = 0;
-    this.landingMarker.y = this.groundY > 0 ? this.groundY - this.y : 0;
+    this.landingMarker.y = this.groundY > 0 ? this.groundY - this.y - markerRadius : 0;
   }
 
   updatePosition(x: number): void {

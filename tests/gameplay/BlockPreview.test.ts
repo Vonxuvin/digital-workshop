@@ -17,6 +17,7 @@ describe('BlockPreview', () => {
   });
 
   it('should show with correct value and position', () => {
+    preview.setBounds(0, 400);
     preview.show(2, 100, 80);
     expect(preview.visible).toBe(true);
     expect(preview.x).toBe(100);
@@ -97,6 +98,125 @@ describe('BlockPreview', () => {
     preview.show(1, 100, 80);
     preview.setNextValue(2);
     preview.destroy();
+  });
+
+  describe('show() X boundary clamping', () => {
+    it('should clamp x to left bound considering block radius', () => {
+      preview.setBounds(50, 350);
+      preview.show(1, 30, 80);
+      expect(preview.getTargetX()).toBeGreaterThanOrEqual(50 + 20);
+    });
+
+    it('should clamp x to right bound considering block radius', () => {
+      preview.setBounds(50, 350);
+      preview.show(1, 360, 80);
+      expect(preview.getTargetX()).toBeLessThanOrEqual(350 - 20);
+    });
+
+    it('should not clamp when x is within bounds', () => {
+      preview.setBounds(0, 400);
+      preview.show(1, 200, 80);
+      expect(preview.x).toBe(200);
+      expect(preview.getTargetX()).toBe(200);
+    });
+
+    it('should clamp based on actual block radius for large blocks', () => {
+      preview.setBounds(0, 400);
+      preview.show(2048, 10, 80);
+      expect(preview.getTargetX()).toBeGreaterThanOrEqual(60);
+    });
+
+    it('should clamp based on actual block radius for small blocks', () => {
+      preview.setBounds(0, 400);
+      preview.show(1, 5, 80);
+      expect(preview.getTargetX()).toBeGreaterThanOrEqual(20);
+    });
+
+    it('should accept position at exact left bound + radius', () => {
+      preview.setBounds(0, 400);
+      preview.show(1, 20, 80);
+      expect(preview.getTargetX()).toBe(20);
+      expect(preview.x).toBe(20);
+    });
+
+    it('should accept position at exact right bound - radius', () => {
+      preview.setBounds(0, 400);
+      preview.show(1, 380, 80);
+      expect(preview.getTargetX()).toBe(380);
+      expect(preview.x).toBe(380);
+    });
+
+    it('should clamp to bounds even when bounds are set after construction', () => {
+      preview.setBounds(100, 300);
+      preview.show(8, 50, 80);
+      expect(preview.getTargetX()).toBeGreaterThanOrEqual(100 + 28);
+      expect(preview.getTargetX()).toBeLessThanOrEqual(300 - 28);
+    });
+  });
+
+  describe('landing marker position', () => {
+    it('should position landing marker above ground visual wall', () => {
+      preview.setGroundY(500);
+      preview.show(1, 100, 80);
+
+      const marker = (preview as any).landingMarker;
+      expect(marker).toBeDefined();
+      expect(marker.y).toBeLessThanOrEqual(500 - 80 - 23);
+    });
+
+    it('should account for block radius in marker offset', () => {
+      preview.setGroundY(500);
+      preview.show(2, 100, 80);
+
+      const marker = (preview as any).landingMarker;
+      expect(marker.y).toBeLessThanOrEqual(500 - 80 - 25);
+    });
+
+    it('should handle groundY less than preview y', () => {
+      preview.setGroundY(60);
+      preview.show(1, 100, 80);
+
+      const marker = (preview as any).landingMarker;
+      expect(marker.y).toBeLessThanOrEqual(60 - 80 - 23);
+    });
+
+    it('should not set landing marker y when groundY is 0', () => {
+      preview.show(1, 100, 80);
+
+      const marker = (preview as any).landingMarker;
+      expect(marker.y).toBe(0);
+    });
+
+    it('should update landing marker after setGroundY', () => {
+      preview.show(1, 100, 80);
+      preview.setGroundY(400);
+      preview.updatePosition(100);
+
+      const marker = (preview as any).landingMarker;
+      expect(marker.y).toBeLessThanOrEqual(400 - 80 - 23);
+    });
+
+    it('should position marker correctly for highest-value block', () => {
+      preview.setGroundY(500);
+      preview.show(2048, 200, 80);
+
+      const marker = (preview as any).landingMarker;
+      expect(marker.y).toBeLessThanOrEqual(500 - 80 - 63);
+    });
+  });
+
+  describe('setGroundY previewY calculation', () => {
+    it('should set previewY to groundY - 30 for typical ground Y', () => {
+      preview.setGroundY(500);
+      const previewY = (preview as any).previewY;
+      expect(previewY).toBe(470);
+    });
+
+    it('should not set previewY below 60', () => {
+      preview.setGroundY(80);
+      const previewY = (preview as any).previewY;
+      expect(previewY).toBe(60);
+    });
   });
 });
 

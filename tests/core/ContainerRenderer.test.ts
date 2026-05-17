@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import Matter from 'matter-js';
 import { ContainerRenderer } from '../../src/core/ContainerRenderer';
 import { PhysicsManager } from '../../src/core/PhysicsManager';
 import { BlockPreview } from '../../src/gameplay/BlockPreview';
@@ -151,5 +152,126 @@ describe('ContainerRenderer', () => {
     renderer.destroy();
     expect(renderer.getPhysicsWalls().length).toBe(0);
     expect(renderer.getWarningLine()).toBeNull();
+  });
+
+  describe('physics wall positions', () => {
+    it('should position left wall at offsetX - 25 (half wall width into bounds)', () => {
+      const config = { container: { width: 300, height: 500 } } as any;
+      renderer.setup(config, 400, 600, preview as any, blockSpawner as any, propEffectHandler as any, scoreSystem);
+      const leftWall = renderer.getPhysicsWalls().find(w => w.label === 'wall_left');
+      expect(leftWall).toBeDefined();
+      expect(leftWall!.position.x).toBeCloseTo(50 - 25, 0);
+    });
+
+    it('should position right wall at offsetX + containerWidth + 25', () => {
+      const config = { container: { width: 300, height: 500 } } as any;
+      renderer.setup(config, 400, 600, preview as any, blockSpawner as any, propEffectHandler as any, scoreSystem);
+      const rightWall = renderer.getPhysicsWalls().find(w => w.label === 'wall_right');
+      expect(rightWall).toBeDefined();
+      expect(rightWall!.position.x).toBeCloseTo(50 + 300 + 25, 0);
+    });
+
+    it('should position ground wall at offsetX + w/2, groundY + 25', () => {
+      renderer.setup(null, 400, 600, preview as any, blockSpawner as any, propEffectHandler as any, scoreSystem);
+      const ground = renderer.getPhysicsWalls().find(w => w.label === 'ground');
+      expect(ground).toBeDefined();
+      expect(ground!.position.x).toBeCloseTo(200, 0);
+      expect(ground!.position.y).toBeCloseTo(550 + 25, 0);
+    });
+
+    it('should use screen dimensions as fallback when no config', () => {
+      const physics = new PhysicsManager();
+      const r = new ContainerRenderer(app as any, physics);
+      r.setup(null, 400, 600, preview as any, blockSpawner as any, propEffectHandler as any, scoreSystem);
+      const leftWall = r.getPhysicsWalls().find(w => w.label === 'wall_left');
+      expect(leftWall!.position.x).toBeCloseTo(-25, 0);
+      r.destroy();
+    });
+
+    it('should have wall width of 50 (dense enough for collision detection)', () => {
+      renderer.setup(null, 400, 600, preview as any, blockSpawner as any, propEffectHandler as any, scoreSystem);
+      for (const wall of renderer.getPhysicsWalls()) {
+        const verts = wall.vertices;
+        const maxY = Math.max(...verts.map(v => v.y));
+        const minY = Math.min(...verts.map(v => v.y));
+        const maxX = Math.max(...verts.map(v => v.x));
+        const minX = Math.min(...verts.map(v => v.x));
+        expect(maxX - minX).toBeGreaterThanOrEqual(49);
+        expect(maxY - minY).toBeGreaterThanOrEqual(49);
+      }
+    });
+  });
+
+  describe('clampBodiesToContainer', () => {
+    it('should clamp a body beyond left bound back into container', () => {
+      renderer.setup(null, 400, 600, preview as any, blockSpawner as any, propEffectHandler as any, scoreSystem);
+      const body = physics.createCircle(-10, 200, 20);
+      const gameHUD = { layout: vi.fn() };
+      renderer.handleResize(null, 400, 600, preview as any, blockSpawner as any, gameHUD);
+      expect(body.position.x).toBeGreaterThanOrEqual(20);
+    });
+
+    it('should clamp a body beyond right bound back into container', () => {
+      renderer.setup(null, 400, 600, preview as any, blockSpawner as any, propEffectHandler as any, scoreSystem);
+      const body = physics.createCircle(410, 200, 20);
+      const gameHUD = { layout: vi.fn() };
+      renderer.handleResize(null, 400, 600, preview as any, blockSpawner as any, gameHUD);
+      expect(body.position.x).toBeLessThanOrEqual(380);
+    });
+
+    it('should clamp a body below ground back above', () => {
+      renderer.setup(null, 400, 600, preview as any, blockSpawner as any, propEffectHandler as any, scoreSystem);
+      const body = physics.createCircle(200, 600, 20);
+      const gameHUD = { layout: vi.fn() };
+      renderer.handleResize(null, 400, 600, preview as any, blockSpawner as any, gameHUD);
+      expect(body.position.y).toBeLessThanOrEqual(renderer.getGroundY() - 20);
+    });
+
+    it('should zero velocity after clamping', () => {
+      renderer.setup(null, 400, 600, preview as any, blockSpawner as any, propEffectHandler as any, scoreSystem);
+      const body = physics.createCircle(500, 200, 20);
+      Matter.Body.setVelocity(body, { x: 5, y: 5 });
+      const gameHUD = { layout: vi.fn() };
+      renderer.handleResize(null, 400, 600, preview as any, blockSpawner as any, gameHUD);
+      expect(body.velocity.x).toBe(0);
+      expect(body.velocity.y).toBe(0);
+    });
+
+    it('should not clamp a body inside container bounds', () => {
+      renderer.setup(null, 400, 600, preview as any, blockSpawner as any, propEffectHandler as any, scoreSystem);
+      const body = physics.createCircle(200, 200, 20);
+      const gameHUD = { layout: vi.fn() };
+      renderer.handleResize(null, 400, 600, preview as any, blockSpawner as any, gameHUD);
+      expect(body.position.x).toBe(200);
+      expect(body.position.y).toBe(200);
+    });
+
+    it('should skip static bodies during clamping', () => {
+      renderer.setup(null, 400, 600, preview as any, blockSpawner as any, propEffectHandler as any, scoreSystem);
+      const initialWallsCount = renderer.getPhysicsWalls().length;
+      const gameHUD = { layout: vi.fn() };
+      renderer.handleResize(null, 400, 600, preview as any, blockSpawner as any, gameHUD);
+      expect(renderer.getPhysicsWalls().length).toBeGreaterThanOrEqual(initialWallsCount);
+    });
+  });
+
+  describe('preview and spawner bounds after visual wall fix', () => {
+    it('should set preview bounds to containerOffsetX and containerOffsetX + containerWidth', () => {
+      const config = { container: { width: 300, height: 500 } } as any;
+      renderer.setup(config, 400, 600, preview as any, blockSpawner as any, propEffectHandler as any, scoreSystem);
+      expect(preview.setBounds).toHaveBeenCalledWith(50, 350);
+    });
+
+    it('should set spawner bounds to containerWidth and containerOffsetX', () => {
+      const config = { container: { width: 300, height: 500 } } as any;
+      renderer.setup(config, 400, 600, preview as any, blockSpawner as any, propEffectHandler as any, scoreSystem);
+      expect(blockSpawner.setContainerBounds).toHaveBeenCalledWith(300, 50);
+    });
+
+    it('should set ground Y to containerHeight - 50', () => {
+      expect(renderer.getGroundY()).toBe(0);
+      renderer.setup(null, 400, 600, preview as any, blockSpawner as any, propEffectHandler as any, scoreSystem);
+      expect(renderer.getGroundY()).toBe(550);
+    });
   });
 });
