@@ -1,4 +1,4 @@
-import { logger } from './utils/Logger';
+import { logger, LogLevel } from './utils/Logger';
 import 'pixi.js/browser';
 import { Game } from './core/Game';
 
@@ -9,6 +9,7 @@ declare global {
 }
 
 async function init() {
+  logger.setLevel(LogLevel.INFO);
   const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
   if (!canvas) {
     logger.error('main', '错误: canvas元素不存在!');

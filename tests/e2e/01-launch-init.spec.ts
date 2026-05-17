@@ -106,10 +106,15 @@ test.describe('启动与初始化 @smoke', () => {
     test('启动流程应为 boot → loading → menu', async ({ page }) => {
       const stateSequence: string[] = [];
       page.on('console', (msg) => {
-        const match = msg.text().match(/\[StateMachine\] (\w+) -> (\w+)/);
+        const text = msg.text();
+        const match = text.match(/\[StateMachine\] (\w+) -> (\w+)/);
         if (match) stateSequence.push(match[2]);
-        const match2 = msg.text().match(/\[Game\] 状态变化: (\w+) -> (\w+)/);
+        const match2 = text.match(/\[Game\] 状态变化: (\w+) -> (\w+)/);
         if (match2) stateSequence.push(match2[2]);
+        const match3 = text.match(/\[INF\]\[StateMachine\] (\w+) -> (\w+)/);
+        if (match3) stateSequence.push(match3[2]);
+        const match4 = text.match(/\[INF\]\[Game\] 状态变化: (\w+) -> (\w+)/);
+        if (match4) stateSequence.push(match4[2]);
       });
 
       await navigateToGame(page);
