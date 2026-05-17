@@ -102,12 +102,50 @@ export class ContainerRenderer {
 
     this.rebuildPhysicsWalls();
     this.drawContainerWalls();
+    this.clampBodiesToContainer();
     blockSpawner.setContainerBounds(this.containerWidth, this.containerOffsetX);
 
     if (this.warningLine) {
       this.warningLine.y = this.groundY * 0.8;
     }
     gameHUD.layout(screenW, screenH);
+  }
+
+  private clampBodiesToContainer(): void {
+    const leftBound = this.containerOffsetX;
+    const rightBound = this.containerOffsetX + this.containerWidth;
+    const topBound = 0;
+    const bottomBound = this.groundY;
+
+    const bodies = this.physics.getAllBodies();
+    for (const body of bodies) {
+      if (body.isStatic) continue;
+      const radius = body.circleRadius || 20;
+      const pos = body.position;
+      let clamped = false;
+      let newX = pos.x;
+      let newY = pos.y;
+
+      if (pos.x - radius < leftBound) {
+        newX = leftBound + radius;
+        clamped = true;
+      } else if (pos.x + radius > rightBound) {
+        newX = rightBound - radius;
+        clamped = true;
+      }
+      if (pos.y - radius < topBound) {
+        newY = topBound + radius;
+        clamped = true;
+      } else if (pos.y + radius > bottomBound) {
+        newY = bottomBound - radius;
+        clamped = true;
+      }
+
+      if (clamped) {
+        Matter.Body.setPosition(body, { x: newX, y: newY });
+        Matter.Body.setVelocity(body, { x: 0, y: 0 });
+      }
+    }
   }
 
   drawContainerWalls(): void {
