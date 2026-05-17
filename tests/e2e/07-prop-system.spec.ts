@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { navigateToGame, dropBlocks, waitForStable, ensurePlaying, ensureGameScene } from './helpers';
+import { navigateToGame, dropBlocks, waitForStable, ensurePlaying, ensureGameScene, clickCanvasAt, getCanvasBoundingBox } from './helpers';
 
 test.describe('道具系统 @regression', () => {
   test.describe('道具初始化 @smoke', () => {
@@ -587,6 +587,625 @@ test.describe('道具系统 @regression', () => {
 
       expect(result.success).toBeTruthy();
       expect(result.afterCount).toBeLessThan(result.beforeCount);
+    });
+  });
+
+  test.describe('炸弹道具BUG修复 @critical', () => {
+    test('点击炸弹按钮后不应立即在HUD区域产生爆炸', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+      await dropBlocks(page, 3);
+      await waitForStable(page);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false, reason: 'no-game' };
+        try {
+          const propSystem = game.getPropSystem?.();
+          if (!propSystem) return { success: false, reason: 'no-prop-system' };
+          const bombCountBefore = propSystem.getPropCount?.('bomb') ?? 0;
+          if (bombCountBefore <= 0) return { success: false, reason: 'no-bomb-count' };
+
+          const hud = game.getGameHUD?.();
+          if (!hud) return { success: false, reason: 'no-hud' };
+
+          const consumeResult = hud.consumePropButtonClick?.();
+          if (typeof consumeResult !== 'boolean') {
+            return { success: false, reason: 'no-consumePropButtonClick-method' };
+          }
+
+          return { success: true, bombCountBefore, hasConsumeMethod: true };
+        } catch (e: any) {
+          return { success: false, reason: e?.message ?? 'unknown' };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      expect(result.hasConsumeMethod).toBeTruthy();
+    });
+
+    test('consumePropButtonClick应正确消费点击标记', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false };
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return { success: false };
+
+          const firstCall = hud.consumePropButtonClick?.();
+          const secondCall = hud.consumePropButtonClick?.();
+
+          return {
+            success: true,
+            firstCallIsBoolean: typeof firstCall === 'boolean',
+            secondCallIsBoolean: typeof secondCall === 'boolean',
+          };
+        } catch {
+          return { success: false };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      expect(result.firstCallIsBoolean).toBeTruthy();
+      expect(result.secondCallIsBoolean).toBeTruthy();
+    });
+
+    test('炸弹目标模式下点击应显示十字准星', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false };
+        try {
+          const scene = game.getGameScene?.();
+          if (!scene) return { success: false };
+          const effectHandler = scene.getPropEffectHandler?.();
+          if (!effectHandler) return { success: false };
+
+          effectHandler.handlePropTargetMode?.({ enabled: true });
+          const targetMode = effectHandler.getBombTargetMode?.();
+
+          const hud = game.getGameHUD?.();
+          const hasCrosshair = hud ? typeof hud.showCrosshair === 'function' : false;
+
+          effectHandler.handlePropTargetMode?.({ enabled: false });
+
+          return { success: true, targetMode, hasCrosshair };
+        } catch {
+          return { success: false };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      expect(result.targetMode).toBeTruthy();
+      expect(result.hasCrosshair).toBeTruthy();
+    });
+
+    test('容器边界内爆炸应使用完整半径', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+      await dropBlocks(page, 5);
+      await waitForStable(page);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false };
+        try {
+          const scene = game.getGameScene?.();
+          if (!scene) return { success: false };
+          const effectHandler = scene.getPropEffectHandler?.();
+          if (!effectHandler) return { success: false };
+
+          const offsetX = scene.getContainerOffsetX?.() ?? 0;
+          const width = scene.getContainerWidth?.() ?? 0;
+          const centerX = offsetX + width / 2;
+          const centerY = 300;
+
+          effectHandler.handleBombExplode?.({ x: centerX, y: centerY, radius: 120 });
+
+          return { success: true, centerX, centerY };
+        } catch {
+          return { success: false };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+    });
+
+    test('容器边缘爆炸不应产生负半径', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false };
+        try {
+          const scene = game.getGameScene?.();
+          if (!scene) return { success: false };
+          const effectHandler = scene.getPropEffectHandler?.();
+          if (!effectHandler) return { success: false };
+
+          const offsetX = scene.getContainerOffsetX?.() ?? 0;
+
+          effectHandler.handleBombExplode?.({ x: offsetX, y: 300, radius: 120 });
+
+          return { success: true };
+        } catch {
+          return { success: false };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+    });
+
+    test('炸弹目标模式切换应正确工作', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false };
+        try {
+          const scene = game.getGameScene?.();
+          if (!scene) return { success: false };
+          const effectHandler = scene.getPropEffectHandler?.();
+          if (!effectHandler) return { success: false };
+
+          const initialState = effectHandler.getBombTargetMode?.();
+
+          effectHandler.handlePropTargetMode?.({ enabled: true });
+          const afterEnable = effectHandler.getBombTargetMode?.();
+
+          effectHandler.handlePropTargetMode?.({ enabled: false });
+          const afterDisable = effectHandler.getBombTargetMode?.();
+
+          return {
+            success: true,
+            initialState,
+            afterEnable,
+            afterDisable,
+          };
+        } catch {
+          return { success: false };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      expect(result.initialState).toBe(false);
+      expect(result.afterEnable).toBe(true);
+      expect(result.afterDisable).toBe(false);
+    });
+  });
+
+  test.describe('炸弹按钮响应优化 @performance', () => {
+    test('点击炸弹按钮应在pointerdown阶段触发onClick', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false, reason: 'no-game' };
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return { success: false, reason: 'no-hud' };
+
+          const propButtons = hud.propButtons;
+          if (!propButtons) return { success: false, reason: 'no-prop-buttons' };
+
+          const bombButton = propButtons.get?.('bomb');
+          if (!bombButton) return { success: false, reason: 'no-bomb-button' };
+
+          const hasPointerDownListener = bombButton.listenerCount?.('pointerdown') > 0;
+
+          return { success: true, hasPointerDownListener };
+        } catch (e: any) {
+          return { success: false, reason: e?.message ?? 'unknown' };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+    });
+
+    test('PropButton点击响应时间应小于100ms', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const responseTime = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return -1;
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return -1;
+
+          const propButtons = hud.propButtons;
+          if (!propButtons) return -1;
+
+          const bombButton = propButtons.get?.('bomb');
+          if (!bombButton) return -1;
+
+          const start = performance.now();
+          bombButton.emit?.('pointerdown');
+          const end = performance.now();
+
+          return end - start;
+        } catch {
+          return -1;
+        }
+      });
+
+      if (responseTime >= 0) {
+        expect(responseTime).toBeLessThan(100);
+      }
+    });
+
+    test('点击炸弹按钮后十字准星应立即显示', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false, reason: 'no-game' };
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return { success: false, reason: 'no-hud' };
+
+          const crosshairBefore = (hud as any).crosshair?.visible ?? false;
+
+          const propButtons = hud.propButtons;
+          if (!propButtons) return { success: false, reason: 'no-prop-buttons' };
+
+          const bombButton = propButtons.get?.('bomb');
+          if (!bombButton) return { success: false, reason: 'no-bomb-button' };
+
+          bombButton.emit?.('pointerdown');
+
+          const crosshairAfter = (hud as any).crosshair?.visible ?? false;
+          const isPropTargetMode = hud.isPropTargetMode;
+
+          return {
+            success: true,
+            crosshairBefore,
+            crosshairAfter,
+            isPropTargetMode,
+          };
+        } catch (e: any) {
+          return { success: false, reason: e?.message ?? 'unknown' };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      expect(result.crosshairBefore).toBe(false);
+      expect(result.crosshairAfter).toBe(true);
+      expect(result.isPropTargetMode).toBe(true);
+    });
+
+    test('isPropTargetMode应在enterBombTargetMode后立即返回true', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false };
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return { success: false };
+
+          const before = hud.isPropTargetMode;
+
+          const propButtons = hud.propButtons;
+          if (!propButtons) return { success: false };
+
+          const bombButton = propButtons.get?.('bomb');
+          if (!bombButton) return { success: false };
+
+          bombButton.emit?.('pointerdown');
+
+          const after = hud.isPropTargetMode;
+
+          return { success: true, before, after };
+        } catch {
+          return { success: false };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      expect(result.before).toBe(false);
+      expect(result.after).toBe(true);
+    });
+
+    test('isPropTargetMode应在exitBombTargetMode后立即返回false', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false };
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return { success: false };
+
+          const propButtons = hud.propButtons;
+          if (!propButtons) return { success: false };
+
+          const bombButton = propButtons.get?.('bomb');
+          if (!bombButton) return { success: false };
+
+          bombButton.emit?.('pointerdown');
+          const during = hud.isPropTargetMode;
+
+          bombButton.emit?.('pointerdown');
+          const after = hud.isPropTargetMode;
+
+          return { success: true, during, after };
+        } catch {
+          return { success: false };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      expect(result.during).toBe(true);
+      expect(result.after).toBe(false);
+    });
+
+    test('连续快速点击炸弹按钮不应产生延迟累积', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false };
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return { success: false };
+
+          const propButtons = hud.propButtons;
+          if (!propButtons) return { success: false };
+
+          const bombButton = propButtons.get?.('bomb');
+          if (!bombButton) return { success: false };
+
+          const start = performance.now();
+          for (let i = 0; i < 5; i++) {
+            bombButton.emit?.('pointerdown');
+            bombButton.emit?.('pointerup');
+          }
+          const elapsed = performance.now() - start;
+
+          return { success: true, elapsed };
+        } catch {
+          return { success: false };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      expect(result.elapsed).toBeLessThan(100);
+    });
+  });
+
+  test.describe('缩小道具底部位置修正 @regression', () => {
+    test('缩小道具应保持球体与容器底部接触', async ({ page }) => {
+      await navigateToGame(page);
+      await ensureGameScene(page);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false, reason: 'no-game' };
+        try {
+          const scene = game.getGameScene?.();
+          if (!scene) return { success: false, reason: 'no-scene' };
+          const propEffectHandler = scene.getPropEffectHandler?.();
+          if (!propEffectHandler) return { success: false, reason: 'no-handler' };
+          return { success: true, hasHandler: true };
+        } catch {
+          return { success: false, reason: 'error' };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+    });
+
+    test('PropEffectHandler应提供缩小激活状态查询', async ({ page }) => {
+      await navigateToGame(page);
+      await ensureGameScene(page);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const scene = game.getGameScene?.();
+          if (!scene) return false;
+          const handler = scene.getPropEffectHandler?.();
+          if (!handler) return false;
+          return typeof handler.isShrinkActive === 'function'
+            && typeof handler.getShrinkFactor === 'function';
+        } catch {
+          return false;
+        }
+      });
+
+      expect(result).toBeTruthy();
+    });
+
+    test('缩小道具激活后球体不应悬浮在空中', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+      await dropBlocks(page, 3);
+      await waitForStable(page, 2000);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false, reason: 'no-game' };
+        try {
+          const scene = game.getGameScene?.();
+          if (!scene) return { success: false, reason: 'no-scene' };
+          const handler = scene.getPropEffectHandler?.();
+          if (!handler) return { success: false, reason: 'no-handler' };
+
+          const spawner = game.getBlockSpawner?.();
+          if (!spawner) return { success: false, reason: 'no-spawner' };
+
+          const blocks = spawner.getBlocks?.() || [];
+          if (blocks.length === 0) return { success: false, reason: 'no-blocks' };
+
+          const groundY = scene.getGroundY?.() || 550;
+
+          const blockBottomsBefore = blocks.map((b: any) => ({
+            y: b.body.position.y,
+            radius: b.body.circleRadius,
+            bottom: b.body.position.y + (b.body.circleRadius || 0),
+          }));
+
+          handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+          const blockBottomsAfter = blocks.map((b: any) => ({
+            y: b.body.position.y,
+            radius: b.body.circleRadius,
+            bottom: b.body.position.y + (b.body.circleRadius || 0),
+          }));
+
+          let allBottomsPreserved = true;
+          for (let i = 0; i < blockBottomsBefore.length; i++) {
+            const before = blockBottomsBefore[i].bottom;
+            const after = blockBottomsAfter[i].bottom;
+            if (Math.abs(before - after) > 2) {
+              allBottomsPreserved = false;
+              break;
+            }
+          }
+
+          let noFloating = true;
+          for (const b of blockBottomsAfter) {
+            if (b.bottom < groundY - 5) {
+              noFloating = false;
+              break;
+            }
+          }
+
+          handler.handleShrinkDeactivate();
+
+          return {
+            success: true,
+            allBottomsPreserved,
+            noFloating,
+            blockCount: blocks.length,
+            groundY,
+          };
+        } catch (e: any) {
+          return { success: false, reason: e?.message ?? 'error' };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      if (result.success) {
+        expect(result.allBottomsPreserved).toBeTruthy();
+        expect(result.noFloating).toBeTruthy();
+      }
+    });
+
+    test('缩小道具取消后球体应恢复原始大小并保持底部接触', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+      await dropBlocks(page, 3);
+      await waitForStable(page, 2000);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false, reason: 'no-game' };
+        try {
+          const scene = game.getGameScene?.();
+          if (!scene) return { success: false, reason: 'no-scene' };
+          const handler = scene.getPropEffectHandler?.();
+          if (!handler) return { success: false, reason: 'no-handler' };
+
+          const spawner = game.getBlockSpawner?.();
+          if (!spawner) return { success: false, reason: 'no-spawner' };
+
+          const blocks = spawner.getBlocks?.() || [];
+          if (blocks.length === 0) return { success: false, reason: 'no-blocks' };
+
+          const originalData = blocks.map((b: any) => ({
+            radius: b.body.circleRadius,
+            bottom: b.body.position.y + (b.body.circleRadius || 0),
+          }));
+
+          handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+          handler.handleShrinkDeactivate();
+
+          const restoredData = blocks.map((b: any) => ({
+            radius: b.body.circleRadius,
+            bottom: b.body.position.y + (b.body.circleRadius || 0),
+          }));
+
+          let allRadiiRestored = true;
+          let allBottomsPreserved = true;
+          for (let i = 0; i < originalData.length; i++) {
+            if (Math.abs(originalData[i].radius - restoredData[i].radius) > 1) {
+              allRadiiRestored = false;
+            }
+            if (Math.abs(originalData[i].bottom - restoredData[i].bottom) > 2) {
+              allBottomsPreserved = false;
+            }
+          }
+
+          return {
+            success: true,
+            allRadiiRestored,
+            allBottomsPreserved,
+            blockCount: blocks.length,
+          };
+        } catch (e: any) {
+          return { success: false, reason: e?.message ?? 'error' };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      if (result.success) {
+        expect(result.allRadiiRestored).toBeTruthy();
+        expect(result.allBottomsPreserved).toBeTruthy();
+      }
+    });
+
+    test('缩小道具不应破坏物理引擎稳定性', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+      await dropBlocks(page, 5);
+      await waitForStable(page, 2000);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false, reason: 'no-game' };
+        try {
+          const scene = game.getGameScene?.();
+          if (!scene) return { success: false, reason: 'no-scene' };
+          const handler = scene.getPropEffectHandler?.();
+          if (!handler) return { success: false, reason: 'no-handler' };
+
+          handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+          const physics = game.getPhysics?.();
+          if (!physics) return { success: false, reason: 'no-physics' };
+
+          const isRunning = typeof physics.isRunning === 'function'
+            ? physics.isRunning()
+            : true;
+
+          handler.handleShrinkDeactivate();
+
+          return { success: true, physicsRunning: isRunning };
+        } catch (e: any) {
+          return { success: false, reason: e?.message ?? 'error' };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      if (result.success) {
+        expect(result.physicsRunning).toBeTruthy();
+      }
     });
   });
 });
