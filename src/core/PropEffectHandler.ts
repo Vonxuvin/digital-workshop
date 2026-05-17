@@ -97,7 +97,7 @@ export class PropEffectHandler {
     this.effectManager.addExplosionEffect(data.x, data.y, effectiveRadius);
 
     if (this.levelSystem) {
-      this.gameHUD.setObjectiveProgress(this.levelSystem.getProgress());
+      this.gameHUD.updateObjectiveProgress(this.levelSystem.getCurrentProgressValue());
     }
   }
 

@@ -9,6 +9,7 @@ import { ResultScreen, ResultData } from '../ui/screens/ResultScreen';
 import { LevelSelectScreen } from '../ui/screens/LevelSelectScreen';
 import { LevelLoader } from './LevelLoader';
 import { AdManager } from './AdManager';
+import { eventBus, GameEvents } from '../utils/EventBus';
 
 const TAG = 'SceneManager';
 

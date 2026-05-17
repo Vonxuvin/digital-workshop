@@ -101,10 +101,11 @@ describe('GameHUD', () => {
     }
   });
 
-  it('should correctly set objective progress', () => {
-    hud.setObjectiveProgress(0.5);
-    hud.setObjectiveProgress(1);
-    hud.setObjectiveProgress(0);
+  it('should correctly update objective progress', () => {
+    hud.setObjectiveInfo('score', 100);
+    hud.updateObjectiveProgress(50);
+    hud.updateObjectiveProgress(100);
+    hud.updateObjectiveProgress(0);
   });
 
   it('should handle timer display updates', () => {
@@ -193,11 +194,11 @@ describe('GameHUD', () => {
     }
   });
 
-  it('should position objectiveBar in layout', () => {
+  it('should position objectiveDisplay in layout', () => {
     hud.layout(800, 600);
-    const bar = hud.objectiveBar;
-    expect(bar.x).toBe(550);
-    expect(bar.y).toBe(85);
+    const display = hud.objectiveDisplay;
+    expect(display.x).toBe(550);
+    expect(display.y).toBe(85);
   });
 
   it('should reset timerText visibility and text on reset', () => {
@@ -369,8 +370,8 @@ describe('GameHUD', () => {
     expect(hud.propsContainer).toBeDefined();
   });
 
-  it('should expose objectiveBar getter', () => {
-    expect(hud.objectiveBar).toBeDefined();
+  it('should not expose objectiveBar getter (removed, replaced by objectiveDisplay)', () => {
+    expect((hud as any).objectiveBar).toBeUndefined();
   });
 
   it('should emit ui:pause on pause button pointerdown', () => {
@@ -393,7 +394,7 @@ describe('GameHUD', () => {
     expect(hud.propsContainerX).toBeGreaterThan(0);
   });
 
-  it('should expose getObjectiveBar method', () => {
+  it('should expose getObjectiveBar method returning ObjectiveDisplay', () => {
     const bar = hud.getObjectiveBar();
     expect(bar).toBeDefined();
   });
@@ -534,6 +535,54 @@ describe('GameHUD', () => {
     (hud as any).propTargetMode = true;
     hud.reset();
     expect(hud.isPropTargetMode).toBe(false);
+  });
+
+  it('should not have separate objectiveBar (removed, unified into ObjectiveDisplay)', () => {
+    expect((hud as any)._objectiveBar).toBeUndefined();
+  });
+
+  it('should have only one progress bar via ObjectiveDisplay', () => {
+    const display = hud.objectiveDisplay;
+    expect(display).toBeDefined();
+    expect(display.progressBar).toBeDefined();
+  });
+
+  it('should update objective progress via updateObjectiveProgress only', () => {
+    hud.setObjectiveInfo('score', 200);
+    hud.updateObjectiveProgress(100);
+    expect(hud.objectiveDisplay.getCurrentData()?.currentValue).toBe(100);
+    expect(hud.objectiveDisplay.progressBar.progress).toBeCloseTo(0.5);
+  });
+
+  it('should not have setObjectiveProgress method', () => {
+    expect((hud as any).setObjectiveProgress).toBeUndefined();
+  });
+
+  it('should position ObjectiveDisplay at unified location after layout', () => {
+    hud.layout(800, 600);
+    expect(hud.objectiveDisplay.x).toBe(550);
+    expect(hud.objectiveDisplay.y).toBe(85);
+  });
+
+  it('should show objective info persistently in HUD', () => {
+    hud.setObjectiveInfo('score', 500);
+    expect(hud.objectiveDisplay.getCurrentData()).not.toBeNull();
+    expect(hud.objectiveDisplay.getCurrentData()?.type).toBe('score');
+    expect(hud.objectiveDisplay.getCurrentData()?.target).toBe(500);
+  });
+
+  it('should update progress text with current/target values', () => {
+    hud.setObjectiveInfo('score', 300);
+    hud.updateObjectiveProgress(150);
+    const display = hud.objectiveDisplay;
+    expect(display.getCurrentData()?.currentValue).toBe(150);
+  });
+
+  it('should clear objective info on reset', () => {
+    hud.setObjectiveInfo('score', 300);
+    hud.updateObjectiveProgress(150);
+    hud.reset();
+    expect(hud.objectiveDisplay.getCurrentData()).toBeNull();
   });
 });
 

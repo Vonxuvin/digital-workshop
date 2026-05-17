@@ -1,7 +1,6 @@
 
 import { Container, Text, Graphics } from 'pixi.js';
 import { eventBus, GameEvents } from '../../utils/EventBus';
-import { UIProgressBar } from '../components/UIProgressBar';
 import { ObjectiveDisplay, ObjectiveDisplayData } from '../components/ObjectiveDisplay';
 import { PropButton } from '../components/PropButton';
 import { PropSystem } from '../../gameplay/props/PropSystem';
@@ -17,7 +16,6 @@ export class GameHUD extends Container {
   private _levelText!: Text;
   private _pauseButton!: Container;
   private timerText!: Text;
-  private _objectiveBar!: UIProgressBar;
   private _objectiveDisplay!: ObjectiveDisplay;
   private _currentObjectiveType: ObjectiveType | null = null;
   private _currentObjectiveTarget = 0;
@@ -43,7 +41,6 @@ export class GameHUD extends Container {
   get levelText(): Text { return this._levelText; }
   get pauseButton(): Container { return this._pauseButton; }
   get propsContainer(): Container { return this._propsContainer; }
-  get objectiveBar(): UIProgressBar { return this._objectiveBar; }
   get objectiveDisplay(): ObjectiveDisplay { return this._objectiveDisplay; }
   get comboDisplay(): ComboDisplay | null { return this._comboDisplay; }
   get propButtons(): Map<PropType, PropButton> { return this._propButtons; }
@@ -52,7 +49,7 @@ export class GameHUD extends Container {
   get currentButtonSize(): number { return this._currentButtonSize; }
   get isPropTargetMode(): boolean { return this.propTargetMode; }
 
-  getObjectiveBar(): UIProgressBar { return this._objectiveBar; }
+  getObjectiveBar(): ObjectiveDisplay { return this._objectiveDisplay; }
 
   constructor(propSystem: PropSystem) {
     super();
@@ -66,7 +63,6 @@ export class GameHUD extends Container {
     this.createPropsBar();
     this.createPauseButton();
     this.createTimerDisplay();
-    this.createObjectiveBar();
     this.createObjectiveDisplay();
     this.setupEventListeners();
   }
@@ -335,35 +331,11 @@ export class GameHUD extends Container {
     }
   }
 
-  private createObjectiveBar(): void {
-    this._objectiveBar = new UIProgressBar(150, 12, 0x333333, 0x4ECDC4);
-    this._objectiveBar.x = -100;
-    this._objectiveBar.y = 85;
-
-    const label = new Text({
-      text: '进度',
-      style: {
-        fontFamily: 'Arial',
-        fontSize: 12,
-        fill: 0x999999,
-      },
-    });
-    label.x = 0;
-    label.y = -16;
-    this._objectiveBar.addChild(label);
-
-    this.addChild(this._objectiveBar);
-  }
-
   private createObjectiveDisplay(): void {
     this._objectiveDisplay = new ObjectiveDisplay(200);
     this._objectiveDisplay.x = -100;
     this._objectiveDisplay.y = 105;
     this.addChild(this._objectiveDisplay);
-  }
-
-  setObjectiveProgress(progress: number): void {
-    this._objectiveBar.setProgress(progress);
   }
 
   setObjectiveInfo(type: ObjectiveType, target: number, timeLimit?: number): void {
@@ -496,10 +468,8 @@ export class GameHUD extends Container {
     this._pauseButton.x = screenWidth - 50;
     this._pauseButton.y = 30;
     this.timerText.x = screenWidth / 2;
-    this._objectiveBar.x = screenWidth - 250;
-    this._objectiveBar.y = 85;
     this._objectiveDisplay.x = screenWidth - 250;
-    this._objectiveDisplay.y = 105;
+    this._objectiveDisplay.y = 85;
   }
 
   reset(): void {
@@ -515,7 +485,6 @@ export class GameHUD extends Container {
     this._chainText.text = '';
     this.timerText.visible = false;
     this.timerText.text = '';
-    this._objectiveBar.setProgress(0);
     this._objectiveDisplay.reset();
     this._currentObjectiveType = null;
     this._currentObjectiveTarget = 0;

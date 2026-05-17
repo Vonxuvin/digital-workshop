@@ -402,23 +402,164 @@ describe('Objective Display Integration', () => {
 
       eventBus.emit('score:updated', { totalScore: 50 });
       hud.updateObjectiveProgress(levelSystem.getCurrentProgressValue());
-      hud.setObjectiveProgress(levelSystem.getProgress());
       expect(hud.objectiveDisplay.getCurrentData()?.currentValue).toBe(50);
 
       eventBus.emit('score:updated', { totalScore: 85 });
       hud.updateObjectiveProgress(levelSystem.getCurrentProgressValue());
-      hud.setObjectiveProgress(levelSystem.getProgress());
       expect(hud.objectiveDisplay.isNearComplete()).toBe(true);
 
       eventBus.emit('score:updated', { totalScore: 100 });
       hud.updateObjectiveProgress(levelSystem.getCurrentProgressValue());
-      hud.setObjectiveProgress(levelSystem.getProgress());
       expect(hud.objectiveDisplay.isNearComplete()).toBe(false);
       expect(hud.objectiveDisplay.progressBar.progress).toBe(1);
 
       levelSystem.destroy();
       hud.destroy();
       overlay.destroy();
+    });
+  });
+
+  describe('Single progress bar verification', () => {
+    let hud: GameHUD;
+    let mockPropSystem: PropSystem;
+
+    beforeEach(() => {
+      mockPropSystem = {
+        getPropCount: vi.fn().mockReturnValue(3),
+        getAllProps: vi.fn().mockReturnValue([]),
+        useProp: vi.fn(),
+        getProp: vi.fn(),
+        reset: vi.fn(),
+        pause: vi.fn(),
+        resume: vi.fn(),
+        destroy: vi.fn(),
+      } as unknown as PropSystem;
+      hud = new GameHUD(mockPropSystem);
+    });
+
+    afterEach(() => {
+      hud.destroy();
+    });
+
+    it('should have only one progress bar (ObjectiveDisplay.progressBar)', () => {
+      expect((hud as any)._objectiveBar).toBeUndefined();
+      expect(hud.objectiveDisplay.progressBar).toBeDefined();
+    });
+
+    it('should not have setObjectiveProgress method', () => {
+      expect((hud as any).setObjectiveProgress).toBeUndefined();
+    });
+
+    it('should update progress only through updateObjectiveProgress', () => {
+      hud.setObjectiveInfo('score', 200);
+      hud.updateObjectiveProgress(100);
+      expect(hud.objectiveDisplay.progressBar.progress).toBeCloseTo(0.5);
+    });
+
+    it('should have unified ObjectiveDisplay position', () => {
+      hud.layout(800, 600);
+      expect(hud.objectiveDisplay.x).toBe(550);
+      expect(hud.objectiveDisplay.y).toBe(85);
+    });
+  });
+
+  describe('Progress refresh mechanism integration', () => {
+    let levelSystem: LevelSystem;
+    let hud: GameHUD;
+    let mockPropSystem: PropSystem;
+
+    const scoreConfig: LevelConfig = {
+      id: 1, name: '得分关卡', objective: { type: 'score', target: 100 },
+      container: { width: 400, height: 600, shape: 'rectangle' },
+      spawn: { availableNumbers: [1, 2, 4] },
+      rewards: { stars: [50, 80, 100] },
+    };
+
+    beforeEach(() => {
+      mockPropSystem = {
+        getPropCount: vi.fn().mockReturnValue(3),
+        getAllProps: vi.fn().mockReturnValue([]),
+        useProp: vi.fn(),
+        getProp: vi.fn(),
+        reset: vi.fn(),
+        pause: vi.fn(),
+        resume: vi.fn(),
+        destroy: vi.fn(),
+      } as unknown as PropSystem;
+      hud = new GameHUD(mockPropSystem);
+    });
+
+    afterEach(() => {
+      if (levelSystem) levelSystem.destroy();
+      hud.destroy();
+    });
+
+    it('should refresh progress bar in real-time via updateObjectiveProgress', () => {
+      levelSystem = new LevelSystem(scoreConfig);
+      levelSystem.start();
+      hud.setObjectiveInfo(
+        levelSystem.getObjectiveType(),
+        levelSystem.getObjectiveTarget(),
+        levelSystem.getTimeLimit(),
+      );
+
+      eventBus.emit('score:updated', { totalScore: 25 });
+      hud.updateObjectiveProgress(levelSystem.getCurrentProgressValue());
+      expect(hud.objectiveDisplay.progressBar.progress).toBeCloseTo(0.25);
+
+      eventBus.emit('score:updated', { totalScore: 50 });
+      hud.updateObjectiveProgress(levelSystem.getCurrentProgressValue());
+      expect(hud.objectiveDisplay.progressBar.progress).toBeCloseTo(0.5);
+
+      eventBus.emit('score:updated', { totalScore: 100 });
+      hud.updateObjectiveProgress(levelSystem.getCurrentProgressValue());
+      expect(hud.objectiveDisplay.progressBar.progress).toBe(1);
+    });
+
+    it('should show near complete visual state when progress >= 80%', () => {
+      levelSystem = new LevelSystem(scoreConfig);
+      levelSystem.start();
+      hud.setObjectiveInfo(
+        levelSystem.getObjectiveType(),
+        levelSystem.getObjectiveTarget(),
+        levelSystem.getTimeLimit(),
+      );
+
+      eventBus.emit('score:updated', { totalScore: 80 });
+      hud.updateObjectiveProgress(levelSystem.getCurrentProgressValue());
+      expect(hud.objectiveDisplay.isNearComplete()).toBe(true);
+    });
+
+    it('should show complete visual state when progress reaches 100%', () => {
+      levelSystem = new LevelSystem(scoreConfig);
+      levelSystem.start();
+      hud.setObjectiveInfo(
+        levelSystem.getObjectiveType(),
+        levelSystem.getObjectiveTarget(),
+        levelSystem.getTimeLimit(),
+      );
+
+      eventBus.emit('score:updated', { totalScore: 100 });
+      hud.updateObjectiveProgress(levelSystem.getCurrentProgressValue());
+      expect(hud.objectiveDisplay.progressBar.progress).toBe(1);
+      expect(hud.objectiveDisplay.isNearComplete()).toBe(false);
+    });
+
+    it('should display persistent objective info throughout gameplay', () => {
+      levelSystem = new LevelSystem(scoreConfig);
+      levelSystem.start();
+      hud.setObjectiveInfo(
+        levelSystem.getObjectiveType(),
+        levelSystem.getObjectiveTarget(),
+        levelSystem.getTimeLimit(),
+      );
+
+      expect(hud.objectiveDisplay.getCurrentData()).not.toBeNull();
+
+      eventBus.emit('score:updated', { totalScore: 50 });
+      hud.updateObjectiveProgress(levelSystem.getCurrentProgressValue());
+      expect(hud.objectiveDisplay.getCurrentData()?.type).toBe('score');
+      expect(hud.objectiveDisplay.getCurrentData()?.target).toBe(100);
     });
   });
 });

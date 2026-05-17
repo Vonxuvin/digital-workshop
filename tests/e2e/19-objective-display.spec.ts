@@ -21,6 +21,24 @@ test.describe('通关条件展示系统 @regression', () => {
       expect(hasObjectiveDisplay).toBeTruthy();
     });
 
+    test('GameHUD 不应包含独立的 objectiveBar（已移除）', async ({ page }) => {
+      await navigateToGame(page);
+
+      const noObjectiveBar = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return false;
+          return hud.objectiveBar === undefined;
+        } catch {
+          return false;
+        }
+      });
+
+      expect(noObjectiveBar).toBeTruthy();
+    });
+
     test('LevelSystem 应支持 getObjectiveTarget 方法', async ({ page }) => {
       await navigateToGame(page);
 
@@ -149,6 +167,67 @@ test.describe('通关条件展示系统 @regression', () => {
     });
   });
 
+  test.describe('通关条件固定显示 @regression', () => {
+    test('ObjectiveDisplay 应在游戏过程中持续显示通关条件', async ({ page }) => {
+      await navigateToGame(page);
+      await ensureGameScene(page);
+
+      const objectiveAlwaysVisible = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return false;
+          const display = hud.objectiveDisplay;
+          if (!display) return false;
+          return display.getCurrentData?.() !== null;
+        } catch {
+          return false;
+        }
+      });
+
+      expect(objectiveAlwaysVisible).toBeTruthy();
+    });
+
+    test('ObjectiveDisplay 应包含进度条', async ({ page }) => {
+      await navigateToGame(page);
+
+      const hasProgressBar = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return false;
+          const display = hud.objectiveDisplay;
+          if (!display) return false;
+          return display.progressBar !== null && display.progressBar !== undefined;
+        } catch {
+          return false;
+        }
+      });
+
+      expect(hasProgressBar).toBeTruthy();
+    });
+
+    test('HUD 不应有独立的进度条（双进度条BUG已修复）', async ({ page }) => {
+      await navigateToGame(page);
+
+      const noDuplicateBar = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return false;
+          return (hud as any)._objectiveBar === undefined;
+        } catch {
+          return false;
+        }
+      });
+
+      expect(noDuplicateBar).toBeTruthy();
+    });
+  });
+
   test.describe('目标进度更新 @regression', () => {
     test('GameHUD 应支持 setObjectiveInfo 方法', async ({ page }) => {
       await navigateToGame(page);
@@ -184,6 +263,24 @@ test.describe('通关条件展示系统 @regression', () => {
       });
 
       expect(hasUpdateObjectiveProgress).toBeTruthy();
+    });
+
+    test('GameHUD 不应再有 setObjectiveProgress 方法（已移除）', async ({ page }) => {
+      await navigateToGame(page);
+
+      const noSetObjectiveProgress = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return false;
+          return (hud as any).setObjectiveProgress === undefined;
+        } catch {
+          return false;
+        }
+      });
+
+      expect(noSetObjectiveProgress).toBeTruthy();
     });
 
     test('ObjectiveDisplay 应正确显示接近完成状态', async ({ page }) => {
@@ -229,40 +326,50 @@ test.describe('通关条件展示系统 @regression', () => {
 
       expect(validObjectiveTypes).toBeTruthy();
     });
-
-    test('ObjectiveDisplay 静态方法应可用', async ({ page }) => {
-      await navigateToGame(page);
-
-      const staticMethodsWork = await page.evaluate(() => {
-        try {
-          const ObjectiveDisplay = (window as any).__gameInstance?.constructor?.__OBJ_DISPLAY__;
-          return true;
-        } catch {
-          return true;
-        }
-      });
-
-      expect(staticMethodsWork).toBeTruthy();
-    });
   });
 
-  test.describe('关卡选择界面目标描述 @regression', () => {
-    test('关卡选择界面应显示改进的目标描述', async ({ page }) => {
-      await navigateToGame(page, false);
+  test.describe('界面布局整合 @regression', () => {
+    test('ObjectiveDisplay 应位于统一位置', async ({ page }) => {
+      await navigateToGame(page);
 
-      const hasLevelSelect = await page.evaluate(() => {
+      const correctPosition = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
         if (!game) return false;
         try {
-          const sm = game.getSceneManager?.();
-          if (!sm) return false;
-          return typeof sm.showLevelSelect === 'function';
+          const hud = game.getGameHUD?.();
+          if (!hud) return false;
+          const display = hud.objectiveDisplay;
+          if (!display) return false;
+          return display.x > 0 && display.y >= 0;
         } catch {
           return false;
         }
       });
 
-      expect(hasLevelSelect).toBeTruthy();
+      expect(correctPosition).toBeTruthy();
+    });
+
+    test('ObjectiveDisplay 应同时展示目标描述和进度条', async ({ page }) => {
+      await navigateToGame(page);
+      await ensureGameScene(page);
+
+      const hasBothInfoAndBar = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return false;
+          const display = hud.objectiveDisplay;
+          if (!display) return false;
+          const data = display.getCurrentData?.();
+          const bar = display.progressBar;
+          return data !== null && bar !== null && bar !== undefined;
+        } catch {
+          return false;
+        }
+      });
+
+      expect(hasBothInfoAndBar).toBeTruthy();
     });
   });
 });

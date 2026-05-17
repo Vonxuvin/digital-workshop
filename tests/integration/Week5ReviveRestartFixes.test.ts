@@ -224,7 +224,7 @@ describe('集成测试：PropEffectHandler.handleRevive 调用链验证', () => 
     ]);
 
     mockGameHUD = {
-      setObjectiveProgress: vi.fn(),
+      updateObjectiveProgress: vi.fn(),
     };
 
     mockPreview = {

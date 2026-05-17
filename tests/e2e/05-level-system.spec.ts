@@ -228,7 +228,7 @@ test.describe('关卡系统 @regression', () => {
         try {
           const hud = game.getGameHUD?.();
           if (!hud) return false;
-          return hud.objectiveBar !== null && hud.objectiveBar !== undefined;
+          return hud.objectiveDisplay !== null && hud.objectiveDisplay !== undefined;
         } catch {
           return false;
         }

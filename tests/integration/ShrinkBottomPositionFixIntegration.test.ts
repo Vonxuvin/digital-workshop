@@ -48,7 +48,7 @@ function createMockEffectManager() {
 
 function createMockGameHUD() {
   return {
-    setObjectiveProgress: vi.fn(),
+    updateObjectiveProgress: vi.fn(),
     updateTimer: vi.fn(),
     showCrosshair: vi.fn(),
     updateCrosshair: vi.fn(),

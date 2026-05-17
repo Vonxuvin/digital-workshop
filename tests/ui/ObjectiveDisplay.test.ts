@@ -258,6 +258,55 @@ describe('ObjectiveDisplay', () => {
       expect(display.progressBar.progress).toBe(0);
     });
   });
+
+  describe('progress refresh mechanism', () => {
+    it('should update progress bar in real-time on each updateProgress call', () => {
+      display.setObjective({ type: 'score', target: 100, currentValue: 0 });
+      expect(display.progressBar.progress).toBe(0);
+
+      display.updateProgress({ type: 'score', target: 100, currentValue: 25 });
+      expect(display.progressBar.progress).toBeCloseTo(0.25);
+
+      display.updateProgress({ type: 'score', target: 100, currentValue: 50 });
+      expect(display.progressBar.progress).toBeCloseTo(0.5);
+
+      display.updateProgress({ type: 'score', target: 100, currentValue: 75 });
+      expect(display.progressBar.progress).toBeCloseTo(0.75);
+    });
+
+    it('should update progress text on each updateProgress call', () => {
+      display.setObjective({ type: 'score', target: 100, currentValue: 0 });
+      display.updateProgress({ type: 'score', target: 100, currentValue: 30 });
+      expect(display.getCurrentData()?.currentValue).toBe(30);
+
+      display.updateProgress({ type: 'score', target: 100, currentValue: 60 });
+      expect(display.getCurrentData()?.currentValue).toBe(60);
+    });
+
+    it('should reflect progress accurately for clear_obstacle type', () => {
+      display.setObjective({ type: 'clear_obstacle', target: 5, currentValue: 0 });
+      for (let i = 1; i <= 5; i++) {
+        display.updateProgress({ type: 'clear_obstacle', target: 5, currentValue: i });
+        expect(display.progressBar.progress).toBeCloseTo(i / 5);
+      }
+    });
+
+    it('should reflect progress accurately for survival type', () => {
+      display.setObjective({ type: 'survival', target: 30, currentValue: 0, timeLimit: 30 });
+      for (let t = 5; t <= 30; t += 5) {
+        display.updateProgress({ type: 'survival', target: 30, currentValue: t, timeLimit: 30 });
+        expect(display.progressBar.progress).toBeCloseTo(t / 30);
+      }
+    });
+
+    it('should handle rapid consecutive updates correctly', () => {
+      display.setObjective({ type: 'score', target: 1000, currentValue: 0 });
+      for (let v = 0; v <= 1000; v += 100) {
+        display.updateProgress({ type: 'score', target: 1000, currentValue: v });
+      }
+      expect(display.progressBar.progress).toBe(1);
+    });
+  });
 });
 
 describe('LevelObjectiveOverlay', () => {
@@ -449,7 +498,7 @@ describe('GameHUD ObjectiveDisplay Integration', () => {
     hud.layout(800, 600);
     const display = hud.objectiveDisplay;
     expect(display.x).toBe(550);
-    expect(display.y).toBe(105);
+    expect(display.y).toBe(85);
   });
 
   it('should handle all objective types', () => {

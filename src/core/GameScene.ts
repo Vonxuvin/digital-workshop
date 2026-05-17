@@ -175,9 +175,6 @@ export class GameScene {
     this.blockSpawner.spawnObstacles(config.obstacles, this.containerWidth, this.groundY, this.containerOffsetX);
     this.startAutoSpawn();
     this.modifierManager.startAll();
-    if (this.levelSystem) {
-      this.gameHUD.setObjectiveProgress(this.levelSystem.getProgress());
-    }
     this.setWarningLineVisible(true);
     this.gameHUD.updatePropButtons();
 
@@ -218,9 +215,6 @@ export class GameScene {
       this.modifierManager.setStageContainer(this.app.stage);
       this.modifierManager.loadFromLevelConfig(this.currentLevelConfig.modifiers);
       this.modifierManager.startAll();
-    }
-    if (this.levelSystem) {
-      this.gameHUD.setObjectiveProgress(this.levelSystem.getProgress());
     }
     this.setWarningLineVisible(true);
     this.gameHUD.updatePropButtons();
@@ -357,7 +351,6 @@ export class GameScene {
 
     this.gameHUD.update(deltaMS / 16.67);
     if (this.levelSystem) {
-      this.gameHUD.setObjectiveProgress(this.levelSystem.getProgress());
       this.gameHUD.updateObjectiveProgress(this.levelSystem.getCurrentProgressValue());
     }
 
