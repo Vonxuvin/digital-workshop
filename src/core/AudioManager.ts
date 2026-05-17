@@ -28,14 +28,6 @@ export class AudioManager {
     AudioManager.instance = instance;
   }
 
-  /** @deprecated 使用依赖注入代替，保留向后兼容 */
-  static getInstance(): AudioManager {
-    if (!AudioManager.instance) {
-      AudioManager.instance = new AudioManager();
-    }
-    return AudioManager.instance;
-  }
-
   private setupEventListeners(): void {
     eventBus.on(GameEvents.BLOCK_DROPPED, () => this.playSfx('spawn'));
     eventBus.on(GameEvents.BLOCK_MERGED, (data) => this.playMergeSound(data.newValue));

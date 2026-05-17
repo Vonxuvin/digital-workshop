@@ -56,14 +56,6 @@ export class SaveManager {
     SaveManager.instance = instance;
   }
 
-  /** @deprecated 使用依赖注入代替，保留向后兼容 */
-  static getInstance(): SaveManager {
-    if (!SaveManager.instance) {
-      SaveManager.instance = new SaveManager();
-    }
-    return SaveManager.instance;
-  }
-
   async init(): Promise<void> {
     if (this.initialized) return;
     await this.platform.init();

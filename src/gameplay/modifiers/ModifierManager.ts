@@ -28,25 +28,6 @@ export class ModifierManager {
     ModifierManager.instance = instance;
   }
 
-  /** @deprecated 使用依赖注入代替，保留向后兼容 */
-  static getInstance(physics?: PhysicsManager): ModifierManager {
-    if (!ModifierManager.instance) {
-      if (!physics) {
-        throw new Error('[ModifierManager] 首次初始化需要提供 PhysicsManager');
-      }
-      ModifierManager.instance = new ModifierManager(physics);
-    }
-    return ModifierManager.instance;
-  }
-
-  /** @deprecated 使用依赖注入代替 */
-  static resetInstance(): void {
-    if (ModifierManager.instance) {
-      ModifierManager.instance.destroy();
-    }
-    ModifierManager.instance = null;
-  }
-
   setContainerSize(width: number, height: number, offsetX: number = 0): void {
     this.containerWidth = width;
     this.containerHeight = height;

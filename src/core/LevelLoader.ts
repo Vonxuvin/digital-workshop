@@ -84,14 +84,6 @@ export class LevelLoader {
     LevelLoader.instance = instance;
   }
 
-  /** @deprecated 使用依赖注入代替，保留向后兼容 */
-  static getInstance(): LevelLoader {
-    if (!LevelLoader.instance) {
-      LevelLoader.instance = new LevelLoader();
-    }
-    return LevelLoader.instance;
-  }
-
   private async loadJSON(url: string): Promise<LevelData | null> {
     try {
       if (typeof fetch !== 'undefined') {

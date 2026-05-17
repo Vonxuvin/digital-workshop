@@ -100,16 +100,6 @@ export class GameStateMachine {
     return VALID_TRANSITIONS[this.currentState]?.includes(to) || false;
   }
 
-  /** @deprecated 使用 transition() 代替 */
-  transitionTo(to: GameState): boolean {
-    return this.transition(to);
-  }
-
-  /** @deprecated 使用 canTransition() 代替 */
-  canTransitionTo(to: GameState): boolean {
-    return this.canTransition(to);
-  }
-
   reset(): void {
     this.currentState = this.initialState;
     this.stateHistory = [];

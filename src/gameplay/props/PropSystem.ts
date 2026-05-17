@@ -39,14 +39,6 @@ export class PropSystem {
     PropSystem.instance = instance;
   }
 
-  /** @deprecated 使用依赖注入代替，保留向后兼容 */
-  static getInstance(): PropSystem {
-    if (!PropSystem.instance) {
-      PropSystem.instance = new PropSystem();
-    }
-    return PropSystem.instance;
-  }
-
   async loadConfig(configData: PropConfig[]): Promise<void> {
     for (const config of configData) {
       this.propsConfig.set(config.type, config);
