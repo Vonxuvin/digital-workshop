@@ -179,6 +179,7 @@ export class ShrinkModifier extends ContainerModifier {
   }
 
   private pushBlocksInside(): void {
+    if (!this.physics.getAllBodies) return;
     const centerX = this.containerOffsetX + this.originalWidth / 2;
     const halfWidth = this.currentWidth / 2;
     const leftBound = centerX - halfWidth;
@@ -230,6 +231,7 @@ export class ShrinkModifier extends ContainerModifier {
   protected onDeactivate(): void {
     this.currentWidth = this.originalWidth;
     this.updateWallPositions();
+    this.pushBlocksInside();
     this.removeWallGraphics();
   }
 
