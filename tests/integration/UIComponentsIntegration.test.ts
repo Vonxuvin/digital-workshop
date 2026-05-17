@@ -7,7 +7,6 @@ import { ResultScreen } from '../../src/ui/screens/ResultScreen';
 import { GameHUD } from '../../src/ui/hud/GameHUD';
 import { ParticleEffect } from '../../src/ui/effects/ParticleEffect';
 import { FreezeEffect } from '../../src/ui/effects/FreezeEffect';
-import { WarningLine } from '../../src/ui/components/WarningLine';
 import { ComboDisplay } from '../../src/ui/components/ComboDisplay';
 import { PropButton } from '../../src/ui/components/PropButton';
 import { UIButton } from '../../src/ui/components/UIButton';
@@ -28,7 +27,7 @@ class MockApp {
   screen = { width: 800, height: 600 };
 }
 
-describe('Week5 UI Fixes Integration - Screen Resize Flow', () => {
+describe('UI Screen resize flow', () => {
   let uiManager: UIManager;
   let app: any;
 
@@ -80,7 +79,7 @@ describe('Week5 UI Fixes Integration - Screen Resize Flow', () => {
   });
 });
 
-describe('Week5 UI Fixes Integration - Effect Lifecycle', () => {
+describe('UI Effect lifecycle', () => {
   beforeEach(() => {
     AnimationManager.resetInstance();
     TimeManager.resetInstance();
@@ -127,7 +126,7 @@ describe('Week5 UI Fixes Integration - Effect Lifecycle', () => {
   });
 });
 
-describe('Week5 UI Fixes Integration - HUD + Props', () => {
+describe('HUD + Props integration', () => {
   let hud: GameHUD;
   let mockPropSystem: PropSystem;
 
@@ -171,24 +170,108 @@ describe('Week5 UI Fixes Integration - HUD + Props', () => {
   });
 });
 
-describe('Week5 UI Fixes Integration - Warning + Combo', () => {
+describe('ComboDisplay integration', () => {
+  let hud: GameHUD;
+  let mockPropSystem: PropSystem;
+
   beforeEach(() => {
-    AnimationManager.resetInstance();
+    mockPropSystem = {
+      getPropCount: vi.fn().mockReturnValue(3),
+      getAllProps: vi.fn().mockReturnValue([]),
+      useProp: vi.fn(),
+      getProp: vi.fn(),
+      reset: vi.fn(),
+      pause: vi.fn(),
+      resume: vi.fn(),
+      destroy: vi.fn(),
+    } as unknown as PropSystem;
+
+    hud = new GameHUD(mockPropSystem);
   });
 
   afterEach(() => {
-    AnimationManager.resetInstance();
+    hud.destroy();
   });
 
-  it('should handle warning line reset after game over', () => {
-    const wl = new WarningLine(600);
-    wl.y = 120;
-    for (let i = 0; i < 350; i++) {
-      wl.update([{ y: 50, radius: 20, speed: 0.5 }], 16.67);
-    }
-    wl.reset();
-    expect(wl.getWarningDuration()).toBe(0);
-    wl.setDisabled(false);
+  it('showCombo 方法存在且可调用', () => {
+    expect(typeof hud.showCombo).toBe('function');
+  });
+
+  it('score:updated 事件 chainCount > 1 时触发 showCombo', () => {
+    const showComboSpy = vi.spyOn(hud, 'showCombo');
+
+    eventBus.emit('score:updated', {
+      totalScore: 500,
+      earnedScore: 100,
+      chainCount: 3,
+    });
+
+    expect(showComboSpy).toHaveBeenCalledWith(3);
+    showComboSpy.mockRestore();
+  });
+
+  it('score:updated 事件 chainCount = 1 时不触发 showCombo', () => {
+    const showComboSpy = vi.spyOn(hud, 'showCombo');
+
+    eventBus.emit('score:updated', {
+      totalScore: 500,
+      earnedScore: 100,
+      chainCount: 1,
+    });
+
+    expect(showComboSpy).not.toHaveBeenCalled();
+    showComboSpy.mockRestore();
+  });
+
+  it('score:updated 事件 chainCount = 0 时不触发 showCombo', () => {
+    const showComboSpy = vi.spyOn(hud, 'showCombo');
+
+    eventBus.emit('score:updated', {
+      totalScore: 500,
+      earnedScore: 100,
+      chainCount: 0,
+    });
+
+    expect(showComboSpy).not.toHaveBeenCalled();
+    showComboSpy.mockRestore();
+  });
+
+  it('连锁数正确传递到 ComboDisplay', () => {
+    const comboDisplay = (hud as any).comboDisplay as ComboDisplay;
+    expect(comboDisplay).not.toBeNull();
+
+    eventBus.emit('score:updated', {
+      totalScore: 500,
+      earnedScore: 100,
+      chainCount: 5,
+    });
+
+    expect(comboDisplay.getCurrentCombo()).toBe(5);
+  });
+
+  it('连锁数 < 2 时 ComboDisplay 隐藏', () => {
+    const comboDisplay = (hud as any).comboDisplay as ComboDisplay;
+
+    eventBus.emit('score:updated', {
+      totalScore: 500,
+      earnedScore: 100,
+      chainCount: 1,
+    });
+
+    expect(comboDisplay.getCurrentCombo()).toBe(0);
+  });
+
+  it('多次 score:updated 事件正确更新 ComboDisplay', () => {
+    const comboDisplay = (hud as any).comboDisplay as ComboDisplay;
+
+    eventBus.emit('score:updated', { totalScore: 500, earnedScore: 100, chainCount: 2 });
+    expect(comboDisplay.getCurrentCombo()).toBe(2);
+
+    eventBus.emit('score:updated', { totalScore: 800, earnedScore: 300, chainCount: 5 });
+    expect(comboDisplay.getCurrentCombo()).toBe(5);
+
+    eventBus.emit('score:updated', { totalScore: 900, earnedScore: 100, chainCount: 1 });
+    expect(comboDisplay.getCurrentCombo()).toBe(5);
   });
 
   it('should handle combo display with multiple rapid calls', () => {
@@ -210,7 +293,7 @@ describe('Week5 UI Fixes Integration - Warning + Combo', () => {
   });
 });
 
-describe('Week5 UI Fixes Integration - UI Components', () => {
+describe('UI Components (Button/ProgressBar/Panel)', () => {
   beforeEach(() => {
     TimeManager.resetInstance();
     new TimeManager();
@@ -254,7 +337,7 @@ describe('Week5 UI Fixes Integration - UI Components', () => {
   });
 });
 
-describe('Week5 UI Fixes Integration - PropButton States', () => {
+describe('PropButton states', () => {
   it('should maintain selected state across pointer interactions', () => {
     const btn = new PropButton({
       propType: PropType.BOMB,
@@ -304,7 +387,7 @@ describe('Week5 UI Fixes Integration - PropButton States', () => {
   });
 });
 
-describe('Week5 UI Fixes Integration - Event Flow', () => {
+describe('UI Event flow', () => {
   it('should handle score:updated event chain in HUD', () => {
     const mockPropSystem = {
       getPropCount: vi.fn().mockReturnValue(3),

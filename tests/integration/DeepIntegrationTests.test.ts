@@ -1000,3 +1000,174 @@ describe('Deep Integration Tests', () => {
     });
   });
 });
+
+describe('InputManager touchend position update fix', () => {
+  let canvas: HTMLCanvasElement;
+  let inputManager: InputManager;
+
+  beforeEach(() => {
+    canvas = document.createElement('canvas');
+    canvas.style.width = '400px';
+    canvas.style.height = '600px';
+    canvas.getBoundingClientRect = vi.fn().mockReturnValue({
+      left: 0, top: 0, width: 400, height: 600, right: 400, bottom: 600,
+    });
+    document.body.appendChild(canvas);
+    inputManager = new InputManager(canvas);
+  });
+
+  afterEach(() => {
+    inputManager.destroy();
+    document.body.removeChild(canvas);
+  });
+
+  it('FIXED: touchend event updates position from changedTouches', () => {
+    const touchStartEvent = new TouchEvent('touchstart', {
+      touches: [{ clientX: 100, clientY: 200, identifier: 0 } as Touch],
+      changedTouches: [{ clientX: 100, clientY: 200, identifier: 0 } as Touch],
+      bubbles: true,
+      cancelable: true,
+    });
+    canvas.dispatchEvent(touchStartEvent);
+
+    const touchEndEvent = new TouchEvent('touchend', {
+      touches: [] as Touch[],
+      changedTouches: [{ clientX: 250, clientY: 350, identifier: 0 } as Touch],
+      bubbles: true,
+      cancelable: true,
+    });
+    canvas.dispatchEvent(touchEndEvent);
+
+    const state = inputManager.getState();
+    expect(state.position.x).toBeCloseTo(250, 0);
+    expect(state.position.y).toBeCloseTo(350, 0);
+  });
+
+  it('FIXED: isDown and isMoving reset after touchend', () => {
+    const touchStartEvent = new TouchEvent('touchstart', {
+      touches: [{ clientX: 100, clientY: 200, identifier: 0 } as Touch],
+      changedTouches: [{ clientX: 100, clientY: 200, identifier: 0 } as Touch],
+      bubbles: true,
+      cancelable: true,
+    });
+    canvas.dispatchEvent(touchStartEvent);
+
+    expect(inputManager.getState().isDown).toBe(true);
+
+    const touchEndEvent = new TouchEvent('touchend', {
+      touches: [] as Touch[],
+      changedTouches: [{ clientX: 100, clientY: 200, identifier: 0 } as Touch],
+      bubbles: true,
+      cancelable: true,
+    });
+    canvas.dispatchEvent(touchEndEvent);
+
+    const state = inputManager.getState();
+    expect(state.isDown).toBe(false);
+    expect(state.isMoving).toBe(false);
+  });
+
+  it('FIXED: mouseup event updates position', () => {
+    const mouseDownEvent = new MouseEvent('mousedown', {
+      clientX: 100, clientY: 200, bubbles: true,
+    });
+    canvas.dispatchEvent(mouseDownEvent);
+
+    const mouseUpEvent = new MouseEvent('mouseup', {
+      clientX: 300, clientY: 400, bubbles: true,
+    });
+    canvas.dispatchEvent(mouseUpEvent);
+
+    const state = inputManager.getState();
+    expect(state.position.x).toBeCloseTo(300, 0);
+    expect(state.position.y).toBeCloseTo(400, 0);
+  });
+
+  it('FIXED: touchend position differs from touchmove, uses touchend changedTouches position', () => {
+    const touchStartEvent = new TouchEvent('touchstart', {
+      touches: [{ clientX: 100, clientY: 200, identifier: 0 } as Touch],
+      changedTouches: [{ clientX: 100, clientY: 200, identifier: 0 } as Touch],
+      bubbles: true,
+      cancelable: true,
+    });
+    canvas.dispatchEvent(touchStartEvent);
+
+    const touchMoveEvent = new TouchEvent('touchmove', {
+      touches: [{ clientX: 150, clientY: 250, identifier: 0 } as Touch],
+      changedTouches: [{ clientX: 150, clientY: 250, identifier: 0 } as Touch],
+      bubbles: true,
+      cancelable: true,
+    });
+    canvas.dispatchEvent(touchMoveEvent);
+
+    const touchEndEvent = new TouchEvent('touchend', {
+      touches: [] as Touch[],
+      changedTouches: [{ clientX: 200, clientY: 300, identifier: 0 } as Touch],
+      bubbles: true,
+      cancelable: true,
+    });
+    canvas.dispatchEvent(touchEndEvent);
+
+    const state = inputManager.getState();
+    expect(state.position.x).toBeCloseTo(200, 0);
+    expect(state.position.y).toBeCloseTo(300, 0);
+  });
+
+  it('FIXED: onUp callback receives updated position', () => {
+    const upCallback = vi.fn();
+
+    inputManager.onUp(upCallback);
+
+    const touchStartEvent = new TouchEvent('touchstart', {
+      touches: [{ clientX: 100, clientY: 200, identifier: 0 } as Touch],
+      changedTouches: [{ clientX: 100, clientY: 200, identifier: 0 } as Touch],
+      bubbles: true,
+      cancelable: true,
+    });
+    canvas.dispatchEvent(touchStartEvent);
+
+    const touchEndEvent = new TouchEvent('touchend', {
+      touches: [] as Touch[],
+      changedTouches: [{ clientX: 180, clientY: 280, identifier: 0 } as Touch],
+      bubbles: true,
+      cancelable: true,
+    });
+    canvas.dispatchEvent(touchEndEvent);
+
+    expect(upCallback).toHaveBeenCalled();
+    const lastCallState = upCallback.mock.calls[upCallback.mock.calls.length - 1][0];
+    expect(lastCallState.position.x).toBeCloseTo(180, 0);
+    expect(lastCallState.position.y).toBeCloseTo(280, 0);
+    expect(lastCallState.isDown).toBe(false);
+  });
+
+  it('FIXED: consecutive touchstart → touchmove → touchend updates position correctly', () => {
+    const touchStartEvent = new TouchEvent('touchstart', {
+      touches: [{ clientX: 50, clientY: 100, identifier: 0 } as Touch],
+      changedTouches: [{ clientX: 50, clientY: 100, identifier: 0 } as Touch],
+      bubbles: true,
+      cancelable: true,
+    });
+    canvas.dispatchEvent(touchStartEvent);
+    expect(inputManager.getState().position.x).toBeCloseTo(50, 0);
+
+    const touchMoveEvent = new TouchEvent('touchmove', {
+      touches: [{ clientX: 120, clientY: 180, identifier: 0 } as Touch],
+      changedTouches: [{ clientX: 120, clientY: 180, identifier: 0 } as Touch],
+      bubbles: true,
+      cancelable: true,
+    });
+    canvas.dispatchEvent(touchMoveEvent);
+    expect(inputManager.getState().position.x).toBeCloseTo(120, 0);
+
+    const touchEndEvent = new TouchEvent('touchend', {
+      touches: [] as Touch[],
+      changedTouches: [{ clientX: 200, clientY: 250, identifier: 0 } as Touch],
+      bubbles: true,
+      cancelable: true,
+    });
+    canvas.dispatchEvent(touchEndEvent);
+    expect(inputManager.getState().position.x).toBeCloseTo(200, 0);
+    expect(inputManager.getState().position.y).toBeCloseTo(250, 0);
+  });
+});

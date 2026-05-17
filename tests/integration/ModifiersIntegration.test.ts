@@ -8,6 +8,8 @@ import { ShrinkModifier, ShrinkConfig } from '../../src/gameplay/modifiers/Shrin
 import { PhysicsManager } from '../../src/core/PhysicsManager';
 import { AnimationManager } from '../../src/utils/AnimationManager';
 import { eventBus } from '../../src/utils/EventBus';
+import Matter from 'matter-js';
+import { Container } from 'pixi.js';
 
 describe('Modifiers Integration Tests', () => {
 
@@ -655,6 +657,261 @@ describe('Modifiers Integration Tests', () => {
 
       eventBus.off('modifier:deactivated', handler);
       paddle.destroy();
+    });
+  });
+});
+
+describe('ShrinkModifier wall offset fix', () => {
+  let physics: PhysicsManager;
+  let engine: Matter.Engine;
+  let stageContainer: Container;
+
+  beforeEach(() => {
+    engine = Matter.Engine.create({
+      gravity: { x: 0, y: 1, scale: 0.001 },
+    });
+
+    physics = {
+      getEngine: vi.fn().mockReturnValue(engine),
+    } as unknown as PhysicsManager;
+
+    stageContainer = new Container();
+  });
+
+  afterEach(() => {
+    stageContainer.destroy({ children: true });
+    Matter.Engine.clear(engine);
+  });
+
+  const createConfig = (overrides?: Partial<ShrinkConfig>): ShrinkConfig => ({
+    type: 'shrink',
+    enabled: true,
+    targetWidth: 200,
+    shrinkSpeed: 50,
+    minWidth: 150,
+    duration: 10,
+    startDelay: 3,
+    ...overrides,
+  });
+
+  it('FIXED: uses containerOffsetX to calculate wall positions', () => {
+    const offsetX = 100;
+    const leftWall = Matter.Bodies.rectangle(0, 300, 10, 600, {
+      isStatic: true,
+      label: 'wall_left',
+    });
+    const rightWall = Matter.Bodies.rectangle(400, 300, 10, 600, {
+      isStatic: true,
+      label: 'wall_right',
+    });
+    Matter.Composite.add(engine.world, [leftWall, rightWall]);
+
+    const modifier = new ShrinkModifier(
+      createConfig(),
+      physics,
+      400,
+      600,
+      580,
+      stageContainer,
+      offsetX
+    );
+
+    modifier['activate']();
+    expect(modifier.isActive()).toBe(true);
+    modifier.deactivate();
+  });
+
+  it('FIXED: identifies walls via wall_left/wall_right labels', () => {
+    const leftWall = Matter.Bodies.rectangle(0, 300, 10, 600, {
+      isStatic: true,
+      label: 'wall_left',
+    });
+    const rightWall = Matter.Bodies.rectangle(400, 300, 10, 600, {
+      isStatic: true,
+      label: 'wall_right',
+    });
+    Matter.Composite.add(engine.world, [leftWall, rightWall]);
+
+    const modifier = new ShrinkModifier(
+      createConfig(),
+      physics,
+      400,
+      600,
+      580,
+      stageContainer,
+      0
+    );
+
+    modifier['activate']();
+    expect(modifier.isActive()).toBe(true);
+    modifier.deactivate();
+  });
+
+  it('FIXED: does not crash when wall labels are missing', () => {
+    const modifier = new ShrinkModifier(
+      createConfig(),
+      physics,
+      400,
+      600,
+      580,
+      stageContainer,
+      0
+    );
+
+    expect(() => modifier['activate']()).not.toThrow();
+    modifier.deactivate();
+  });
+
+  it('FIXED: wall positions update correctly after shrink', () => {
+    const offsetX = 50;
+    const leftWall = Matter.Bodies.rectangle(0, 300, 10, 600, {
+      isStatic: true,
+      label: 'wall_left',
+    });
+    const rightWall = Matter.Bodies.rectangle(400, 300, 10, 600, {
+      isStatic: true,
+      label: 'wall_right',
+    });
+    Matter.Composite.add(engine.world, [leftWall, rightWall]);
+
+    const modifier = new ShrinkModifier(
+      createConfig({ shrinkSpeed: 100 }),
+      physics,
+      400,
+      600,
+      580,
+      stageContainer,
+      offsetX
+    );
+
+    modifier['activate']();
+    const centerX = offsetX + 200;
+    expect(leftWall.position.x).toBeLessThan(centerX);
+    expect(rightWall.position.x).toBeGreaterThan(centerX);
+    modifier.deactivate();
+  });
+
+  it('FIXED: walls restore to original positions after deactivate', () => {
+    const offsetX = 50;
+    const leftWall = Matter.Bodies.rectangle(0, 300, 10, 600, {
+      isStatic: true,
+      label: 'wall_left',
+    });
+    const rightWall = Matter.Bodies.rectangle(400, 300, 10, 600, {
+      isStatic: true,
+      label: 'wall_right',
+    });
+    Matter.Composite.add(engine.world, [leftWall, rightWall]);
+
+    const modifier = new ShrinkModifier(
+      createConfig({ shrinkSpeed: 100 }),
+      physics,
+      400,
+      600,
+      580,
+      stageContainer,
+      offsetX
+    );
+
+    modifier['activate']();
+    expect(modifier.isActive()).toBe(true);
+
+    modifier.deactivate();
+    expect(modifier.isActive()).toBe(false);
+  });
+
+  it('FIXED: getType returns shrink', () => {
+    const modifier = new ShrinkModifier(
+      createConfig(),
+      physics,
+      400,
+      600,
+      580,
+      stageContainer,
+      0
+    );
+
+    expect(modifier.getType()).toBe('shrink');
+  });
+});
+
+describe('ShrinkModifier containerOffsetX fix', () => {
+  let physics: PhysicsManager;
+
+  beforeEach(() => {
+    physics = new PhysicsManager();
+  });
+
+  afterEach(() => {
+    physics.stop();
+  });
+
+  describe('ShrinkModifier accepts containerOffsetX parameter', () => {
+    it('constructor accepts containerOffsetX parameter (default 0)', () => {
+      const config: ShrinkConfig = {
+        type: 'shrink',
+        enabled: true,
+        targetWidth: 300,
+        shrinkSpeed: 50,
+        minWidth: 200,
+      };
+      const modifier = new ShrinkModifier(config, physics, 400, 600, 550);
+      expect(modifier).toBeDefined();
+      expect(modifier.getCurrentWidth()).toBe(400);
+      modifier.destroy();
+    });
+
+    it('constructor accepts non-zero containerOffsetX', () => {
+      const config: ShrinkConfig = {
+        type: 'shrink',
+        enabled: true,
+        targetWidth: 300,
+        shrinkSpeed: 50,
+        minWidth: 200,
+      };
+      const modifier = new ShrinkModifier(config, physics, 400, 600, 550, null, 200);
+      expect(modifier).toBeDefined();
+      modifier.destroy();
+    });
+  });
+
+  describe('FIXED: updateWallPositions uses containerOffsetX', () => {
+    it('source code updateWallPositions contains containerOffsetX', () => {
+      const fs = require('fs');
+      const path = require('path');
+      const content = fs.readFileSync(
+        path.resolve(__dirname, '../../src/gameplay/modifiers/ShrinkModifier.ts'),
+        'utf-8'
+      );
+      const updateWallMatch = content.match(/private updateWallPositions\(\): void \{[\s\S]*?\n  \}/);
+      expect(updateWallMatch).toBeTruthy();
+      expect(updateWallMatch![0]).toContain('containerOffsetX');
+    });
+
+    it('source code showWarning contains containerOffsetX', () => {
+      const fs = require('fs');
+      const path = require('path');
+      const content = fs.readFileSync(
+        path.resolve(__dirname, '../../src/gameplay/modifiers/ShrinkModifier.ts'),
+        'utf-8'
+      );
+      const showWarningMatch = content.match(/protected showWarning\(\): void \{[\s\S]*?\n  \}/);
+      expect(showWarningMatch).toBeTruthy();
+      expect(showWarningMatch![0]).toContain('containerOffsetX');
+    });
+  });
+
+  describe('FIXED: ModifierManager.setContainerSize accepts offsetX', () => {
+    it('ModifierManager.setContainerSize method signature includes offsetX', () => {
+      const fs = require('fs');
+      const path = require('path');
+      const content = fs.readFileSync(
+        path.resolve(__dirname, '../../src/gameplay/modifiers/ModifierManager.ts'),
+        'utf-8'
+      );
+      const setContainerMatch = content.match(/setContainerSize\(width: number, height: number[^)]*\)/);
+      expect(setContainerMatch).toBeTruthy();
+      expect(setContainerMatch![0]).toContain('offsetX');
     });
   });
 });

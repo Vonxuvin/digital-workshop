@@ -1,47 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { BlockPreview } from '../../src/gameplay/BlockPreview';
+import { PhysicsManager } from '../../src/core/PhysicsManager';
+import { BlockSpawner } from '../../src/gameplay/BlockSpawner';
+import { MergeSystem } from '../../src/gameplay/MergeSystem';
+import { PropSystem } from '../../src/gameplay/props/PropSystem';
 import { Container } from 'pixi.js';
 
-function createMockPhysicsManager() {
-  const bodies: any[] = [];
-  return {
-    createCircle: vi.fn((x: number, y: number, r: number, opts?: any) => {
-      const body = {
-        position: { x, y },
-        velocity: { x: 0, y: 0 },
-        angle: 0,
-        isStatic: opts?.isStatic ?? false,
-        isSleeping: false,
-        circleRadius: r,
-        label: `body_${bodies.length}`,
-        id: bodies.length,
-      };
-      bodies.push(body);
-      return body;
-    }),
-    createRectangle: vi.fn((x: number, y: number, w: number, h: number) => {
-      const body = {
-        position: { x, y },
-        velocity: { x: 0, y: 0 },
-        angle: 0,
-        isStatic: true,
-        isSleeping: false,
-        label: `wall_${bodies.length}`,
-        id: bodies.length,
-      };
-      bodies.push(body);
-      return body;
-    }),
-    removeBody: vi.fn(),
-    getAllBodies: vi.fn(() => bodies),
-    fixedUpdate: vi.fn((acc: number) => 0),
-    start: vi.fn(),
-    stop: vi.fn(),
-    destroy: vi.fn(),
-  };
-}
-
-describe('NextPreview Fix Integration - BlockPreview + GameScene lifecycle', () => {
+describe('BlockPreview nextPreview lifecycle', () => {
   let preview: BlockPreview;
   let parentContainer: Container;
 
@@ -66,23 +31,6 @@ describe('NextPreview Fix Integration - BlockPreview + GameScene lifecycle', () 
     const pos = preview.getNextPreviewPosition();
     expect(pos.x).toBe(560);
     expect(pos.y).toBe(40);
-  });
-
-  it('should handle pause/resume cycle preserving nextPreview state', () => {
-    preview.setBounds(200, 600);
-    preview.setNextValue(2);
-
-    expect(preview.isNextPreviewVisible()).toBe(true);
-    expect(preview.isNextPreviewActive()).toBe(true);
-
-    preview.hide();
-    preview.hideNextPreview();
-    expect(preview.isNextPreviewVisible()).toBe(false);
-    expect(preview.isNextPreviewActive()).toBe(true);
-
-    preview.showNextPreview();
-    expect(preview.isNextPreviewVisible()).toBe(true);
-    expect(preview.isNextPreviewActive()).toBe(true);
   });
 
   it('should handle game reset deactivating nextPreview', () => {
@@ -181,7 +129,7 @@ describe('NextPreview Fix Integration - BlockPreview + GameScene lifecycle', () 
   });
 });
 
-describe('NextPreview Fix Integration - GameScene pause/resume with nextPreview', () => {
+describe('BlockPreview pause/resume with nextPreview', () => {
   it('should hide nextPreview during GameScene pause', () => {
     const preview = new BlockPreview();
     const parent = new Container();
@@ -229,7 +177,7 @@ describe('NextPreview Fix Integration - GameScene pause/resume with nextPreview'
   });
 });
 
-describe('NextPreview Fix Integration - State transition handling', () => {
+describe('BlockPreview state transition handling', () => {
   it('should deactivate nextPreview when transitioning to non-playing state', () => {
     const preview = new BlockPreview();
     const parent = new Container();
@@ -276,7 +224,7 @@ describe('NextPreview Fix Integration - State transition handling', () => {
   });
 });
 
-describe('NextPreview Fix Integration - Multiple block drops', () => {
+describe('BlockPreview multiple block drops', () => {
   it('should maintain correct nextPreview position across multiple drops', () => {
     const preview = new BlockPreview();
     const parent = new Container();
@@ -318,7 +266,7 @@ describe('NextPreview Fix Integration - Multiple block drops', () => {
   });
 });
 
-describe('NextPreview Fix Integration - getBounds returns container bounds when hidden', () => {
+describe('BlockPreview getBounds for hidden state', () => {
   it('should return valid bounds for nextPreview positioning check after drop', () => {
     const preview = new BlockPreview();
     const parent = new Container();
@@ -413,5 +361,94 @@ describe('NextPreview Fix Integration - getBounds returns container bounds when 
 
     expect(maxX).not.toBe(0);
     expect(pos.x > maxX / 2 && pos.y < 100).toBe(true);
+  });
+});
+
+describe('BlockPreview + auto-drop integration', () => {
+  it('should clean up preview graphics when auto-drop triggers during preview visibility', () => {
+    const preview = new BlockPreview();
+    const stage = new Container();
+    stage.addChild(preview);
+
+    preview.setBounds(0, 400);
+    preview.setGroundY(500);
+    preview.show(1, 200, 80);
+    expect(preview.visible).toBe(true);
+
+    const physics = new PhysicsManager();
+    const mergeSystem = new MergeSystem(physics);
+    const propSystem = new PropSystem();
+    const spawner = new BlockSpawner(physics, mergeSystem, propSystem, stage);
+    spawner.setContainerBounds(400, 0);
+
+    spawner.startAutoSpawn(1000, 80);
+    spawner.update(1000);
+
+    preview.hide();
+
+    expect(preview.visible).toBe(false);
+    const trailGraphics = (preview as any).trailGraphics;
+    expect(trailGraphics._context.instructions.length).toBe(0);
+
+    spawner.reset();
+    mergeSystem.destroy();
+    physics.destroy();
+    propSystem.destroy();
+    preview.destroy();
+  });
+
+  it('should handle preview hide and re-show cycle without residual graphics', () => {
+    const preview = new BlockPreview();
+    const parent = new Container();
+    parent.addChild(preview);
+
+    preview.setBounds(0, 400);
+    preview.setGroundY(500);
+
+    preview.show(1, 200, 80);
+    preview.hide();
+
+    const trailGraphics = (preview as any).trailGraphics;
+    const landingMarker = (preview as any).landingMarker;
+    const graphics = (preview as any).graphics;
+    expect(trailGraphics._context.instructions.length).toBe(0);
+    expect(landingMarker._context.instructions.length).toBe(0);
+    expect(graphics._context.instructions.length).toBe(0);
+
+    preview.show(2, 150, 80);
+    expect(preview.visible).toBe(true);
+    expect(preview.x).toBe(150);
+  });
+
+  it('should hide preview when auto-drop occurs and preview is visible', () => {
+    const preview = new BlockPreview();
+    const container = new Container();
+    container.addChild(preview);
+    preview.setBounds(0, 400);
+    preview.setGroundY(500);
+
+    preview.show(1, 200, 80);
+    expect(preview.visible).toBe(true);
+
+    const physics = new PhysicsManager();
+    const mergeSystem = new MergeSystem(physics);
+    const propSystem = new PropSystem();
+    const spawner = new BlockSpawner(physics, mergeSystem, propSystem, container);
+    spawner.setContainerBounds(400, 0);
+
+    spawner.startAutoSpawn(1000, 80);
+    spawner.update(1000);
+
+    preview.hide();
+
+    expect(preview.visible).toBe(false);
+    const trailGraphics = (preview as any).trailGraphics;
+    expect(trailGraphics._context.instructions.length).toBe(0);
+
+    spawner.reset();
+    mergeSystem.destroy();
+    physics.destroy();
+    propSystem.destroy();
+    preview.destroy();
   });
 });

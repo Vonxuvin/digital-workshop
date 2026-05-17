@@ -303,3 +303,76 @@ describe('Save/Load Integration Tests', () => {
     });
   });
 });
+
+describe('SaveManager updateStatistics parameter fix', () => {
+  let saveManager: SaveManager;
+
+  beforeEach(() => {
+    localStorage.clear();
+    saveManager = SaveManager.getInstance();
+    saveManager.reset();
+  });
+
+  it('FIXED: updateStatistics accepts mergeValue, comboCount, playTime parameters', () => {
+    expect(() => saveManager.updateStatistics(16, 3, 120)).not.toThrow();
+  });
+
+  it('FIXED: totalGames increments correctly', () => {
+    saveManager.updateStatistics(0, 0, 0);
+    saveManager.updateStatistics(0, 0, 0);
+    expect(saveManager.getData().playStatistics.totalGames).toBe(2);
+  });
+
+  it('FIXED: totalPlayTime accumulates correctly', () => {
+    saveManager.updateStatistics(0, 0, 60);
+    saveManager.updateStatistics(0, 0, 45);
+    expect(saveManager.getData().playStatistics.totalPlayTime).toBe(105);
+  });
+
+  it('FIXED: highestMerge records highest merge value', () => {
+    saveManager.updateStatistics(4, 0, 0);
+    saveManager.updateStatistics(32, 0, 0);
+    saveManager.updateStatistics(8, 0, 0);
+    expect(saveManager.getData().playStatistics.highestMerge).toBe(32);
+  });
+
+  it('FIXED: longestCombo records longest combo', () => {
+    saveManager.updateStatistics(0, 2, 0);
+    saveManager.updateStatistics(0, 5, 0);
+    saveManager.updateStatistics(0, 3, 0);
+    expect(saveManager.getData().playStatistics.longestCombo).toBe(5);
+  });
+
+  it('FIXED: maxCombo records max combo', () => {
+    saveManager.updateStatistics(0, 1, 0);
+    saveManager.updateStatistics(0, 8, 0);
+    saveManager.updateStatistics(0, 4, 0);
+    expect(saveManager.getData().playStatistics.maxCombo).toBe(8);
+  });
+
+  it('FIXED: updates all statistics fields simultaneously', () => {
+    saveManager.updateStatistics(128, 10, 300);
+    const stats = saveManager.getData().playStatistics;
+    expect(stats.totalGames).toBe(1);
+    expect(stats.totalPlayTime).toBe(300);
+    expect(stats.highestMerge).toBe(128);
+    expect(stats.longestCombo).toBe(10);
+    expect(stats.maxCombo).toBe(10);
+  });
+});
+
+describe('SceneManager.completeLevel correct parameters', () => {
+  it('SceneManager.completeLevel calls updateStatistics with non-zero parameters', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const content = fs.readFileSync(
+      path.resolve(__dirname, '../../src/core/SceneManager.ts'),
+      'utf-8'
+    );
+    const completeMatch = content.match(/completeLevel[\s\S]*?updateStatistics\([^)]+\)/);
+    expect(completeMatch).toBeTruthy();
+    expect(completeMatch![0]).not.toContain('updateStatistics(0, 0');
+    expect(completeMatch![0]).toContain('highestMerge');
+    expect(completeMatch![0]).toContain('longestCombo');
+  });
+});

@@ -6,7 +6,11 @@ import { SurvivalObjectiveChecker } from '../../src/gameplay/objectives/Survival
 import { createObjectiveChecker } from '../../src/gameplay/objectives/index';
 import { ObjectiveContext } from '../../src/gameplay/objectives/ObjectiveChecker';
 import { LevelSystem, LevelConfig, LevelObjective } from '../../src/gameplay/LevelSystem';
+import { ScoreSystem } from '../../src/gameplay/ScoreSystem';
+import { TimeManager } from '../../src/utils/TimeManager';
+import { AnimationManager } from '../../src/utils/AnimationManager';
 import { eventBus } from '../../src/utils/EventBus';
+import gsap from 'gsap';
 
 function createContext(overrides: Partial<ObjectiveContext> = {}): ObjectiveContext {
   return {
@@ -383,6 +387,340 @@ describe('Objectives Integration Tests', () => {
       const progress = levelSystem.getProgress();
       expect(progress).toBeGreaterThan(0);
       expect(progress).toBeLessThan(1);
+    });
+  });
+});
+
+describe('Level 5 timeLimit conflict fix', () => {
+  let ls: LevelSystem;
+
+  afterEach(() => {
+    if (ls) ls.destroy();
+  });
+
+  it('FIXED: Level 5 config no longer contains timeLimit', () => {
+    const level5 = require('../../src/data/levels/level_05.json');
+    expect(level5.objective.timeLimit).toBeUndefined();
+  });
+
+  it('FIXED: Level 5 score type does not trigger game:timeout from timeLimit', () => {
+    const config: LevelConfig = {
+      id: 5,
+      name: '综合考验',
+      objective: { type: 'score', target: 2000 },
+      container: { width: 350, height: 600, shape: 'rectangle' },
+      spawn: { availableNumbers: [1, 2, 4, 8, 16] },
+      rewards: { stars: [800, 1500, 2500] },
+    };
+    ls = new LevelSystem(config);
+    ls.start();
+
+    const timeoutHandler = vi.fn();
+    eventBus.on('game:timeout', timeoutHandler);
+
+    ls.update(130000);
+
+    expect(timeoutHandler).not.toHaveBeenCalled();
+    eventBus.off('game:timeout', timeoutHandler);
+  });
+
+  it('FIXED: Level 5 score type does not timeout after long duration', () => {
+    const config: LevelConfig = {
+      id: 5,
+      name: '综合考验',
+      objective: { type: 'score', target: 2000 },
+      container: { width: 350, height: 600, shape: 'rectangle' },
+      spawn: { availableNumbers: [1, 2, 4, 8, 16] },
+      rewards: { stars: [800, 1500, 2500] },
+    };
+    ls = new LevelSystem(config);
+    ls.start();
+
+    for (let i = 0; i < 200; i++) {
+      ls.update(1000);
+    }
+
+    expect(ls.isLevelCompleted()).toBe(false);
+  });
+
+  it('FIXED: Level 5 completes normally when target score is reached', () => {
+    const config: LevelConfig = {
+      id: 5,
+      name: '综合考验',
+      objective: { type: 'score', target: 2000 },
+      container: { width: 350, height: 600, shape: 'rectangle' },
+      spawn: { availableNumbers: [1, 2, 4, 8, 16] },
+      rewards: { stars: [800, 1500, 2500] },
+    };
+    ls = new LevelSystem(config);
+    ls.start();
+
+    eventBus.emit('score:updated', { totalScore: 2500 });
+
+    expect(ls.isLevelCompleted()).toBe(true);
+  });
+
+  it('FIXED: survival type still uses timeLimit normally', () => {
+    const config: LevelConfig = {
+      id: 4,
+      name: '生存关卡',
+      objective: { type: 'survival', target: 10, timeLimit: 10 },
+      container: { width: 400, height: 600, shape: 'rectangle' },
+      spawn: { availableNumbers: [1, 2, 4] },
+      rewards: { stars: [100, 200, 300] },
+    };
+    ls = new LevelSystem(config);
+    ls.start();
+
+    ls.update(10000);
+
+    expect(ls.isLevelCompleted()).toBe(true);
+  });
+
+  it('FIXED: score + timeLimit combination triggers game:timeout on timeout', () => {
+    const config: LevelConfig = {
+      id: 99,
+      name: '限时得分',
+      objective: { type: 'score', target: 9999, timeLimit: 5 },
+      container: { width: 400, height: 600, shape: 'rectangle' },
+      spawn: { availableNumbers: [1, 2] },
+      rewards: { stars: [100, 200, 300] },
+    };
+    ls = new LevelSystem(config);
+    ls.start();
+
+    const timeoutHandler = vi.fn();
+    eventBus.on('game:timeout', timeoutHandler);
+
+    ls.update(5000);
+
+    expect(timeoutHandler).toHaveBeenCalled();
+    eventBus.off('game:timeout', timeoutHandler);
+  });
+
+  it('FIXED: Level 5 actual file has no timeLimit field after loading', async () => {
+    const fs = require('fs');
+    const path = require('path');
+    const levelPath = path.resolve(__dirname, '../../src/data/levels/level_05.json');
+    const content = fs.readFileSync(levelPath, 'utf-8');
+    const data = JSON.parse(content);
+    expect(data.objective.type).toBe('score');
+    expect(data.objective.timeLimit).toBeUndefined();
+  });
+});
+
+describe('LevelSystem revive and restart flow', () => {
+  const timedConfig: LevelConfig = {
+    id: 10, name: '计时测试', objective: { type: 'survival', target: 30, timeLimit: 30 },
+    container: { width: 400, height: 600, shape: 'rectangle' },
+    spawn: { availableNumbers: [1, 2] },
+    rewards: { stars: [15, 20, 30] },
+  };
+
+  describe('Revive flow - timer resume and penalty', () => {
+    it('full revive flow: fail → stopTimer → revive → resumeTimer + penalty → timer resumes', () => {
+      const ls = new LevelSystem(timedConfig);
+      ls.start();
+
+      ls.update(10000);
+      expect(ls.getRemainingTime()).toBe(20);
+
+      ls.stopTimer();
+      ls.update(5000);
+      expect(ls.getRemainingTime()).toBe(20);
+
+      ls.resumeTimer();
+      ls.applyTimerPenalty(10);
+      expect(ls.getRemainingTime()).toBe(10);
+
+      ls.update(3000);
+      expect(ls.getRemainingTime()).toBe(7);
+    });
+
+    it('after revive timer should continue firing timeUpdate events', () => {
+      const ls = new LevelSystem(timedConfig);
+      ls.start();
+      ls.update(1000);
+      ls.stopTimer();
+
+      const handler = vi.fn();
+      eventBus.on('level:timeUpdate', handler);
+      ls.resumeTimer();
+      ls.applyTimerPenalty(5);
+      ls.update(2000);
+      ls.update(2000);
+
+      expect(handler).toHaveBeenCalled();
+      eventBus.off('level:timeUpdate', handler);
+    });
+
+    it('revive penalty should not make remaining time negative', () => {
+      const ls = new LevelSystem(timedConfig);
+      ls.start();
+      ls.update(28000);
+      ls.stopTimer();
+
+      ls.resumeTimer();
+      ls.applyTimerPenalty(10);
+
+      expect(ls.getRemainingTime()).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  describe('Restart flow - animation timeline reset', () => {
+    let timeManager: TimeManager;
+
+    beforeEach(() => {
+      AnimationManager.resetInstance();
+      TimeManager.resetInstance();
+      timeManager = new TimeManager();
+      TimeManager.setInstance(timeManager);
+    });
+
+    afterEach(() => {
+      TimeManager.resetInstance();
+      AnimationManager.resetInstance();
+    });
+
+    it('after restart GSAP timeline should be reset', () => {
+      const oldTimeline = timeManager.getGameTimeline();
+      timeManager.resetGameTimeline();
+      const newTimeline = timeManager.getGameTimeline();
+
+      expect(newTimeline).toBeDefined();
+      expect(newTimeline).not.toBe(oldTimeline);
+    });
+
+    it('after restart new timeline should accept animations normally', () => {
+      timeManager.resetGameTimeline();
+      const timeline = timeManager.getGameTimeline();
+
+      const testObj = { x: 0 };
+      const tween = gsap.to(testObj, { x: 100, duration: 0.5 });
+
+      expect(() => timeline.add(tween)).not.toThrow();
+    });
+
+    it('after restart paused state should be cleared', () => {
+      timeManager.pause();
+      expect(timeManager.isCurrentlyPaused()).toBe(true);
+
+      timeManager.resetGameTimeline();
+      expect(timeManager.isCurrentlyPaused()).toBe(false);
+    });
+
+    it('TimeManager class should be accessible', () => {
+      expect(typeof TimeManager).toBe('function');
+      expect(typeof TimeManager.prototype.resetGameTimeline).toBe('function');
+    });
+
+    it('resetGameTimeline should create a new running timeline', () => {
+      const oldTimeline = timeManager.getGameTimeline();
+      oldTimeline.pause();
+      expect(oldTimeline.paused()).toBe(true);
+
+      timeManager.resetGameTimeline();
+      const newTimeline = timeManager.getGameTimeline();
+      expect(newTimeline.paused()).toBe(false);
+      expect(newTimeline).not.toBe(oldTimeline);
+    });
+  });
+
+  describe('Full fail → restart flow', () => {
+    it('after restart LevelSystem should be fully reset', () => {
+      const ls = new LevelSystem(timedConfig);
+      ls.start();
+      ls.update(10000);
+      expect(ls.getRemainingTime()).toBe(20);
+
+      ls.stopTimer();
+      ls.reset();
+
+      expect(ls.isLevelCompleted()).toBe(false);
+      expect(ls.getProgress()).toBe(0);
+      expect(ls.getRemainingTime()).toBe(30);
+    });
+
+    it('after restart timer should start from the beginning', () => {
+      const ls = new LevelSystem(timedConfig);
+      ls.start();
+      ls.update(15000);
+      expect(ls.getRemainingTime()).toBe(15);
+
+      ls.reset();
+      ls.start();
+      expect(ls.getRemainingTime()).toBe(30);
+      ls.update(5000);
+      expect(ls.getRemainingTime()).toBe(25);
+    });
+  });
+});
+
+describe('LevelSystem + ScoreSystem statistics tracking', () => {
+  describe('FIXED: LevelSystem exposes getHighestMergeValue', () => {
+    it('getHighestMergeValue method exists', () => {
+      const config: LevelConfig = {
+        id: 1, name: 'Test', objective: { type: 'score', target: 100 },
+        containerWidth: 400, containerHeight: 600, availableNumbers: [1, 2],
+      };
+      const ls = new LevelSystem(config);
+      expect(typeof ls.getHighestMergeValue).toBe('function');
+      ls.destroy();
+    });
+
+    it('getHighestMergeValue returns correct highest merge value', () => {
+      const config: LevelConfig = {
+        id: 1, name: 'Test', objective: { type: 'score', target: 100 },
+        containerWidth: 400, containerHeight: 600, availableNumbers: [1, 2],
+      };
+      const ls = new LevelSystem(config);
+
+      eventBus.emit('block:merged', { newValue: 8, chainCount: 1 });
+      expect(ls.getHighestMergeValue()).toBe(8);
+
+      eventBus.emit('block:merged', { newValue: 16, chainCount: 2 });
+      expect(ls.getHighestMergeValue()).toBe(16);
+
+      eventBus.emit('block:merged', { newValue: 4, chainCount: 1 });
+      expect(ls.getHighestMergeValue()).toBe(16);
+
+      ls.destroy();
+    });
+  });
+
+  describe('FIXED: ScoreSystem tracks maxChainCount', () => {
+    it('getMaxChainCount method exists', () => {
+      const ss = new ScoreSystem();
+      expect(typeof ss.getMaxChainCount).toBe('function');
+      ss.reset();
+    });
+
+    it('getMaxChainCount returns historical max chain count', () => {
+      const ss = new ScoreSystem();
+
+      ss.addMergeScore(2, false);
+      ss.addMergeScore(2, false);
+      ss.addMergeScore(2, false);
+      expect(ss.getMaxChainCount()).toBe(3);
+
+      ss.update(3100);
+      expect(ss.getChainCount()).toBe(0);
+      expect(ss.getMaxChainCount()).toBe(3);
+
+      ss.addMergeScore(2, false);
+      expect(ss.getMaxChainCount()).toBe(3);
+
+      ss.reset();
+    });
+
+    it('maxChainCount resets to 0 after reset', () => {
+      const ss = new ScoreSystem();
+      ss.addMergeScore(2, false);
+      ss.addMergeScore(2, false);
+      expect(ss.getMaxChainCount()).toBe(2);
+
+      ss.reset();
+      expect(ss.getMaxChainCount()).toBe(0);
     });
   });
 });

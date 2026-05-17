@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { eventBus } from '../../src/utils/EventBus';
+import { AudioManager } from '../../src/core/AudioManager';
 
 describe('Audio + Gameplay Integration Tests', () => {
 
@@ -204,5 +205,91 @@ describe('Audio + Gameplay Integration Tests', () => {
 
       eventBus.off('settings:changed', settingsHandler);
     });
+  });
+});
+
+describe('AudioManager EventBus event name consistency fix', () => {
+  let audioManager: AudioManager;
+  let playSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    audioManager = new AudioManager();
+    playSpy = vi.spyOn(audioManager, 'play').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    audioManager.destroy();
+    playSpy.mockRestore();
+  });
+
+  it('FIXED: block:dropped event triggers spawn sound', () => {
+    eventBus.emit('block:dropped');
+    expect(playSpy).toHaveBeenCalledWith('spawn');
+  });
+
+  it('FIXED: block:merged event triggers playMergeSound (using data.newValue)', () => {
+    const playMergeSpy = vi.spyOn(audioManager as any, 'playMergeSound');
+    eventBus.emit('block:merged', { newValue: 16, chainCount: 1 });
+    expect(playMergeSpy).toHaveBeenCalledWith(16);
+    playMergeSpy.mockRestore();
+  });
+
+  it('FIXED: score:updated event triggers combo sound (using data.chainCount)', () => {
+    eventBus.emit('score:updated', { totalScore: 500, earnedScore: 100, chainCount: 3 });
+    expect(playSpy).toHaveBeenCalled();
+  });
+
+  it('FIXED: game:over event no longer directly listened by AudioManager', () => {
+    eventBus.emit('game:over');
+    expect(playSpy).not.toHaveBeenCalledWith('gameOver');
+  });
+
+  it('FIXED: level:completed event no longer directly listened by AudioManager', () => {
+    eventBus.emit('level:completed', { levelId: 1, score: 500, time: 30, highestMergeValue: 16 });
+    expect(playSpy).not.toHaveBeenCalledWith('levelComplete');
+  });
+
+  it('FIXED: old event name gameplay:blockSpawn no longer triggers listener', () => {
+    eventBus.emit('gameplay:blockSpawn');
+    expect(playSpy).not.toHaveBeenCalled();
+  });
+
+  it('FIXED: old event name gameplay:merge no longer triggers listener', () => {
+    eventBus.emit('gameplay:merge', { level: 4 });
+    expect(playSpy).not.toHaveBeenCalled();
+  });
+
+  it('FIXED: old event name gameplay:combo no longer triggers listener', () => {
+    eventBus.emit('gameplay:combo', { count: 5 });
+    expect(playSpy).not.toHaveBeenCalled();
+  });
+
+  it('FIXED: old event name gameplay:gameOver no longer triggers listener', () => {
+    eventBus.emit('gameplay:gameOver');
+    expect(playSpy).not.toHaveBeenCalled();
+  });
+
+  it('FIXED: old event name gameplay:levelComplete no longer triggers listener', () => {
+    eventBus.emit('gameplay:levelComplete');
+    expect(playSpy).not.toHaveBeenCalled();
+  });
+
+  it('FIXED: props:used event correctly triggers propSound', () => {
+    eventBus.emit('props:used', { type: 'bomb' });
+    expect(playSpy).toHaveBeenCalled();
+  });
+
+  it('FIXED: block:merged passes newValue instead of level', () => {
+    const playMergeSpy = vi.spyOn(audioManager as any, 'playMergeSound');
+    eventBus.emit('block:merged', { newValue: 32, chainCount: 2 });
+    expect(playMergeSpy).toHaveBeenCalledWith(32);
+    playMergeSpy.mockRestore();
+  });
+
+  it('FIXED: score:updated passes chainCount instead of count', () => {
+    const playComboSpy = vi.spyOn(audioManager as any, 'playComboSound');
+    eventBus.emit('score:updated', { totalScore: 500, earnedScore: 100, chainCount: 7 });
+    expect(playComboSpy).toHaveBeenCalledWith(7);
+    playComboSpy.mockRestore();
   });
 });

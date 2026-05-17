@@ -1,14 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
-import { ScoreSystem, SCORE_CONFIGS } from '../../src/gameplay/ScoreSystem';
 import { LevelSystem, LevelConfig } from '../../src/gameplay/LevelSystem';
 import { SaveManager } from '../../src/core/SaveManager';
 import { TutorialManager } from '../../src/core/TutorialManager';
 import { TutorialOverlay } from '../../src/ui/TutorialOverlay';
-import { GameHUD } from '../../src/ui/hud/GameHUD';
-import { PropSystem } from '../../src/gameplay/props/PropSystem';
 import { AnimationManager } from '../../src/utils/AnimationManager';
 import { eventBus, GameEvents } from '../../src/utils/EventBus';
-import { Container } from 'pixi.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -27,7 +23,7 @@ function validateStarsMonotonic(stars: number[]): boolean {
   return stars[0] < stars[1] && stars[1] < stars[2] && stars[2] > 0;
 }
 
-describe('TC-003: 关卡难度曲线验证', () => {
+describe('Level difficulty curve validation', () => {
   describe('TC-003-01: 顺序通关 Level 1-6，难度平滑递增无跳变感', () => {
     it('Level 1-6 score 类型关卡目标值单调递增', () => {
       const scoreTargets: { id: number; target: number }[] = [];
@@ -188,7 +184,7 @@ describe('TC-003: 关卡难度曲线验证', () => {
   });
 });
 
-describe('TC-004: 新手引导验证', () => {
+describe('Tutorial validation', () => {
   let overlay: TutorialOverlay;
   let saveManager: SaveManager;
   let tutorialManager: TutorialManager;
@@ -376,7 +372,7 @@ describe('TC-004: 新手引导验证', () => {
   });
 });
 
-describe('TC-005: 道具交互验证', () => {
+describe('Prop interaction validation', () => {
   describe('TC-005-01: 点击炸弹道具按钮高亮，显示十字准星光标', () => {
     it('GameHUD 有 showCrosshair 方法', () => {
       const content = fs.readFileSync(
@@ -527,169 +523,6 @@ describe('TC-005: 道具交互验证', () => {
       const propsContainerX = screenWidth - propsBarWidth - 10;
       expect(propsContainerX).toBeGreaterThanOrEqual(0);
       expect(propsContainerX + propsBarWidth).toBeLessThanOrEqual(screenWidth);
-    });
-  });
-});
-
-describe('P2-1: 计分系统数值平衡验证', () => {
-  let ss: ScoreSystem;
-
-  beforeEach(() => {
-    ss = new ScoreSystem();
-  });
-
-  afterEach(() => {
-    ss.reset();
-  });
-
-  describe('SCORE_CONFIGS 表完整性', () => {
-    it('SCORE_CONFIGS 包含 2 到 4096 的所有2的幂', () => {
-      const powers = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096];
-      for (const p of powers) {
-        expect(SCORE_CONFIGS[p]).toBeDefined();
-        expect(SCORE_CONFIGS[p].baseScore).toBeGreaterThan(0);
-        expect(SCORE_CONFIGS[p].chainMultiplier).toBeGreaterThanOrEqual(1.0);
-      }
-    });
-
-    it('baseScore 随合成值递增', () => {
-      const powers = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096];
-      for (let i = 1; i < powers.length; i++) {
-        expect(SCORE_CONFIGS[powers[i]].baseScore).toBeGreaterThan(SCORE_CONFIGS[powers[i - 1]].baseScore);
-      }
-    });
-
-    it('chainMultiplier 随合成值递增', () => {
-      const powers = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096];
-      for (let i = 1; i < powers.length; i++) {
-        expect(SCORE_CONFIGS[powers[i]].chainMultiplier).toBeGreaterThanOrEqual(SCORE_CONFIGS[powers[i - 1]].chainMultiplier);
-      }
-    });
-  });
-
-  describe('addMergeScore 统一使用 SCORE_CONFIGS 表', () => {
-    it('合成值为 SCORE_CONFIGS 中的值时使用表中的 baseScore', () => {
-      const handler = vi.fn();
-      eventBus.on(GameEvents.SCORE_UPDATED, handler);
-
-      ss.addMergeScore(16, false);
-
-      expect(handler).toHaveBeenCalled();
-      const data = handler.mock.calls[0][0];
-      expect(data.baseScore).toBe(SCORE_CONFIGS[16].baseScore);
-
-      eventBus.off(GameEvents.SCORE_UPDATED, handler);
-    });
-
-    it('合成值为 SCORE_CONFIGS 中的值时使用表中的 chainMultiplier', () => {
-      const handler = vi.fn();
-      eventBus.on(GameEvents.SCORE_UPDATED, handler);
-
-      ss.addMergeScore(32, false);
-
-      expect(handler).toHaveBeenCalled();
-      const data = handler.mock.calls[0][0];
-      expect(data.chainMultiplier).toBeCloseTo(SCORE_CONFIGS[32].chainMultiplier, 5);
-
-      eventBus.off(GameEvents.SCORE_UPDATED, handler);
-    });
-
-    it('合成值不在 SCORE_CONFIGS 中时使用 calculateScore 兜底', () => {
-      const handler = vi.fn();
-      eventBus.on(GameEvents.SCORE_UPDATED, handler);
-
-      ss.addMergeScore(3, false);
-
-      expect(handler).toHaveBeenCalled();
-      const data = handler.mock.calls[0][0];
-      expect(data.baseScore).toBeGreaterThan(0);
-
-      eventBus.off(GameEvents.SCORE_UPDATED, handler);
-    });
-
-    it('高值合成 chainMultiplier > 1.0', () => {
-      const handler = vi.fn();
-      eventBus.on(GameEvents.SCORE_UPDATED, handler);
-
-      ss.addMergeScore(128, false);
-
-      expect(handler).toHaveBeenCalled();
-      const data = handler.mock.calls[0][0];
-      expect(data.chainMultiplier).toBeGreaterThan(1.0);
-
-      eventBus.off(GameEvents.SCORE_UPDATED, handler);
-    });
-  });
-
-  describe('星级线遵循 60%/80%/100% 规则', () => {
-    it('Level 1 星级线 [300, 400, 500] 符合规则', () => {
-      const level1 = loadLevelJson(1);
-      expect(validateStars60_80_100(level1.rewards.stars)).toBe(true);
-    });
-
-    it('所有 score 类型关卡星级线遵循 60%/80%/100% 规则', () => {
-      for (let i = 1; i <= 15; i++) {
-        const level = loadLevelJson(i);
-        if (level.objective.type === 'score') {
-          expect(validateStars60_80_100(level.rewards.stars)).toBe(true);
-        }
-      }
-    });
-
-    it('所有非 score 类型关卡星级线单调递增且3星=目标', () => {
-      for (let i = 1; i <= 15; i++) {
-        const level = loadLevelJson(i);
-        if (level.objective.type !== 'score') {
-          expect(validateStarsMonotonic(level.rewards.stars)).toBe(true);
-          expect(level.rewards.stars[2]).toBe(level.objective.target);
-        }
-      }
-    });
-  });
-
-  describe('计分系统数值合理性', () => {
-    it('连锁加成正确应用', () => {
-      const handler = vi.fn();
-      eventBus.on(GameEvents.SCORE_UPDATED, handler);
-
-      ss.addMergeScore(4, false);
-      ss.addMergeScore(4, true);
-      ss.addMergeScore(4, true);
-
-      expect(handler).toHaveBeenCalledTimes(3);
-      const firstCall = handler.mock.calls[0][0];
-      const thirdCall = handler.mock.calls[2][0];
-      expect(thirdCall.earnedScore).toBeGreaterThan(firstCall.earnedScore);
-
-      eventBus.off(GameEvents.SCORE_UPDATED, handler);
-    });
-
-    it('lucky 乘数正确应用', () => {
-      const handler = vi.fn();
-      eventBus.on(GameEvents.SCORE_UPDATED, handler);
-
-      ss.setLuckyMultiplier(2);
-      ss.addMergeScore(4, false);
-
-      expect(handler).toHaveBeenCalled();
-      const data = handler.mock.calls[0][0];
-      expect(data.earnedScore).toBe(SCORE_CONFIGS[4].baseScore * 2);
-
-      eventBus.off(GameEvents.SCORE_UPDATED, handler);
-    });
-  });
-
-  describe('源码验证：addMergeScore 使用 SCORE_CONFIGS', () => {
-    it('addMergeScore 方法引用 SCORE_CONFIGS', () => {
-      const content = fs.readFileSync(
-        path.resolve(__dirname, '../../src/gameplay/ScoreSystem.ts'),
-        'utf-8'
-      );
-      const match = content.match(/addMergeScore\(value: number, isCombo: boolean = false\): void \{[\s\S]*?\n  \}/);
-      expect(match).toBeTruthy();
-      expect(match![0]).toContain('SCORE_CONFIGS');
-      expect(match![0]).toContain('configEntry');
-      expect(match![0]).toContain('chainMultiplierFromTable');
     });
   });
 });

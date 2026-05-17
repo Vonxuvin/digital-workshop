@@ -3,18 +3,16 @@ import { PhysicsManager } from '../../src/core/PhysicsManager';
 import { BlockSpawner } from '../../src/gameplay/BlockSpawner';
 import { MergeSystem } from '../../src/gameplay/MergeSystem';
 import { PropSystem } from '../../src/gameplay/props/PropSystem';
-import { BlockPreview } from '../../src/gameplay/BlockPreview';
-import { Block } from '../../src/gameplay/Block';
+import { Block, getBlockConfig } from '../../src/gameplay/Block';
 import { Container } from 'pixi.js';
 import { eventBus, GameEvents } from '../../src/utils/EventBus';
 import gsap from 'gsap';
 
-describe('Auto-Drop and Manual Release Conflict Integration', () => {
+describe('BlockSpawner auto-drop and manual release', () => {
   let physics: PhysicsManager;
   let mergeSystem: MergeSystem;
   let propSystem: PropSystem;
   let spawner: BlockSpawner;
-  let preview: BlockPreview;
   let stage: Container;
 
   beforeEach(() => {
@@ -24,8 +22,6 @@ describe('Auto-Drop and Manual Release Conflict Integration', () => {
     stage = new Container();
     spawner = new BlockSpawner(physics, mergeSystem, propSystem, stage);
     spawner.setContainerBounds(400, 0);
-    preview = new BlockPreview();
-    stage.addChild(preview);
   });
 
   afterEach(() => {
@@ -33,7 +29,6 @@ describe('Auto-Drop and Manual Release Conflict Integration', () => {
     mergeSystem.destroy();
     physics.destroy();
     propSystem.destroy();
-    preview.destroy();
   });
 
   it('should not leave ghost blocks when auto-drop and manual drop happen in sequence', () => {
@@ -69,22 +64,6 @@ describe('Auto-Drop and Manual Release Conflict Integration', () => {
 
     spawner.update(500);
     expect(spawner.getBlocks().length).toBe(3);
-  });
-
-  it('should clean up preview graphics when auto-drop triggers during preview visibility', () => {
-    preview.setBounds(0, 400);
-    preview.setGroundY(500);
-    preview.show(1, 200, 80);
-    expect(preview.visible).toBe(true);
-
-    spawner.startAutoSpawn(1000, 80);
-    spawner.update(1000);
-
-    preview.hide();
-
-    expect(preview.visible).toBe(false);
-    const trailGraphics = (preview as any).trailGraphics;
-    expect(trailGraphics._context.instructions.length).toBe(0);
   });
 
   it('should not cause animation conflicts between auto-drop and manual drop blocks', () => {
@@ -140,40 +119,6 @@ describe('Auto-Drop and Manual Release Conflict Integration', () => {
     eventBus.off(GameEvents.BLOCK_DROPPED, droppedHandler);
   });
 
-  it('should clean up gsap tweens when blocks are removed during auto-spawn', () => {
-    spawner.startAutoSpawn(500, 80);
-    spawner.update(500);
-
-    const block = spawner.getBlocks()[0];
-    gsap.to(block, { alpha: 0, duration: 1 });
-
-    spawner.removeBlock(block);
-    physics.removeBody(block.body);
-    block.destroy();
-
-    expect(block.isDestroyed).toBe(true);
-    expect(gsap.getTweensOf(block).length).toBe(0);
-  });
-
-  it('should handle preview hide and re-show cycle without residual graphics', () => {
-    preview.setBounds(0, 400);
-    preview.setGroundY(500);
-
-    preview.show(1, 200, 80);
-    preview.hide();
-
-    const trailGraphics = (preview as any).trailGraphics;
-    const landingMarker = (preview as any).landingMarker;
-    const graphics = (preview as any).graphics;
-    expect(trailGraphics._context.instructions.length).toBe(0);
-    expect(landingMarker._context.instructions.length).toBe(0);
-    expect(graphics._context.instructions.length).toBe(0);
-
-    preview.show(2, 150, 80);
-    expect(preview.visible).toBe(true);
-    expect(preview.x).toBe(150);
-  });
-
   it('should correctly track isAutoDropping state across game loop iterations', () => {
     spawner.startAutoSpawn(1000, 80);
 
@@ -205,41 +150,7 @@ describe('Auto-Drop and Manual Release Conflict Integration', () => {
   });
 });
 
-describe('GameScene auto-drop preview cleanup integration', () => {
-  it('should hide preview when auto-drop occurs and preview is visible', () => {
-    const preview = new BlockPreview();
-    const container = new Container();
-    container.addChild(preview);
-    preview.setBounds(0, 400);
-    preview.setGroundY(500);
-
-    preview.show(1, 200, 80);
-    expect(preview.visible).toBe(true);
-
-    const physics = new PhysicsManager();
-    const mergeSystem = new MergeSystem(physics);
-    const propSystem = new PropSystem();
-    const spawner = new BlockSpawner(physics, mergeSystem, propSystem, container);
-    spawner.setContainerBounds(400, 0);
-
-    spawner.startAutoSpawn(1000, 80);
-    spawner.update(1000);
-
-    preview.hide();
-
-    expect(preview.visible).toBe(false);
-    const trailGraphics = (preview as any).trailGraphics;
-    expect(trailGraphics._context.instructions.length).toBe(0);
-
-    spawner.reset();
-    mergeSystem.destroy();
-    physics.destroy();
-    propSystem.destroy();
-    preview.destroy();
-  });
-});
-
-describe('Auto-Drop timing and animation integration', () => {
+describe('BlockSpawner timing and animation', () => {
   let physics: PhysicsManager;
   let mergeSystem: MergeSystem;
   let propSystem: PropSystem;
@@ -303,5 +214,157 @@ describe('Auto-Drop timing and animation integration', () => {
     spawner.dropBlock(200, 80, 1);
     spawner.startCooldown();
     expect(spawner.getBlocks().length).toBe(2);
+  });
+
+  it('should clean up gsap tweens when blocks are removed during auto-spawn', () => {
+    spawner.startAutoSpawn(500, 80);
+    spawner.update(500);
+
+    const block = spawner.getBlocks()[0];
+    gsap.to(block, { alpha: 0, duration: 1 });
+
+    spawner.removeBlock(block);
+    physics.removeBody(block.body);
+    block.destroy();
+
+    expect(block.isDestroyed).toBe(true);
+    expect(gsap.getTweensOf(block).length).toBe(0);
+  });
+});
+
+describe('BlockSpawner spawnObstacles with containerOffsetX', () => {
+  let physics: PhysicsManager;
+  let spawner: BlockSpawner;
+  let mergeSystem: MergeSystem;
+  let propSystem: PropSystem;
+  let stage: Container;
+
+  beforeEach(() => {
+    physics = new PhysicsManager();
+    mergeSystem = new MergeSystem(physics);
+    propSystem = new PropSystem();
+    stage = new Container();
+    spawner = new BlockSpawner(physics, mergeSystem, propSystem, stage);
+  });
+
+  it('should apply containerOffsetX to obstacle x positions', () => {
+    const obstacles = [
+      { x: 100, y: 400, value: 1 },
+      { x: 200, y: 350, value: 2 },
+    ];
+    const containerWidth = 400;
+    const groundY = 550;
+    const containerOffsetX = 200;
+
+    spawner.spawnObstacles(obstacles, containerWidth, groundY, containerOffsetX);
+
+    const obstacleBlocks = spawner.getObstacleBlocks();
+    expect(obstacleBlocks.length).toBe(2);
+
+    expect(obstacleBlocks[0].x).toBeCloseTo(100 + 200, 0);
+    expect(obstacleBlocks[1].x).toBeCloseTo(200 + 200, 0);
+  });
+
+  it('should default containerOffsetX to 0 when not provided', () => {
+    const obstacles = [
+      { x: 150, y: 300, value: 4 },
+    ];
+    const containerWidth = 400;
+    const groundY = 550;
+
+    spawner.spawnObstacles(obstacles, containerWidth, groundY);
+
+    const obstacleBlocks = spawner.getObstacleBlocks();
+    expect(obstacleBlocks.length).toBe(1);
+    expect(obstacleBlocks[0].x).toBeCloseTo(150, 0);
+  });
+
+  it('should use obs.y when provided, fallback to groundY - radius when not', () => {
+    const config1 = getBlockConfig(1);
+    const obstacles = [
+      { x: 100, y: 400, value: 1 },
+      { x: 200, value: 1 },
+    ] as any[];
+    const groundY = 550;
+    const containerOffsetX = 100;
+
+    spawner.spawnObstacles(obstacles, 400, groundY, containerOffsetX);
+
+    const obstacleBlocks = spawner.getObstacleBlocks();
+    expect(obstacleBlocks.length).toBe(2);
+    expect(obstacleBlocks[0].y).toBeCloseTo(400, 0);
+    expect(obstacleBlocks[1].y).toBeCloseTo(groundY - config1.radius, 0);
+  });
+
+  it('should place obstacles inside container walls when offset is applied', () => {
+    const containerWidth = 400;
+    const containerOffsetX = 200;
+    const groundY = 550;
+
+    const obstacles = [
+      { x: 200, y: 400, value: 1 },
+    ];
+
+    spawner.spawnObstacles(obstacles, containerWidth, groundY, containerOffsetX);
+
+    const obstacleBlocks = spawner.getObstacleBlocks();
+    expect(obstacleBlocks[0].x).toBeCloseTo(400, 0);
+
+    const leftWallX = containerOffsetX;
+    const rightWallX = containerOffsetX + containerWidth;
+    expect(obstacleBlocks[0].x).toBeGreaterThanOrEqual(leftWallX);
+    expect(obstacleBlocks[0].x).toBeLessThanOrEqual(rightWallX);
+  });
+});
+
+describe('BlockSpawner obstacle boundary clamping', () => {
+  let physics: PhysicsManager;
+  let spawner: BlockSpawner;
+  let mergeSystem: MergeSystem;
+  let propSystem: PropSystem;
+  let stage: Container;
+  const containerWidth = 400;
+  const groundY = 580;
+  const containerOffsetX = 50;
+
+  beforeEach(() => {
+    physics = new PhysicsManager();
+    mergeSystem = new MergeSystem(physics);
+    propSystem = new PropSystem();
+    stage = new Container();
+    spawner = new BlockSpawner(physics, mergeSystem, propSystem, stage);
+  });
+
+  afterEach(() => {
+    spawner.reset();
+    physics.destroy();
+  });
+
+  it('should clamp obstacle x to left boundary', () => {
+    const obstacles = [{ x: -100, y: 300, value: 1 }];
+    spawner.spawnObstacles(obstacles, containerWidth, groundY, containerOffsetX);
+    const blocks = spawner.getObstacleBlocks();
+    expect(blocks[0].x).toBeGreaterThanOrEqual(containerOffsetX);
+  });
+
+  it('should clamp obstacle x to right boundary', () => {
+    const obstacles = [{ x: 9999, y: 300, value: 1 }];
+    spawner.spawnObstacles(obstacles, containerWidth, groundY, containerOffsetX);
+    const blocks = spawner.getObstacleBlocks();
+    expect(blocks[0].x).toBeLessThanOrEqual(containerOffsetX + containerWidth);
+  });
+
+  it('should clamp obstacle y to top boundary', () => {
+    const obstacles = [{ x: 200, y: -100, value: 1 }];
+    spawner.spawnObstacles(obstacles, containerWidth, groundY, containerOffsetX);
+    const blocks = spawner.getObstacleBlocks();
+    expect(blocks[0].y).toBeGreaterThanOrEqual(0);
+  });
+
+  it('should clamp obstacle y to bottom boundary', () => {
+    const obstacles = [{ x: 200, y: 9999, value: 1 }];
+    spawner.spawnObstacles(obstacles, containerWidth, groundY, containerOffsetX);
+    const blocks = spawner.getObstacleBlocks();
+    expect(blocks[0].y).toBeLessThanOrEqual(groundY);
   });
 });

@@ -1,10 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { ScoreSystem } from '../../src/gameplay/ScoreSystem';
+import { ScoreSystem, SCORE_CONFIGS } from '../../src/gameplay/ScoreSystem';
+import { LevelSystem, LevelConfig } from '../../src/gameplay/LevelSystem';
 import { PhysicsManager } from '../../src/core/PhysicsManager';
 import { MergeSystem } from '../../src/gameplay/MergeSystem';
 import { Block } from '../../src/gameplay/Block';
 import { eventBus, GameEvents } from '../../src/utils/EventBus';
 import { AnimationManager } from '../../src/utils/AnimationManager';
+import fs from 'fs';
+import path from 'path';
 
 describe('Score Counter Integration Tests', () => {
   let physics: PhysicsManager;
@@ -240,6 +243,184 @@ describe('Score Counter Integration Tests', () => {
       simulatePostStep();
 
       expect(scoreSystem.getCurrentScore()).toBeGreaterThan(0);
+    });
+  });
+});
+
+const levelsDir = path.resolve(__dirname, '../../src/data/levels');
+
+function loadLevelJson(id: number): any {
+  return JSON.parse(fs.readFileSync(path.join(levelsDir, `level_${String(id).padStart(2, '0')}.json`), 'utf-8'));
+}
+
+function validateStars60_80_100(stars: number[]): boolean {
+  const threeStar = stars[2];
+  return stars[0] === Math.round(threeStar * 0.6) && stars[1] === Math.round(threeStar * 0.8);
+}
+
+function validateStarsMonotonic(stars: number[]): boolean {
+  return stars[0] < stars[1] && stars[1] < stars[2] && stars[2] > 0;
+}
+
+describe('Score system numerical balance', () => {
+  let ss: ScoreSystem;
+
+  beforeEach(() => {
+    ss = new ScoreSystem();
+  });
+
+  afterEach(() => {
+    ss.reset();
+  });
+
+  describe('SCORE_CONFIGS table completeness', () => {
+    it('SCORE_CONFIGS contains all powers of 2 from 2 to 4096', () => {
+      const powers = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096];
+      for (const p of powers) {
+        expect(SCORE_CONFIGS[p]).toBeDefined();
+        expect(SCORE_CONFIGS[p].baseScore).toBeGreaterThan(0);
+        expect(SCORE_CONFIGS[p].chainMultiplier).toBeGreaterThanOrEqual(1.0);
+      }
+    });
+
+    it('baseScore increases with merge value', () => {
+      const powers = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096];
+      for (let i = 1; i < powers.length; i++) {
+        expect(SCORE_CONFIGS[powers[i]].baseScore).toBeGreaterThan(SCORE_CONFIGS[powers[i - 1]].baseScore);
+      }
+    });
+
+    it('chainMultiplier increases with merge value', () => {
+      const powers = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096];
+      for (let i = 1; i < powers.length; i++) {
+        expect(SCORE_CONFIGS[powers[i]].chainMultiplier).toBeGreaterThanOrEqual(SCORE_CONFIGS[powers[i - 1]].chainMultiplier);
+      }
+    });
+  });
+
+  describe('addMergeScore uses SCORE_CONFIGS table uniformly', () => {
+    it('merge value in SCORE_CONFIGS uses baseScore from table', () => {
+      const handler = vi.fn();
+      eventBus.on(GameEvents.SCORE_UPDATED, handler);
+
+      ss.addMergeScore(16, false);
+
+      expect(handler).toHaveBeenCalled();
+      const data = handler.mock.calls[0][0];
+      expect(data.baseScore).toBe(SCORE_CONFIGS[16].baseScore);
+
+      eventBus.off(GameEvents.SCORE_UPDATED, handler);
+    });
+
+    it('merge value in SCORE_CONFIGS uses chainMultiplier from table', () => {
+      const handler = vi.fn();
+      eventBus.on(GameEvents.SCORE_UPDATED, handler);
+
+      ss.addMergeScore(32, false);
+
+      expect(handler).toHaveBeenCalled();
+      const data = handler.mock.calls[0][0];
+      expect(data.chainMultiplier).toBeCloseTo(SCORE_CONFIGS[32].chainMultiplier, 5);
+
+      eventBus.off(GameEvents.SCORE_UPDATED, handler);
+    });
+
+    it('merge value not in SCORE_CONFIGS uses calculateScore fallback', () => {
+      const handler = vi.fn();
+      eventBus.on(GameEvents.SCORE_UPDATED, handler);
+
+      ss.addMergeScore(3, false);
+
+      expect(handler).toHaveBeenCalled();
+      const data = handler.mock.calls[0][0];
+      expect(data.baseScore).toBeGreaterThan(0);
+
+      eventBus.off(GameEvents.SCORE_UPDATED, handler);
+    });
+
+    it('high value merge chainMultiplier > 1.0', () => {
+      const handler = vi.fn();
+      eventBus.on(GameEvents.SCORE_UPDATED, handler);
+
+      ss.addMergeScore(128, false);
+
+      expect(handler).toHaveBeenCalled();
+      const data = handler.mock.calls[0][0];
+      expect(data.chainMultiplier).toBeGreaterThan(1.0);
+
+      eventBus.off(GameEvents.SCORE_UPDATED, handler);
+    });
+  });
+
+  describe('Star lines follow 60%/80%/100% rule', () => {
+    it('Level 1 star line [300, 400, 500] follows the rule', () => {
+      const level1 = loadLevelJson(1);
+      expect(validateStars60_80_100(level1.rewards.stars)).toBe(true);
+    });
+
+    it('all score type level star lines follow 60%/80%/100% rule', () => {
+      for (let i = 1; i <= 15; i++) {
+        const level = loadLevelJson(i);
+        if (level.objective.type === 'score') {
+          expect(validateStars60_80_100(level.rewards.stars)).toBe(true);
+        }
+      }
+    });
+
+    it('all non-score type level star lines are monotonically increasing and 3-star equals target', () => {
+      for (let i = 1; i <= 15; i++) {
+        const level = loadLevelJson(i);
+        if (level.objective.type !== 'score') {
+          expect(validateStarsMonotonic(level.rewards.stars)).toBe(true);
+          expect(level.rewards.stars[2]).toBe(level.objective.target);
+        }
+      }
+    });
+  });
+
+  describe('Score system numerical soundness', () => {
+    it('chain bonus applies correctly', () => {
+      const handler = vi.fn();
+      eventBus.on(GameEvents.SCORE_UPDATED, handler);
+
+      ss.addMergeScore(4, false);
+      ss.addMergeScore(4, true);
+      ss.addMergeScore(4, true);
+
+      expect(handler).toHaveBeenCalledTimes(3);
+      const firstCall = handler.mock.calls[0][0];
+      const thirdCall = handler.mock.calls[2][0];
+      expect(thirdCall.earnedScore).toBeGreaterThan(firstCall.earnedScore);
+
+      eventBus.off(GameEvents.SCORE_UPDATED, handler);
+    });
+
+    it('lucky multiplier applies correctly', () => {
+      const handler = vi.fn();
+      eventBus.on(GameEvents.SCORE_UPDATED, handler);
+
+      ss.setLuckyMultiplier(2);
+      ss.addMergeScore(4, false);
+
+      expect(handler).toHaveBeenCalled();
+      const data = handler.mock.calls[0][0];
+      expect(data.earnedScore).toBe(SCORE_CONFIGS[4].baseScore * 2);
+
+      eventBus.off(GameEvents.SCORE_UPDATED, handler);
+    });
+  });
+
+  describe('Source verification: addMergeScore uses SCORE_CONFIGS', () => {
+    it('addMergeScore method references SCORE_CONFIGS', () => {
+      const content = fs.readFileSync(
+        path.resolve(__dirname, '../../src/gameplay/ScoreSystem.ts'),
+        'utf-8'
+      );
+      const match = content.match(/addMergeScore\(value: number, isCombo: boolean = false\): void \{[\s\S]*?\n  \}/);
+      expect(match).toBeTruthy();
+      expect(match![0]).toContain('SCORE_CONFIGS');
+      expect(match![0]).toContain('configEntry');
+      expect(match![0]).toContain('chainMultiplierFromTable');
     });
   });
 });
