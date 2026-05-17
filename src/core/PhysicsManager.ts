@@ -205,7 +205,13 @@ export class PhysicsManager {
     for (const body of this.bodies.values()) {
       if (body.isStatic) continue;
       const pos = body.position;
-      if (pos.x >= minX && pos.x <= maxX && pos.y >= minY && pos.y <= maxY) {
+      const radius = body.circleRadius || 0;
+      if (
+        pos.x + radius >= minX &&
+        pos.x - radius <= maxX &&
+        pos.y + radius >= minY &&
+        pos.y - radius <= maxY
+      ) {
         result.push(body);
       }
     }
