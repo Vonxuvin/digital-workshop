@@ -19,6 +19,7 @@ export class BlockPreview extends Container {
   private minX: number = 0;
   private maxX: number = 0;
   private groundY: number = 0;
+  private gravityAngle: number = 0;
 
   constructor() {
     super();
@@ -79,19 +80,29 @@ export class BlockPreview extends Container {
     this.trailGraphics.clear();
     const relativeY = targetY - this.y;
 
+    const dx = Math.sin(this.gravityAngle);
+    const dy = Math.cos(this.gravityAngle);
+    const trailLength = relativeY - this.radius;
+    const endX = dx * trailLength;
+    const endY = dy * trailLength;
+
     this.trailGraphics.moveTo(0, 0);
-    this.trailGraphics.lineTo(0, relativeY - this.radius);
+    this.trailGraphics.lineTo(endX, endY);
     this.trailGraphics.stroke({ width: 1.5, color: 0xffffff, alpha: 0.25 });
 
-    let dashY = 0;
+    const totalLength = Math.sqrt(endX * endX + endY * endY);
+    const dirX = totalLength > 0 ? dx : 0;
+    const dirY = totalLength > 0 ? dy : 1;
+    let dist = 0;
     let drawDash = true;
-    while (dashY < relativeY - this.radius) {
+    while (dist < totalLength) {
       if (drawDash) {
-        this.trailGraphics.moveTo(0, dashY);
-        this.trailGraphics.lineTo(0, Math.min(dashY + BlockPreview.DASH_LENGTH, relativeY - this.radius));
+        const segEnd = Math.min(dist + BlockPreview.DASH_LENGTH, totalLength);
+        this.trailGraphics.moveTo(dirX * dist, dirY * dist);
+        this.trailGraphics.lineTo(dirX * segEnd, dirY * segEnd);
         this.trailGraphics.stroke({ width: 2, color: 0xffffff, alpha: 0.35 });
       }
-      dashY += BlockPreview.DASH_LENGTH + BlockPreview.DASH_GAP;
+      dist += BlockPreview.DASH_LENGTH + BlockPreview.DASH_GAP;
       drawDash = !drawDash;
     }
   }
@@ -130,6 +141,14 @@ export class BlockPreview extends Container {
   setBounds(minX: number, maxX: number): void {
     this.minX = minX;
     this.maxX = maxX;
+  }
+
+  setGravityAngle(angleRad: number): void {
+    this.gravityAngle = angleRad;
+    if (this.visible) {
+      this.drawTrail(this.targetX, this.previewY);
+      this.drawLandingMarker(this.targetX, this.previewY);
+    }
   }
 
   setNextValue(value: number): void {

@@ -4,6 +4,7 @@ import * as PIXI from 'pixi.js';
 import { Container, Graphics } from 'pixi.js';
 import { ContainerModifier, ModifierConfig } from './ContainerModifier';
 import { PhysicsManager } from '../../core/PhysicsManager';
+import { eventBus, GameEvents } from '../../utils/EventBus';
 
 export interface RotateConfig extends ModifierConfig {
   rotationSpeed: number;
@@ -179,6 +180,7 @@ export class RotateModifier extends ContainerModifier {
     this.updateGravity();
     this.updateIndicator();
     this.updateVisualWalls();
+    eventBus.emit(GameEvents.CONTAINER_ROTATED, { angleDeg: this.currentAngle });
   }
 
   private updateIndicator(): void {

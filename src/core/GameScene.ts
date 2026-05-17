@@ -365,6 +365,15 @@ export class GameScene {
     }
 
     this.effectManager.cleanup();
+
+    const rotateModifier = this.modifierManager.getModifier('rotate') as any;
+    if (rotateModifier && rotateModifier.getCurrentAngle) {
+      const angleDeg = rotateModifier.getCurrentAngle();
+      const angleRad = (angleDeg * Math.PI) / 180;
+      this.preview.setGravityAngle(angleRad);
+    } else {
+      this.preview.setGravityAngle(0);
+    }
   }
 
   calculateStars(score: number, levelId: number): number {

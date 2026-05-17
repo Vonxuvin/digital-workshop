@@ -56,6 +56,7 @@ export const GameEvents = {
   SKIN_UNLOCKED: 'skin:unlocked',
   TALENT_UNLOCKED: 'talent:unlocked',
   AUDIO_MUTE_CHANGED: 'audio:muteChanged',
+  CONTAINER_ROTATED: 'container:rotated',
 } as const;
 
 export type GameEvent = (typeof GameEvents)[keyof typeof GameEvents];
