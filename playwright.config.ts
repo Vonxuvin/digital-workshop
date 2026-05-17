@@ -24,10 +24,10 @@ export default defineConfig({
     video: 'retain-on-failure',
     launchOptions: {
       args: [
-        '--use-gl=angle',
-        '--use-angle=swiftshader',
+        '--use-gl=swiftshader',
         '--enable-webgl',
         '--ignore-gpu-blocklist',
+        '--disable-gpu-sandbox',
       ],
     },
   },
