@@ -374,6 +374,15 @@ export class GameScene {
     } else {
       this.preview.setGravityAngle(0);
     }
+
+    const shrinkModifier = this.modifierManager.getModifier('shrink') as any;
+    if (shrinkModifier && shrinkModifier.isActive && shrinkModifier.isActive()) {
+      const shrinkWidth = shrinkModifier.getCurrentWidth();
+      const shrinkOffsetX = this.containerOffsetX + (this.containerWidth - shrinkWidth) / 2;
+      this.preview.setBounds(shrinkOffsetX, shrinkOffsetX + shrinkWidth);
+    } else {
+      this.preview.setBounds(this.containerOffsetX, this.containerOffsetX + this.containerWidth);
+    }
   }
 
   calculateStars(score: number, levelId: number): number {

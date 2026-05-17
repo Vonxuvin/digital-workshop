@@ -4,6 +4,7 @@ import * as PIXI from 'pixi.js';
 import { Container, Graphics } from 'pixi.js';
 import { ContainerModifier, ModifierConfig } from './ContainerModifier';
 import { PhysicsManager } from '../../core/PhysicsManager';
+import { eventBus, GameEvents } from '../../utils/EventBus';
 
 export interface ShrinkConfig extends ModifierConfig {
   targetWidth: number;
@@ -170,6 +171,10 @@ export class ShrinkModifier extends ContainerModifier {
       );
       this.updateWallPositions();
       this.pushBlocksInside();
+      eventBus.emit(GameEvents.CONTAINER_SHRUNK, {
+        width: this.currentWidth,
+        offsetX: this.containerOffsetX + (this.originalWidth - this.currentWidth) / 2,
+      });
     }
   }
 
