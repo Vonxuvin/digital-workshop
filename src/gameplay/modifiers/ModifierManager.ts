@@ -88,7 +88,8 @@ export class ModifierManager {
           this.physics,
           this.containerWidth,
           this.containerHeight,
-          this.stageContainer
+          this.stageContainer,
+          this.containerOffsetX
         );
         break;
       default:

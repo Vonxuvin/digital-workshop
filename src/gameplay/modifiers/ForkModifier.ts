@@ -28,13 +28,15 @@ export class ForkModifier extends ContainerModifier {
   private rightChannelWallGraphic: Graphics | null = null;
   private containerWidth: number;
   private containerHeight: number;
+  private containerOffsetX: number;
 
   constructor(
     config: ForkConfig,
     physics: PhysicsManager,
     containerWidth: number,
     containerHeight: number,
-    stageContainer?: Container | null
+    stageContainer?: Container | null,
+    containerOffsetX: number = 0
   ) {
     super(config, physics, stageContainer);
     this.forkY = config.forkY;
@@ -43,6 +45,7 @@ export class ForkModifier extends ContainerModifier {
     this.channelWidth = config.channelWidth;
     this.containerWidth = containerWidth;
     this.containerHeight = containerHeight;
+    this.containerOffsetX = containerOffsetX;
   }
 
   getType(): 'fork' {
@@ -57,10 +60,11 @@ export class ForkModifier extends ContainerModifier {
   private createForkStructure(): void {
     const wallThickness = 10;
     const halfWidth = this.containerWidth / 2;
+    const offsetX = this.containerOffsetX;
 
     const dividerHeight = this.containerHeight - this.forkY;
     this.divider = this.physics.createRectangle(
-      halfWidth,
+      offsetX + halfWidth,
       this.forkY + dividerHeight / 2,
       wallThickness,
       dividerHeight,
@@ -77,7 +81,7 @@ export class ForkModifier extends ContainerModifier {
       const leftWallLength = leftDisplacement / Math.sin(leftAngleRad);
 
       this.leftWall = this.physics.createRectangle(
-        leftDisplacement / 2,
+        offsetX + leftDisplacement / 2,
         this.forkY + leftFunnelHeight / 2,
         wallThickness,
         leftWallLength,
@@ -92,7 +96,7 @@ export class ForkModifier extends ContainerModifier {
       const leftChannelHeight = this.containerHeight - this.forkY - leftFunnelHeight;
       if (leftChannelHeight > 5) {
         this.leftChannelWall = this.physics.createRectangle(
-          halfWidth - this.channelWidth,
+          offsetX + halfWidth - this.channelWidth,
           this.forkY + leftFunnelHeight + leftChannelHeight / 2,
           wallThickness,
           leftChannelHeight,
@@ -106,7 +110,7 @@ export class ForkModifier extends ContainerModifier {
       const rightWallLength = rightDisplacement / Math.sin(rightAngleRad);
 
       this.rightWall = this.physics.createRectangle(
-        this.containerWidth - rightDisplacement / 2,
+        offsetX + this.containerWidth - rightDisplacement / 2,
         this.forkY + rightFunnelHeight / 2,
         wallThickness,
         rightWallLength,
@@ -121,7 +125,7 @@ export class ForkModifier extends ContainerModifier {
       const rightChannelHeight = this.containerHeight - this.forkY - rightFunnelHeight;
       if (rightChannelHeight > 5) {
         this.rightChannelWall = this.physics.createRectangle(
-          halfWidth + this.channelWidth,
+          offsetX + halfWidth + this.channelWidth,
           this.forkY + rightFunnelHeight + rightChannelHeight / 2,
           wallThickness,
           rightChannelHeight,
@@ -136,6 +140,7 @@ export class ForkModifier extends ContainerModifier {
   private createForkGraphics(): void {
     const wallThickness = 10;
     const halfWidth = this.containerWidth / 2;
+    const offsetX = this.containerOffsetX;
     const leftAngleRad = (this.leftAngle * Math.PI) / 180;
     const rightAngleRad = (this.rightAngle * Math.PI) / 180;
     const leftDisplacement = halfWidth - this.channelWidth;
@@ -145,7 +150,7 @@ export class ForkModifier extends ContainerModifier {
     this.dividerGraphic = new Graphics();
     this.dividerGraphic.rect(-wallThickness / 2, -dividerHeight / 2, wallThickness, dividerHeight);
     this.dividerGraphic.fill({ color: 0xE74C3C });
-    this.dividerGraphic.x = halfWidth;
+    this.dividerGraphic.x = offsetX + halfWidth;
     this.dividerGraphic.y = this.forkY + dividerHeight / 2;
 
     if (this.leftWall) {
@@ -155,7 +160,7 @@ export class ForkModifier extends ContainerModifier {
       this.leftWallGraphic = new Graphics();
       this.leftWallGraphic.rect(-wallThickness / 2, -leftWallLength / 2, wallThickness, leftWallLength);
       this.leftWallGraphic.fill({ color: 0x3498DB });
-      this.leftWallGraphic.x = leftDisplacement / 2;
+      this.leftWallGraphic.x = offsetX + leftDisplacement / 2;
       this.leftWallGraphic.y = this.forkY + leftFunnelHeight / 2;
       this.leftWallGraphic.rotation = -leftAngleRad;
     }
@@ -167,7 +172,7 @@ export class ForkModifier extends ContainerModifier {
       this.rightWallGraphic = new Graphics();
       this.rightWallGraphic.rect(-wallThickness / 2, -rightWallLength / 2, wallThickness, rightWallLength);
       this.rightWallGraphic.fill({ color: 0x3498DB });
-      this.rightWallGraphic.x = this.containerWidth - rightDisplacement / 2;
+      this.rightWallGraphic.x = offsetX + this.containerWidth - rightDisplacement / 2;
       this.rightWallGraphic.y = this.forkY + rightFunnelHeight / 2;
       this.rightWallGraphic.rotation = rightAngleRad;
     }
@@ -179,7 +184,7 @@ export class ForkModifier extends ContainerModifier {
       this.leftChannelWallGraphic = new Graphics();
       this.leftChannelWallGraphic.rect(-wallThickness / 2, -leftChannelHeight / 2, wallThickness, leftChannelHeight);
       this.leftChannelWallGraphic.fill({ color: 0x27AE60 });
-      this.leftChannelWallGraphic.x = halfWidth - this.channelWidth;
+      this.leftChannelWallGraphic.x = offsetX + halfWidth - this.channelWidth;
       this.leftChannelWallGraphic.y = this.forkY + leftFunnelHeight + leftChannelHeight / 2;
     }
 
@@ -190,7 +195,7 @@ export class ForkModifier extends ContainerModifier {
       this.rightChannelWallGraphic = new Graphics();
       this.rightChannelWallGraphic.rect(-wallThickness / 2, -rightChannelHeight / 2, wallThickness, rightChannelHeight);
       this.rightChannelWallGraphic.fill({ color: 0x27AE60 });
-      this.rightChannelWallGraphic.x = halfWidth + this.channelWidth;
+      this.rightChannelWallGraphic.x = offsetX + halfWidth + this.channelWidth;
       this.rightChannelWallGraphic.y = this.forkY + rightFunnelHeight + rightChannelHeight / 2;
     }
 
