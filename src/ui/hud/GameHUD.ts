@@ -350,6 +350,7 @@ export class GameHUD extends Container {
   }
 
   private handleScoreUpdated(data: { totalScore: number; earnedScore: number; chainCount: number }): void {
+    if (data.totalScore === this.currentScore) return;
     this.currentScore = data.totalScore;
     if (data.chainCount > 1) {
       this._chainText.text = `连锁 x${data.chainCount}!`;
@@ -357,12 +358,15 @@ export class GameHUD extends Container {
     } else {
       this._chainText.text = '';
     }
+    this.animateScore();
   }
 
   update(delta: number): void {
-    if (this.displayScore < this.currentScore) {
-      this.animateScore();
-    }
+    if (this.displayScore >= this.currentScore) return;
+    if (this.scoreTween) return;
+    const step = Math.max(1, Math.ceil((this.currentScore - this.displayScore) * delta * 0.08));
+    this.displayScore = Math.min(this.currentScore, this.displayScore + step);
+    this._scoreText.text = `Score: ${this.displayScore.toLocaleString()}`;
   }
 
   private animateScore(): void {
