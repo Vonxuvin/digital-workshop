@@ -202,7 +202,8 @@ export class PropEffectHandler {
     }
     this.warningLine?.reset();
     this.physics.start();
-    this.levelSystem?.resume();
+    this.levelSystem?.resumeTimer();
+    this.levelSystem?.applyTimerPenalty(10);
     modifierManager.resumeAll();
   }
 

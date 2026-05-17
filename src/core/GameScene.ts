@@ -174,6 +174,7 @@ export class GameScene {
     if (this.levelSystem) {
       this.gameHUD.setObjectiveProgress(this.levelSystem.getProgress());
     }
+    this.setWarningLineVisible(true);
     this.gameHUD.updatePropButtons();
 
     if (this.tutorialManager) {
@@ -194,6 +195,7 @@ export class GameScene {
     this.modifierManager.clearAll();
     this.rebuildPhysicsWalls();
     this.drawContainerWalls();
+    this.timeManager.resetGameTimeline();
   }
 
   restartLevel(): void {

@@ -125,6 +125,27 @@ export class LevelSystem {
     this.isPaused = false;
   }
 
+  resumeTimer(): void {
+    this.timerStopped = false;
+    this.isPaused = false;
+  }
+
+  applyTimerPenalty(penaltySeconds: number): void {
+    const timeLimit = this.config.objective.timeLimit;
+    if (timeLimit !== undefined && timeLimit !== null) {
+      this.timerElapsed += penaltySeconds * 1000;
+      const penaltyMs = penaltySeconds * 1000;
+      this.timerElapsed = Math.min(this.timerElapsed, timeLimit * 1000);
+      this.survivalTime = Math.floor(this.timerElapsed / 1000);
+    }
+  }
+
+  getRemainingTime(): number {
+    const timeLimit = this.config.objective.timeLimit;
+    if (timeLimit === undefined || timeLimit === null) return -1;
+    return Math.max(0, timeLimit - Math.floor(this.timerElapsed / 1000));
+  }
+
   private checkObjective(): void {
     if (this.isCompleted) return;
 

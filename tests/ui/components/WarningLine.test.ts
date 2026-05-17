@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { WarningLine } from '../../../src/ui/components/WarningLine';
 import { eventBus } from '../../../src/utils/EventBus';
 
@@ -149,5 +149,84 @@ describe('WarningLine', () => {
   it('should get graphics object', () => {
     const graphics = wl.getGraphics();
     expect(graphics).toBeDefined();
+  });
+});
+
+describe('WarningLine - 重置与可见性', () => {
+  let wl: WarningLine;
+
+  beforeEach(() => {
+    wl = new WarningLine(600);
+    wl.y = 600 * 0.2;
+  });
+
+  afterEach(() => {
+    wl.destroy();
+  });
+
+  it('reset后应恢复默认状态', () => {
+    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 250);
+    expect(wl.getWarningDuration()).toBeGreaterThan(0);
+
+    wl.reset();
+    expect(wl.getWarningDuration()).toBe(0);
+    expect(wl.getWarningProgress()).toBe(0);
+
+    const handler = vi.fn();
+    eventBus.on('game:over', handler);
+    for (let i = 0; i < 320; i++) {
+      wl.update([{ y: 50, radius: 20, speed: 0.5 }], 16.67);
+    }
+    expect(handler).toHaveBeenCalled();
+    eventBus.off('game:over', handler);
+  });
+
+  it('reset后应可重新触发警告', () => {
+    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 250);
+    expect(wl.getWarningDuration()).toBeGreaterThan(0);
+
+    wl.reset();
+    expect(wl.getWarningDuration()).toBe(0);
+
+    const handler = vi.fn();
+    eventBus.on('warning:started', handler);
+    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 250);
+    expect(handler).toHaveBeenCalled();
+    eventBus.off('warning:started', handler);
+  });
+
+  it('setDisabled(false)后应恢复正常功能', () => {
+    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 250);
+    expect(wl.getWarningDuration()).toBeGreaterThan(0);
+
+    wl.setDisabled(true);
+    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 16.67);
+    expect(wl.getWarningDuration()).toBe(0);
+
+    wl.setDisabled(false);
+    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 250);
+    expect(wl.getWarningDuration()).toBeGreaterThan(0);
+  });
+
+  it('reset后disabled状态应保持不变', () => {
+    wl.setDisabled(true);
+    wl.reset();
+    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 250);
+    expect(wl.getWarningDuration()).toBe(0);
+  });
+
+  it('reset后frozen状态应重置为false', () => {
+    wl.setFrozen(true);
+    wl.reset();
+    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 250);
+    expect(wl.getWarningDuration()).toBeGreaterThan(0);
+  });
+
+  it('visible属性应在Container级别正确控制', () => {
+    expect(wl.visible).toBe(true);
+    wl.visible = false;
+    expect(wl.visible).toBe(false);
+    wl.visible = true;
+    expect(wl.visible).toBe(true);
   });
 });

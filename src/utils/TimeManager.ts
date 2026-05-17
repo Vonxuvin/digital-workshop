@@ -65,4 +65,10 @@ export class TimeManager {
     this.gameTimeline.kill();
     this.isPaused = false;
   }
+
+  resetGameTimeline(): void {
+    this.gameTimeline.kill();
+    this.gameTimeline = gsap.timeline({ paused: false });
+    this.isPaused = false;
+  }
 }

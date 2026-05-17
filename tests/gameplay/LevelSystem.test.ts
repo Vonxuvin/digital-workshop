@@ -858,3 +858,190 @@ describe('LevelLoader validateConfig', () => {
     expect(result.errors).toContain('objective.timeLimit 必须 >= 0');
   });
 });
+
+describe('LevelSystem - 计时器功能（复活/暂停/恢复）', () => {
+  const timedConfig: LevelConfig = {
+    id: 10, name: '计时测试', objective: { type: 'survival', target: 30, timeLimit: 30 },
+    container: { width: 400, height: 600, shape: 'rectangle' },
+    spawn: { availableNumbers: [1, 2] },
+    rewards: { stars: [15, 20, 30] },
+  };
+
+  const nonSurvivalTimedConfig: LevelConfig = {
+    id: 11, name: '限时非生存', objective: { type: 'score', target: 100, timeLimit: 20 },
+    container: { width: 400, height: 600, shape: 'rectangle' },
+    spawn: { availableNumbers: [1, 2] },
+    rewards: { stars: [50, 80, 100] },
+  };
+
+  const noTimeLimitConfig: LevelConfig = {
+    id: 12, name: '无限时', objective: { type: 'score', target: 100 },
+    container: { width: 400, height: 600, shape: 'rectangle' },
+    spawn: { availableNumbers: [1, 2] },
+    rewards: { stars: [50, 80, 100] },
+  };
+
+  describe('stopTimer / resumeTimer', () => {
+    it('stopTimer后update不应推进计时', () => {
+      const ls = new LevelSystem(timedConfig);
+      ls.start();
+      ls.stopTimer();
+      ls.update(5000);
+      expect(ls.getProgress()).toBe(0);
+    });
+
+    it('resumeTimer应恢复计时器运行', () => {
+      const ls = new LevelSystem(timedConfig);
+      ls.start();
+      ls.stopTimer();
+      ls.update(5000);
+      ls.resumeTimer();
+      ls.update(5000);
+      expect(ls.getProgress()).toBeGreaterThan(0);
+    });
+
+    it('resumeTimer应重置timerStopped和isPaused', () => {
+      const ls = new LevelSystem(timedConfig);
+      ls.start();
+      ls.pause();
+      ls.stopTimer();
+      ls.resumeTimer();
+      ls.update(1000);
+      expect(ls.getProgress()).toBeGreaterThan(0);
+    });
+
+    it('stopTimer后resume不能恢复计时（resume只重置isPaused）', () => {
+      const ls = new LevelSystem(timedConfig);
+      ls.start();
+      ls.stopTimer();
+      ls.resume();
+      ls.update(5000);
+      expect(ls.getProgress()).toBe(0);
+    });
+
+    it('stopTimer后resumeTimer才能恢复计时', () => {
+      const ls = new LevelSystem(timedConfig);
+      ls.start();
+      ls.stopTimer();
+      ls.resume();
+      ls.update(3000);
+      const progressAfterResume = ls.getProgress();
+      ls.resumeTimer();
+      ls.update(3000);
+      expect(ls.getProgress()).toBeGreaterThan(progressAfterResume);
+    });
+  });
+
+  describe('applyTimerPenalty', () => {
+    it('应减少剩余时间', () => {
+      const ls = new LevelSystem(timedConfig);
+      ls.start();
+      ls.applyTimerPenalty(10);
+      const remaining = ls.getRemainingTime();
+      expect(remaining).toBe(20);
+    });
+
+    it('不应将timerElapsed推到超过timeLimit', () => {
+      const ls = new LevelSystem(timedConfig);
+      ls.start();
+      ls.applyTimerPenalty(40);
+      const remaining = ls.getRemainingTime();
+      expect(remaining).toBe(0);
+    });
+
+    it('无timeLimit时不应用惩罚', () => {
+      const ls = new LevelSystem(noTimeLimitConfig);
+      ls.start();
+      ls.applyTimerPenalty(10);
+      expect(ls.getRemainingTime()).toBe(-1);
+    });
+
+    it('应更新survivalTime', () => {
+      const ls = new LevelSystem(timedConfig);
+      ls.start();
+      ls.applyTimerPenalty(5);
+      expect(ls.getProgress()).toBeGreaterThan(0);
+    });
+  });
+
+  describe('getRemainingTime', () => {
+    it('无timeLimit时返回-1', () => {
+      const ls = new LevelSystem(noTimeLimitConfig);
+      expect(ls.getRemainingTime()).toBe(-1);
+    });
+
+    it('初始返回timeLimit', () => {
+      const ls = new LevelSystem(timedConfig);
+      ls.start();
+      expect(ls.getRemainingTime()).toBe(30);
+    });
+
+    it('经过时间后应返回正确剩余', () => {
+      const ls = new LevelSystem(timedConfig);
+      ls.start();
+      ls.update(15000);
+      expect(ls.getRemainingTime()).toBe(15);
+    });
+
+    it('不应返回负数', () => {
+      const ls = new LevelSystem(timedConfig);
+      ls.start();
+      ls.update(35000);
+      expect(ls.getRemainingTime()).toBe(0);
+    });
+  });
+
+  describe('模拟复活流程（stopTimer → resumeTimer + applyTimerPenalty）', () => {
+    it('复活后计时器应恢复运行并应用惩罚', () => {
+      const ls = new LevelSystem(timedConfig);
+      ls.start();
+      ls.update(10000);
+      expect(ls.getRemainingTime()).toBe(20);
+
+      ls.stopTimer();
+      ls.update(5000);
+      expect(ls.getRemainingTime()).toBe(20);
+
+      ls.resumeTimer();
+      ls.applyTimerPenalty(10);
+      expect(ls.getRemainingTime()).toBe(10);
+
+      ls.update(5000);
+      expect(ls.getRemainingTime()).toBe(5);
+    });
+
+    it('复活后计时器应继续触发timeUpdate事件', () => {
+      const ls = new LevelSystem(timedConfig);
+      ls.start();
+      ls.update(1000);
+      ls.stopTimer();
+
+      const handler = vi.fn();
+      eventBus.on('level:timeUpdate', handler);
+      ls.resumeTimer();
+      ls.applyTimerPenalty(5);
+      ls.update(1000);
+      ls.update(1000);
+      expect(handler).toHaveBeenCalled();
+      eventBus.off('level:timeUpdate', handler);
+    });
+
+    it('非生存关卡复活后计时器也应恢复', () => {
+      const ls = new LevelSystem(nonSurvivalTimedConfig);
+      ls.start();
+      ls.update(5000);
+      ls.stopTimer();
+
+      const handler = vi.fn();
+      eventBus.on('level:timeUpdate', handler);
+
+      ls.resumeTimer();
+      ls.applyTimerPenalty(10);
+      ls.update(1000);
+      ls.update(1000);
+
+      expect(handler).toHaveBeenCalled();
+      eventBus.off('level:timeUpdate', handler);
+    });
+  });
+});
