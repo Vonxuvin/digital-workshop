@@ -100,7 +100,19 @@ export class ScoreSystem {
     return this.score;
   }
 
+  getCurrentScore(): number {
+    return this.score;
+  }
+
+  getTotalScore(): number {
+    return this.score;
+  }
+
   getCombo(): number {
+    return this.chainCount;
+  }
+
+  getChainCount(): number {
     return this.chainCount;
   }
 
