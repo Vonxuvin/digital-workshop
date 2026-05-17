@@ -59,7 +59,10 @@ export class BlockSpawner {
 
   dropBlock(x: number, y: number, value: number): void {
     const config = getBlockConfig(value);
-    const body = this.physics.createCircle(x, y, config.radius, {
+    const leftBound = this.containerOffsetX + config.radius;
+    const rightBound = this.containerOffsetX + this.containerWidth - config.radius;
+    const clampedX = Math.max(leftBound, Math.min(rightBound, x));
+    const body = this.physics.createCircle(clampedX, y, config.radius, {
       density: 0.003 + config.mass * 0.0005,
     });
     const isRainbowBlock = this.rainbowRemaining > 0;
