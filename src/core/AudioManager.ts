@@ -24,6 +24,13 @@ export class AudioManager {
     this.setupEventListeners();
   }
 
+  static getInstance(): AudioManager {
+    if (!AudioManager.instance) {
+      AudioManager.instance = new AudioManager();
+    }
+    return AudioManager.instance;
+  }
+
   static setInstance(instance: AudioManager): void {
     AudioManager.instance = instance;
   }
@@ -267,5 +274,7 @@ export class AudioManager {
       this.audioContext.close();
       this.audioContext = null;
     }
+    this.initialized = false;
+    AudioManager.instance = null;
   }
 }

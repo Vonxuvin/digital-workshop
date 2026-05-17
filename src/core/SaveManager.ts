@@ -52,6 +52,13 @@ export class SaveManager {
     this.platform = createPlatformAdapter();
   }
 
+  static getInstance(): SaveManager {
+    if (!SaveManager.instance) {
+      SaveManager.instance = new SaveManager();
+    }
+    return SaveManager.instance;
+  }
+
   static setInstance(instance: SaveManager): void {
     SaveManager.instance = instance;
   }

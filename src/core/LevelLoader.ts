@@ -80,6 +80,13 @@ export class LevelLoader {
 
   constructor() {}
 
+  static getInstance(): LevelLoader {
+    if (!LevelLoader.instance) {
+      LevelLoader.instance = new LevelLoader();
+    }
+    return LevelLoader.instance;
+  }
+
   static setInstance(instance: LevelLoader): void {
     LevelLoader.instance = instance;
   }
