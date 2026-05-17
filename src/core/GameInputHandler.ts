@@ -22,6 +22,7 @@ export class GameInputHandler {
   private gameHUD: GameHUD;
   private canvas: HTMLCanvasElement;
   private boundKeydown: ((e: KeyboardEvent) => void) | null = null;
+  private touchStartedInContainer: boolean = false;
 
   constructor(
     app: Application,
@@ -41,6 +42,21 @@ export class GameInputHandler {
     this.canvas = canvas;
   }
 
+  private isInsideContainerX(x: number): boolean {
+    const left = this.gameScene.getContainerOffsetX();
+    const right = left + this.gameScene.getContainerWidth();
+    return x >= left && x <= right;
+  }
+
+  private isAboveContainerGround(y: number): boolean {
+    const groundY = this.gameScene.getGroundY();
+    return y < groundY;
+  }
+
+  private isTouchInValidDropZone(x: number, y: number): boolean {
+    return this.isInsideContainerX(x) && this.isAboveContainerGround(y);
+  }
+
   setup(): void {
     this.syncInputScale();
 
@@ -51,6 +67,8 @@ export class GameInputHandler {
         return;
       }
       if (!this.gameScene.getBlockSpawner().getCanDrop()) return;
+      this.touchStartedInContainer = this.isTouchInValidDropZone(state.position.x, state.position.y);
+      if (!this.touchStartedInContainer) return;
       const dropY = this.calculateDropY(state.position.y);
       this.gameScene.getPreview().show(this.gameScene.getBlockSpawner().getCurrentValue(), state.position.x, dropY);
     });
@@ -60,12 +78,13 @@ export class GameInputHandler {
         this.gameHUD.updateCrosshair(state.position.x, state.position.y);
         return;
       }
-      if (state.isDown && this.gameScene.getPreview().visible && this.sceneManager.isPlaying() && !this.gameScene.getBombTargetMode()) {
+      if (state.isDown && this.touchStartedInContainer && this.sceneManager.isPlaying() && !this.gameScene.getBombTargetMode()) {
         this.gameScene.getPreview().updatePosition(state.position.x);
       }
     });
 
     this.input.onUp(() => {
+      this.touchStartedInContainer = false;
       if (this.gameHUD.consumePropButtonClick()) return;
       if (this.gameScene.getBombTargetMode() && this.sceneManager.isPlaying()) {
         const pos = this.input.getState().position;

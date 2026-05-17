@@ -433,6 +433,7 @@ export class GameScene {
   getContainerOffsetX(): number { return this.containerOffsetX; }
   getContainerWidth(): number { return this.containerWidth; }
   getContainerHeight(): number { return this.containerHeight; }
+  getGroundY(): number { return this.groundY; }
   getApp(): Application { return this.app; }
   getPhysics(): PhysicsManager { return this.physics; }
   getBlockSpawner(): BlockSpawner { return this.blockSpawner; }
