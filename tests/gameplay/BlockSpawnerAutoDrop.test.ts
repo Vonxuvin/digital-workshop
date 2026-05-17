@@ -149,6 +149,55 @@ describe('BlockSpawner - auto-drop and manual release conflict fix', () => {
     spawner.update(500);
     expect(spawner.getIsAutoDropping()).toBe(false);
   });
+
+  it('should not spawn block before interval elapses', () => {
+    spawner.startAutoSpawn(500, 80);
+    spawner.update(499);
+    expect(spawner.getBlocks().length).toBe(0);
+  });
+
+  it('should spawn block exactly when interval elapses', () => {
+    spawner.startAutoSpawn(500, 80);
+    spawner.update(500);
+    expect(spawner.getBlocks().length).toBe(1);
+  });
+
+  it('should spawn block with visible and alpha > 0 on auto drop', () => {
+    spawner.startAutoSpawn(500, 80);
+    spawner.update(500);
+    const block = spawner.getBlocks()[0];
+    expect(block.visible).toBe(true);
+    expect(block.alpha).toBeGreaterThan(0);
+  });
+
+  it('should spawn block with scale > 0 on auto drop', () => {
+    spawner.startAutoSpawn(500, 80);
+    spawner.update(500);
+    const block = spawner.getBlocks()[0];
+    expect(block.scale.x).toBeGreaterThan(0);
+    expect(block.scale.y).toBeGreaterThan(0);
+  });
+
+  it('should accumulate elapsed time across multiple updates', () => {
+    spawner.startAutoSpawn(500, 80);
+    spawner.update(200);
+    expect(spawner.getBlocks().length).toBe(0);
+    spawner.update(200);
+    expect(spawner.getBlocks().length).toBe(0);
+    spawner.update(100);
+    expect(spawner.getBlocks().length).toBe(1);
+  });
+
+  it('should reset auto spawn elapsed on startAutoSpawn call', () => {
+    spawner.startAutoSpawn(500, 80);
+    spawner.update(400);
+    expect(spawner.getBlocks().length).toBe(0);
+    spawner.startAutoSpawn(500, 80);
+    spawner.update(400);
+    expect(spawner.getBlocks().length).toBe(0);
+    spawner.update(100);
+    expect(spawner.getBlocks().length).toBe(1);
+  });
 });
 
 describe('BlockSpawner - animation optimization for auto-drop', () => {

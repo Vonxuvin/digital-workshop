@@ -235,12 +235,13 @@ export class GameHUD extends Container {
     if (!this.crosshair) return;
     this.crosshair.visible = true;
     this.crosshair.clear();
-    this.crosshair.moveTo(x - 20, y);
-    this.crosshair.lineTo(x + 20, y);
-    this.crosshair.moveTo(x, y - 20);
-    this.crosshair.lineTo(x, y + 20);
+    this.crosshair.position.set(x, y);
+    this.crosshair.moveTo(-20, 0);
+    this.crosshair.lineTo(20, 0);
+    this.crosshair.moveTo(0, -20);
+    this.crosshair.lineTo(0, 20);
     this.crosshair.stroke({ width: 2, color: 0xff4444, alpha: 0.8 });
-    this.crosshair.circle(x, y, 10);
+    this.crosshair.circle(0, 0, 10);
     this.crosshair.stroke({ width: 2, color: 0xff4444, alpha: 0.5 });
   }
 

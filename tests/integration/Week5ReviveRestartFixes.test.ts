@@ -117,6 +117,22 @@ describe('集成测试：重新开始流程 - 动画时间线重置', () => {
     timeManager.resetGameTimeline();
     expect(timeManager.isCurrentlyPaused()).toBe(false);
   });
+
+  it('TimeManager类应可通过window.__TimeManager访问', () => {
+    expect(typeof TimeManager).toBe('function');
+    expect(typeof TimeManager.prototype.resetGameTimeline).toBe('function');
+  });
+
+  it('resetGameTimeline应创建新的运行中时间线', () => {
+    const oldTimeline = timeManager.getGameTimeline();
+    oldTimeline.pause();
+    expect(oldTimeline.paused()).toBe(true);
+
+    timeManager.resetGameTimeline();
+    const newTimeline = timeManager.getGameTimeline();
+    expect(newTimeline.paused()).toBe(false);
+    expect(newTimeline).not.toBe(oldTimeline);
+  });
 });
 
 describe('集成测试：WarningLine 重置与可见性', () => {

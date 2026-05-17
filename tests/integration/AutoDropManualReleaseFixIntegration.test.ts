@@ -238,3 +238,70 @@ describe('GameScene auto-drop preview cleanup integration', () => {
     preview.destroy();
   });
 });
+
+describe('Auto-Drop timing and animation integration', () => {
+  let physics: PhysicsManager;
+  let mergeSystem: MergeSystem;
+  let propSystem: PropSystem;
+  let spawner: BlockSpawner;
+  let stage: Container;
+
+  beforeEach(() => {
+    physics = new PhysicsManager();
+    mergeSystem = new MergeSystem(physics);
+    propSystem = new PropSystem();
+    stage = new Container();
+    spawner = new BlockSpawner(physics, mergeSystem, propSystem, stage);
+    spawner.setContainerBounds(400, 0);
+  });
+
+  afterEach(() => {
+    spawner.reset();
+    mergeSystem.destroy();
+    physics.destroy();
+    propSystem.destroy();
+  });
+
+  it('should spawn first block after interval elapses via update accumulation', () => {
+    spawner.startAutoSpawn(500, 80);
+    spawner.update(200);
+    expect(spawner.getBlocks().length).toBe(0);
+    spawner.update(300);
+    expect(spawner.getBlocks().length).toBe(1);
+  });
+
+  it('should produce visible block with animation properties on auto drop', () => {
+    spawner.startAutoSpawn(500, 80);
+    spawner.update(500);
+    const block = spawner.getBlocks()[0];
+    expect(block).toBeDefined();
+    expect(block.visible).toBe(true);
+    expect(block.alpha).toBeGreaterThan(0);
+    expect(block.scale.x).toBeGreaterThan(0);
+    expect(block.scale.y).toBeGreaterThan(0);
+  });
+
+  it('should produce multiple blocks across multiple intervals', () => {
+    spawner.startAutoSpawn(300, 80);
+    spawner.update(300);
+    expect(spawner.getBlocks().length).toBe(1);
+    spawner.update(300);
+    expect(spawner.getBlocks().length).toBe(2);
+    spawner.update(300);
+    expect(spawner.getBlocks().length).toBe(3);
+  });
+
+  it('should handle manual drop after auto-spawn cooldown expires', () => {
+    spawner.startAutoSpawn(500, 80);
+    spawner.update(500);
+    expect(spawner.getBlocks().length).toBe(1);
+    expect(spawner.getCanDrop()).toBe(false);
+
+    spawner.update(300);
+    expect(spawner.getCanDrop()).toBe(true);
+
+    spawner.dropBlock(200, 80, 1);
+    spawner.startCooldown();
+    expect(spawner.getBlocks().length).toBe(2);
+  });
+});

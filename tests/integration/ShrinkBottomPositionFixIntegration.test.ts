@@ -290,4 +290,60 @@ describe('Shrink Bottom Position Fix Integration', () => {
       expect(secondShrunkBottom).toBeCloseTo(originalBottom, 0);
     });
   });
+
+  describe('Shrink no-floating integration', () => {
+    it('should not cause any block bottom to move upward after shrink', () => {
+      const groundY = 590;
+      const ground = physics.createRectangle(200, groundY + 25, 400, 50);
+      ground.label = 'ground';
+
+      const body1 = physics.createCircle(150, groundY - 20, 20);
+      const block1 = new Block(body1, 1);
+      const body2 = physics.createCircle(250, groundY - 40, 40);
+      const block2 = new Block(body2, 8);
+
+      blockSpawner.getBlocks.mockReturnValue([block1, block2]);
+
+      for (let i = 0; i < 120; i++) {
+        physics.step(1000 / 60);
+      }
+
+      const bottom1Before = body1.position.y + body1.circleRadius!;
+      const bottom2Before = body2.position.y + body2.circleRadius!;
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      const bottom1After = body1.position.y + body1.circleRadius!;
+      const bottom2After = body2.position.y + body2.circleRadius!;
+
+      expect(bottom1After).toBeGreaterThanOrEqual(bottom1Before - 1);
+      expect(bottom2After).toBeGreaterThanOrEqual(bottom2Before - 1);
+    });
+
+    it('should maintain bottom positions through shrink-restore cycle with real physics', () => {
+      physics.start();
+      const groundY = 590;
+      const ground = physics.createRectangle(200, groundY + 25, 400, 50);
+      ground.label = 'ground';
+
+      const radius = 30;
+      const body = physics.createCircle(200, groundY - radius, radius);
+      const block = new Block(body, 4);
+      blockSpawner.getBlocks.mockReturnValue([block]);
+
+      for (let i = 0; i < 120; i++) {
+        physics.step(1000 / 60);
+      }
+
+      const originalBottom = body.position.y + body.circleRadius!;
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+      const shrunkBottom = body.position.y + body.circleRadius!;
+      expect(shrunkBottom).toBeGreaterThanOrEqual(originalBottom - 1);
+
+      handler.handleShrinkDeactivate();
+      const restoredBottom = body.position.y + body.circleRadius!;
+      expect(restoredBottom).toBeGreaterThanOrEqual(originalBottom - 2);
+    });
+  });
 });

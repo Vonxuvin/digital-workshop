@@ -150,4 +150,14 @@ describe('TimeManager - resetGameTimeline', () => {
     expect(t2).not.toBe(t1);
     expect(timeManager.isCurrentlyPaused()).toBe(false);
   });
+
+  it('resetGameTimeline方法应存在于TimeManager原型上', () => {
+    expect(typeof TimeManager.prototype.resetGameTimeline).toBe('function');
+  });
+
+  it('resetGameTimeline应可通过类引用调用', () => {
+    const tm = new TimeManager();
+    expect(() => tm.resetGameTimeline()).not.toThrow();
+    tm.destroy();
+  });
 });

@@ -293,6 +293,36 @@ describe('GameHUD', () => {
     expect(crosshair.visible).toBe(false);
   });
 
+  it('should set crosshair position to given coordinates', () => {
+    hud.showCrosshair(400, 300);
+    const crosshair = (hud as any).crosshair;
+    expect(crosshair.x).toBe(400);
+    expect(crosshair.y).toBe(300);
+  });
+
+  it('should update crosshair position when called with new coordinates', () => {
+    hud.showCrosshair(100, 200);
+    const crosshair = (hud as any).crosshair;
+    expect(crosshair.x).toBe(100);
+    expect(crosshair.y).toBe(200);
+    hud.updateCrosshair(400, 300);
+    expect(crosshair.x).toBe(400);
+    expect(crosshair.y).toBe(300);
+  });
+
+  it('should position crosshair at screen center on enterBombTargetMode', () => {
+    hud.layout(800, 600);
+    (mockPropSystem.getPropCount as any).mockReturnValue(3);
+    const button = hud.propButtons.get(PropType.BOMB);
+    if (button) {
+      (button as any).onClick(PropType.BOMB);
+    }
+    const crosshair = (hud as any).crosshair;
+    expect(crosshair.visible).toBe(true);
+    expect(crosshair.x).toBeCloseTo(400, -1);
+    expect(crosshair.y).toBeCloseTo(300, -1);
+  });
+
   it('should update crosshair position', () => {
     hud.showCrosshair(100, 200);
     hud.updateCrosshair(150, 250);

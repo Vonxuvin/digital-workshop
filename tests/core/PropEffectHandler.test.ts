@@ -627,6 +627,52 @@ describe('PropEffectHandler', () => {
     });
   });
 
+  describe('handleShrinkActivate - no floating after shrink', () => {
+    it('should not cause ball bottom to move upward after shrink', () => {
+      const groundY = 590;
+      const radius = 40;
+      const body = Matter.Bodies.circle(200, groundY - radius, radius);
+      const block = new Block(body, 8);
+      const originalBottom = body.position.y + radius;
+      blockSpawner.getBlocks.mockReturnValue([block]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      const shrunkBottom = body.position.y + body.circleRadius!;
+      expect(shrunkBottom).toBeGreaterThanOrEqual(originalBottom - 1);
+    });
+
+    it('should not cause stacked blocks to float upward after shrink', () => {
+      const groundY = 590;
+      const body1 = Matter.Bodies.circle(150, groundY - 20, 20);
+      const block1 = new Block(body1, 1);
+      const body2 = Matter.Bodies.circle(250, groundY - 60, 30);
+      const block2 = new Block(body2, 4);
+      const originalBottom1 = body1.position.y + 20;
+      const originalBottom2 = body2.position.y + 30;
+      blockSpawner.getBlocks.mockReturnValue([block1, block2]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      const shrunkBottom1 = body1.position.y + body1.circleRadius!;
+      const shrunkBottom2 = body2.position.y + body2.circleRadius!;
+      expect(shrunkBottom1).toBeGreaterThanOrEqual(originalBottom1 - 1);
+      expect(shrunkBottom2).toBeGreaterThanOrEqual(originalBottom2 - 1);
+    });
+
+    it('should preserve bottom position for block not on ground', () => {
+      const body = Matter.Bodies.circle(200, 300, 30);
+      const block = new Block(body, 4);
+      const originalBottom = body.position.y + 30;
+      blockSpawner.getBlocks.mockReturnValue([block]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      const shrunkBottom = body.position.y + body.circleRadius!;
+      expect(shrunkBottom).toBeCloseTo(originalBottom, 1);
+    });
+  });
+
   describe('setContainerBounds', () => {
     it('should update container bounds', () => {
       handler.setContainerBounds(50, 300);

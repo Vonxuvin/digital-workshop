@@ -5,6 +5,7 @@ import { Game } from './core/Game';
 declare global {
   interface Window {
     __gameInstance?: Game;
+    __TimeManager?: typeof import('./utils/TimeManager').TimeManager;
   }
 }
 
@@ -17,6 +18,7 @@ async function init() {
   }
   const game = new Game(canvas);
   window.__gameInstance = game;
+  window.__TimeManager = (await import('./utils/TimeManager')).TimeManager;
   await game.init();
 }
 
