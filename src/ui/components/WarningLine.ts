@@ -209,6 +209,12 @@ export class WarningLine extends Container {
     this.drawLine(this.currentColor, alpha);
   }
 
+  setContainerWidth(width: number): void {
+    this.containerWidth = width;
+    this.countdownText.x = width / 2;
+    this.drawLine(this.currentColor, this.currentAlpha);
+  }
+
   getAlpha(): number {
     return this.currentAlpha;
   }

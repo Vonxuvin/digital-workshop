@@ -380,8 +380,16 @@ export class GameScene {
       const shrinkWidth = shrinkModifier.getCurrentWidth();
       const shrinkOffsetX = this.containerOffsetX + (this.containerWidth - shrinkWidth) / 2;
       this.preview.setBounds(shrinkOffsetX, shrinkOffsetX + shrinkWidth);
+      const warningLine = this.containerRenderer.getWarningLine();
+      if (warningLine) {
+        warningLine.setContainerWidth(shrinkWidth);
+      }
     } else {
       this.preview.setBounds(this.containerOffsetX, this.containerOffsetX + this.containerWidth);
+      const warningLine = this.containerRenderer.getWarningLine();
+      if (warningLine) {
+        warningLine.setContainerWidth(this.containerWidth);
+      }
     }
   }
 
