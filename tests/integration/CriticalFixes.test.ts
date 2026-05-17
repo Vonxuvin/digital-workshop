@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { PhysicsManager } from '../../src/core/PhysicsManager';
 import { Block, getBlockConfig } from '../../src/gameplay/Block';
 import { BlockSpawner } from '../../src/gameplay/BlockSpawner';
@@ -17,8 +17,8 @@ describe('Critical Fixes Verification', () => {
 
     beforeEach(() => {
       physics = new PhysicsManager();
-      mergeSystem = new MergeSystem(physics, { emit: vi.fn(), on: vi.fn(), off: vi.fn() } as any);
-      propSystem = new PropSystem({ emit: vi.fn(), on: vi.fn(), off: vi.fn() } as any);
+      mergeSystem = new MergeSystem(physics);
+      propSystem = new PropSystem();
       stage = new Container();
       spawner = new BlockSpawner(physics, mergeSystem, propSystem, stage);
     });
@@ -90,6 +90,58 @@ describe('Critical Fixes Verification', () => {
       const rightWallX = containerOffsetX + containerWidth;
       expect(obstacleBlocks[0].x).toBeGreaterThanOrEqual(leftWallX);
       expect(obstacleBlocks[0].x).toBeLessThanOrEqual(rightWallX);
+    });
+  });
+
+  describe('#B-06 - Obstacle boundary clamping', () => {
+    let physics: PhysicsManager;
+    let spawner: BlockSpawner;
+    let mergeSystem: MergeSystem;
+    let propSystem: PropSystem;
+    let stage: Container;
+    const containerWidth = 400;
+    const groundY = 580;
+    const containerOffsetX = 50;
+
+    beforeEach(() => {
+      physics = new PhysicsManager();
+      mergeSystem = new MergeSystem(physics);
+      propSystem = new PropSystem();
+      stage = new Container();
+      spawner = new BlockSpawner(physics, mergeSystem, propSystem, stage);
+    });
+
+    afterEach(() => {
+      spawner.reset();
+      physics.destroy();
+    });
+
+    it('should clamp obstacle x to left boundary', () => {
+      const obstacles = [{ x: -100, y: 300, value: 1 }];
+      spawner.spawnObstacles(obstacles, containerWidth, groundY, containerOffsetX);
+      const blocks = spawner.getObstacleBlocks();
+      expect(blocks[0].x).toBeGreaterThanOrEqual(containerOffsetX);
+    });
+
+    it('should clamp obstacle x to right boundary', () => {
+      const obstacles = [{ x: 9999, y: 300, value: 1 }];
+      spawner.spawnObstacles(obstacles, containerWidth, groundY, containerOffsetX);
+      const blocks = spawner.getObstacleBlocks();
+      expect(blocks[0].x).toBeLessThanOrEqual(containerOffsetX + containerWidth);
+    });
+
+    it('should clamp obstacle y to top boundary', () => {
+      const obstacles = [{ x: 200, y: -100, value: 1 }];
+      spawner.spawnObstacles(obstacles, containerWidth, groundY, containerOffsetX);
+      const blocks = spawner.getObstacleBlocks();
+      expect(blocks[0].y).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should clamp obstacle y to bottom boundary', () => {
+      const obstacles = [{ x: 200, y: 9999, value: 1 }];
+      spawner.spawnObstacles(obstacles, containerWidth, groundY, containerOffsetX);
+      const blocks = spawner.getObstacleBlocks();
+      expect(blocks[0].y).toBeLessThanOrEqual(groundY);
     });
   });
 

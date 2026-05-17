@@ -174,8 +174,18 @@ export class BlockSpawner {
 
     obstacles.forEach((obs, i) => {
       const config = getBlockConfig(obs.value);
-      const posX = obs.x + containerOffsetX;
-      const posY = obs.y !== undefined ? obs.y : groundY - config.radius;
+      let posX = obs.x + containerOffsetX;
+      let posY = obs.y !== undefined ? obs.y : groundY - config.radius;
+
+      const leftBound = containerOffsetX + config.radius;
+      const rightBound = containerOffsetX + screenWidth - config.radius;
+      const topBound = config.radius;
+      const bottomBound = groundY - config.radius;
+
+      if (posX < leftBound) posX = leftBound;
+      if (posX > rightBound) posX = rightBound;
+      if (posY < topBound) posY = topBound;
+      if (posY > bottomBound) posY = bottomBound;
 
       const body = this.physics.createCircle(posX, posY, config.radius, {
         isStatic: true,
