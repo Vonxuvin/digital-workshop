@@ -218,6 +218,8 @@ export class GameScene {
     if (this.levelSystem) {
       this.gameHUD.setObjectiveProgress(this.levelSystem.getProgress());
     }
+    this.setWarningLineVisible(true);
+    this.gameHUD.updatePropButtons();
   }
 
   pause(): void {

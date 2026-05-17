@@ -229,4 +229,29 @@ describe('WarningLine - 重置与可见性', () => {
     wl.visible = true;
     expect(wl.visible).toBe(true);
   });
+
+  it('游戏结束（disabled=true）后reset不会恢复disabled状态', () => {
+    for (let i = 0; i < 320; i++) {
+      wl.update([{ y: 50, radius: 20, speed: 0.5 }], 16.67);
+    }
+    wl.reset();
+    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 250);
+    expect(wl.getWarningDuration()).toBe(0);
+  });
+
+  it('游戏结束后reset+setDisabled(false)应完全恢复', () => {
+    for (let i = 0; i < 320; i++) {
+      wl.update([{ y: 50, radius: 20, speed: 0.5 }], 16.67);
+    }
+
+    wl.reset();
+    wl.setDisabled(false);
+
+    const handler = vi.fn();
+    eventBus.on('warning:started', handler);
+    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 250);
+    expect(handler).toHaveBeenCalled();
+    expect(wl.getWarningDuration()).toBeGreaterThan(0);
+    eventBus.off('warning:started', handler);
+  });
 });

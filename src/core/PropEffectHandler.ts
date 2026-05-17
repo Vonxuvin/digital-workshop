@@ -201,6 +201,7 @@ export class PropEffectHandler {
       block.destroy();
     }
     this.warningLine?.reset();
+    this.warningLine?.setDisabled(false);
     this.physics.start();
     this.levelSystem?.resumeTimer();
     this.levelSystem?.applyTimerPenalty(10);

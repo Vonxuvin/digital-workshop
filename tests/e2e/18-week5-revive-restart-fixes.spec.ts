@@ -285,4 +285,104 @@ test.describe('Week5 游戏关卡修复验证 @critical', () => {
       expect(result.stateDefined).toBeTruthy();
     });
   });
+
+  test.describe('问题3：复活→重新开始后WarningLine应可见 @critical', () => {
+    test('setWarningLineVisible(true)后WarningLine.visible应为true', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false, reason: 'no-game' };
+        try {
+          const gameScene = game.getGameScene?.();
+          if (!gameScene) return { success: false, reason: 'no-game-scene' };
+
+          gameScene.setWarningLineVisible?.(true);
+          const warningLine = gameScene.getWarningLine?.();
+          if (!warningLine) return { success: false, reason: 'no-warning-line' };
+
+          return { success: true, visible: warningLine.visible };
+        } catch (e: any) {
+          return { success: false, reason: e?.message ?? 'unknown' };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      expect(result.visible).toBe(true);
+    });
+
+    test('setWarningLineVisible(false)后WarningLine.visible应为false', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false, reason: 'no-game' };
+        try {
+          const gameScene = game.getGameScene?.();
+          if (!gameScene) return { success: false, reason: 'no-game-scene' };
+
+          gameScene.setWarningLineVisible?.(false);
+          const warningLine = gameScene.getWarningLine?.();
+          if (!warningLine) return { success: false, reason: 'no-warning-line' };
+
+          return { success: true, visible: warningLine.visible };
+        } catch (e: any) {
+          return { success: false, reason: e?.message ?? 'unknown' };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      expect(result.visible).toBe(false);
+    });
+
+    test('重新开始后WarningLine应可见', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false, reason: 'no-game' };
+        try {
+          const gameScene = game.getGameScene?.();
+          if (!gameScene) return { success: false, reason: 'no-game-scene' };
+
+          gameScene.restartLevel?.();
+          const warningLine = gameScene.getWarningLine?.();
+          if (!warningLine) return { success: false, reason: 'no-warning-line' };
+
+          return { success: true, visible: warningLine.visible };
+        } catch (e: any) {
+          return { success: false, reason: e?.message ?? 'unknown' };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      expect(result.visible).toBe(true);
+    });
+
+    test('startLevel中应调用setWarningLineVisible(true)', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false, reason: 'no-game' };
+        try {
+          const gameScene = game.getGameScene?.();
+          if (!gameScene) return { success: false, reason: 'no-game-scene' };
+          const warningLine = gameScene.getWarningLine?.();
+          if (!warningLine) return { success: false, reason: 'no-warning-line' };
+
+          return { success: true, visible: warningLine.visible };
+        } catch (e: any) {
+          return { success: false, reason: e?.message ?? 'unknown' };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      expect(result.visible).toBe(true);
+    });
+  });
 });

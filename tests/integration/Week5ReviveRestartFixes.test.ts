@@ -264,6 +264,21 @@ describe('集成测试：PropEffectHandler.handleRevive 调用链验证', () => 
 
     expect(mockLevelSystem.applyTimerPenalty).toHaveBeenCalledWith(10);
   });
+
+  it('handleRevive应调用warningLine.reset和warningLine.setDisabled(false)', () => {
+    const mockModifierManager = { resumeAll: vi.fn() };
+    const mockWarningLine = {
+      y: 120,
+      reset: vi.fn(),
+      setDisabled: vi.fn(),
+    };
+    handler.setWarningLine(mockWarningLine as any);
+
+    handler.handleRevive(600, mockModifierManager);
+
+    expect(mockWarningLine.reset).toHaveBeenCalled();
+    expect(mockWarningLine.setDisabled).toHaveBeenCalledWith(false);
+  });
 });
 
 describe('集成测试：完整失败→重新开始流程', () => {
@@ -313,6 +328,32 @@ describe('集成测试：完整失败→重新开始流程', () => {
 
     wl.update([{ y: 50, radius: 20, speed: 0.5 }], 250);
     expect(wl.getWarningDuration()).toBeGreaterThan(0);
+
+    wl.destroy();
+  });
+
+  it('游戏失败→复活→重新开始完整流程中WarningLine应正确恢复', () => {
+    const wl = new WarningLine(600);
+    wl.y = 600 * 0.2;
+
+    for (let i = 0; i < 320; i++) {
+      wl.update([{ y: 50, radius: 20, speed: 0.5 }], 16.67);
+    }
+    const durationAfterGameOver = wl.getWarningDuration();
+    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 16.67);
+    expect(wl.getWarningDuration()).toBe(durationAfterGameOver);
+
+    wl.reset();
+    wl.setDisabled(false);
+    expect(wl.getWarningDuration()).toBe(0);
+    expect(wl.getWarningProgress()).toBe(0);
+
+    const handler = vi.fn();
+    eventBus.on('warning:started', handler);
+    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 250);
+    expect(handler).toHaveBeenCalled();
+    expect(wl.getWarningDuration()).toBeGreaterThan(0);
+    eventBus.off('warning:started', handler);
 
     wl.destroy();
   });
