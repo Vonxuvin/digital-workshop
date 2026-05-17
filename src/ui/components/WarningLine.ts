@@ -28,6 +28,7 @@ export class WarningLine extends Container {
   private readonly GRACE_PERIOD: number;
   private graceTimer = 0;
   private disabled = false;
+  private frozen = false;
   private config: WarningConfig;
   private settleTimer = 0;
   private wasSettled = false;
@@ -83,6 +84,7 @@ export class WarningLine extends Container {
 
   update(blocks: { y: number; radius: number; speed: number }[], deltaMS: number): void {
     if (this.disabled) return;
+    if (this.frozen) return;
 
     const warningY = this.y;
     const hasBlockAboveLine = blocks.some(block =>
@@ -172,6 +174,7 @@ export class WarningLine extends Container {
     this.graceTimer = 0;
     this.settleTimer = 0;
     this.wasSettled = false;
+    this.frozen = false;
     this.drawLine(0xff4444, 0.8);
     this.countdownText.visible = false;
   }
@@ -184,6 +187,10 @@ export class WarningLine extends Container {
       this.drawLine(0xff4444, 0.8);
       this.countdownText.visible = false;
     }
+  }
+
+  setFrozen(frozen: boolean): void {
+    this.frozen = frozen;
   }
 
   getGraphics(): Graphics {

@@ -583,6 +583,49 @@ describe('WarningLine Deep Tests', () => {
       eventBus.off('warning:started', handler);
     });
   });
+
+  describe('Frozen state pauses warning accumulation (B-12)', () => {
+    it('should not accumulate warning duration when frozen', () => {
+      const wh = wl.getWarningHeight();
+      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 250);
+      expect(wl.getWarningDuration()).toBeGreaterThan(0);
+
+      const durationBeforeFreeze = wl.getWarningDuration();
+      wl.setFrozen(true);
+      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 1000);
+      expect(wl.getWarningDuration()).toBe(durationBeforeFreeze);
+
+      wl.setFrozen(false);
+      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 250);
+      expect(wl.getWarningDuration()).toBeGreaterThan(durationBeforeFreeze);
+    });
+
+    it('should not emit game:over while frozen even if warning duration would exceed threshold', () => {
+      const wh = wl.getWarningHeight();
+      const handler = vi.fn();
+      eventBus.on('game:over', handler);
+
+      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 250);
+      wl.setFrozen(true);
+
+      for (let i = 0; i < 320; i++) {
+        wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
+      }
+
+      expect(handler).not.toHaveBeenCalled();
+
+      wl.setFrozen(false);
+      eventBus.off('game:over', handler);
+    });
+
+    it('should reset frozen state on reset()', () => {
+      wl.setFrozen(true);
+      wl.reset();
+      const wh = wl.getWarningHeight();
+      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 250);
+      expect(wl.getWarningDuration()).toBeGreaterThan(0);
+    });
+  });
 });
 
 import Matter from 'matter-js';

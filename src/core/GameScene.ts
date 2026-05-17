@@ -273,10 +273,12 @@ export class GameScene {
 
   handleFreezeActivated(data: { duration: number }): void {
     this.propEffectHandler.handleFreezeActivated(data);
+    this.containerRenderer.getWarningLine()?.setFrozen(true);
   }
 
   handleFreezeDeactivated(): void {
     this.propEffectHandler.handleFreezeDeactivated();
+    this.containerRenderer.getWarningLine()?.setFrozen(false);
   }
 
   handleShrinkActivate(data: { factor: number; duration: number }): void {
