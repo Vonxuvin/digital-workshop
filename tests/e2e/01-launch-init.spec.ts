@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { navigateToGame, collectPageErrors, GAME_URL } from './helpers';
+import { navigateToGame, collectPageErrors, ensureGameScene, GAME_URL } from './helpers';
 
 test.describe('启动与初始化 @smoke', () => {
   test.describe('页面加载 @smoke', () => {
@@ -51,20 +51,13 @@ test.describe('启动与初始化 @smoke', () => {
 
     test('Canvas应支持WebGL上下文', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasWebGL = await page.evaluate(() => {
         const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
         if (!canvas) return false;
         const gl = canvas.getContext('webgl') || canvas.getContext('webgl2') || canvas.getContext('webgpu');
-        if (gl) return true;
-        const game = (window as any).__gameInstance;
-        if (!game) return false;
-        try {
-          const app = game.getApp?.() ?? game.app;
-          return app !== null && app !== undefined;
-        } catch {
-          return false;
-        }
+        return gl !== null;
       });
 
       expect(hasWebGL).toBeTruthy();
@@ -143,6 +136,7 @@ test.describe('启动与初始化 @smoke', () => {
 
     test('资源加载不应阻塞主线程过久', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const fps = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
