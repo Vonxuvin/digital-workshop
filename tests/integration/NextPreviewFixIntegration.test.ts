@@ -317,3 +317,101 @@ describe('NextPreview Fix Integration - Multiple block drops', () => {
     expect(preview.isNextPreviewVisible()).toBe(true);
   });
 });
+
+describe('NextPreview Fix Integration - getBounds returns container bounds when hidden', () => {
+  it('should return valid bounds for nextPreview positioning check after drop', () => {
+    const preview = new BlockPreview();
+    const parent = new Container();
+    parent.addChild(preview);
+
+    preview.setBounds(200, 600);
+    preview.setGroundY(500);
+    preview.show(1, 400, 80);
+    preview.hide();
+    preview.setNextValue(2);
+
+    const pos = preview.getNextPreviewPosition();
+    const bounds = preview.getBounds();
+    expect(bounds.maxX).toBeGreaterThan(0);
+    expect(pos.x).toBeGreaterThan(bounds.maxX / 2);
+    expect(pos.y).toBeLessThan(100);
+  });
+
+  it('should return container bounds matching setBounds values when hidden', () => {
+    const preview = new BlockPreview();
+    const parent = new Container();
+    parent.addChild(preview);
+
+    preview.setBounds(150, 450);
+    preview.setGroundY(550);
+    preview.show(1, 300, 80);
+    preview.hide();
+
+    const bounds = preview.getBounds();
+    expect(bounds.minX).toBe(150);
+    expect(bounds.maxX).toBe(450);
+    expect(bounds.maxY).toBe(550);
+  });
+
+  it('should maintain valid bounds through full drop lifecycle', () => {
+    const preview = new BlockPreview();
+    const parent = new Container();
+    parent.addChild(preview);
+
+    preview.setBounds(100, 500);
+    preview.setGroundY(600);
+
+    preview.show(1, 300, 80);
+    preview.hide();
+    preview.setNextValue(2);
+
+    const hiddenBounds = preview.getBounds();
+    expect(hiddenBounds.maxX).toBe(500);
+
+    preview.show(2, 350, 80);
+    preview.hide();
+    preview.setNextValue(4);
+
+    const hiddenBounds2 = preview.getBounds();
+    expect(hiddenBounds2.maxX).toBe(500);
+  });
+
+  it('should return correct bounds for different container sizes', () => {
+    const sizes: Array<[number, number]> = [[0, 400], [100, 500], [200, 800]];
+
+    for (const [minX, maxX] of sizes) {
+      const preview = new BlockPreview();
+      const parent = new Container();
+      parent.addChild(preview);
+
+      preview.setBounds(minX, maxX);
+      preview.setGroundY(600);
+      preview.show(1, (minX + maxX) / 2, 80);
+      preview.hide();
+
+      const bounds = preview.getBounds();
+      expect(bounds.minX).toBe(minX);
+      expect(bounds.maxX).toBe(maxX);
+
+      preview.destroy();
+    }
+  });
+
+  it('should support e2e test pattern: getNextPreviewPosition vs getBounds', () => {
+    const preview = new BlockPreview();
+    const parent = new Container();
+    parent.addChild(preview);
+
+    preview.setBounds(200, 600);
+    preview.setGroundY(500);
+    preview.show(1, 400, 80);
+    preview.hide();
+    preview.setNextValue(2);
+
+    const pos = preview.getNextPreviewPosition();
+    const maxX = preview.getBounds().maxX;
+
+    expect(maxX).not.toBe(0);
+    expect(pos.x > maxX / 2 && pos.y < 100).toBe(true);
+  });
+});

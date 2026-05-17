@@ -307,4 +307,105 @@ test.describe('NextPreview 修复验证 @regression', () => {
       expect(hidden).toBeTruthy();
     });
   });
+
+  test.describe('getBounds override for hidden preview @regression', () => {
+    test('preview隐藏后getBounds应返回容器边界', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+      await dropBlocks(page, 1);
+      await waitForStable(page);
+
+      const boundsValid = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const preview = game.getGameScene?.()?.getPreview?.();
+          if (!preview) return false;
+          const bounds = preview.getBounds?.();
+          if (!bounds) return false;
+          return bounds.maxX > 0;
+        } catch {
+          return false;
+        }
+      });
+
+      expect(boundsValid).toBeTruthy();
+    });
+
+    test('preview隐藏后getBounds.maxX应等于容器右边界', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+      await dropBlocks(page, 1);
+      await waitForStable(page);
+
+      const boundsMatchContainer = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const preview = game.getGameScene?.()?.getPreview?.();
+          if (!preview) return false;
+          const bounds = preview.getBounds?.();
+          if (!bounds) return false;
+          const containerWidth = game.getGameScene?.()?.getContainerWidth?.() ?? 0;
+          const containerOffsetX = game.getGameScene?.()?.getContainerOffsetX?.() ?? 0;
+          if (containerWidth === 0) return false;
+          const expectedMaxX = containerOffsetX + containerWidth;
+          return Math.abs(bounds.maxX - expectedMaxX) < 1;
+        } catch {
+          return false;
+        }
+      });
+
+      expect(boundsMatchContainer).toBeTruthy();
+    });
+
+    test('多次投下方块后getBounds应持续返回有效边界', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+      await dropBlocks(page, 3);
+      await waitForStable(page);
+
+      const boundsConsistent = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const preview = game.getGameScene?.()?.getPreview?.();
+          if (!preview) return false;
+          const bounds1 = preview.getBounds?.();
+          const bounds2 = preview.getBounds?.();
+          if (!bounds1 || !bounds2) return false;
+          return bounds1.maxX === bounds2.maxX && bounds1.maxX > 0;
+        } catch {
+          return false;
+        }
+      });
+
+      expect(boundsConsistent).toBeTruthy();
+    });
+
+    test('preview隐藏后nextPreview位置应在getBounds右半区域', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+      await dropBlocks(page, 1);
+      await waitForStable(page);
+
+      const positionInRightHalf = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const preview = game.getGameScene?.()?.getPreview?.();
+          if (!preview) return false;
+          const pos = preview.getNextPreviewPosition?.();
+          if (!pos) return false;
+          const bounds = preview.getBounds?.();
+          if (!bounds || bounds.maxX === 0) return false;
+          return pos.x > bounds.maxX / 2;
+        } catch {
+          return false;
+        }
+      });
+
+      expect(positionInRightHalf).toBeTruthy();
+    });
+  });
 });

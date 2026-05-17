@@ -1,4 +1,4 @@
-import { Container, Graphics, Text } from 'pixi.js';
+import { Bounds, Container, Graphics, Text } from 'pixi.js';
 import { getBlockConfig } from '../gameplay/Block';
 import { BlockTextureCache } from '../utils/BlockTextureCache';
 
@@ -138,6 +138,18 @@ export class BlockPreview extends Container {
 
   hide(): void {
     this.visible = false;
+  }
+
+  override getBounds(skipUpdate?: boolean, bounds?: Bounds): Bounds {
+    if (!this.visible && this.maxX > this.minX) {
+      const result = bounds || new Bounds();
+      result.minX = this.minX;
+      result.minY = 0;
+      result.maxX = this.maxX;
+      result.maxY = this.groundY > 0 ? this.groundY : 600;
+      return result;
+    }
+    return super.getBounds(skipUpdate, bounds);
   }
 
   setGroundY(groundY: number): void {

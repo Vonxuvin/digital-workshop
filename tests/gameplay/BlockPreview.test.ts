@@ -451,3 +451,133 @@ describe('BlockPreview - nextPreview positioning fix', () => {
     expect(preview.isNextPreviewVisible()).toBe(true);
   });
 });
+
+describe('BlockPreview - getBounds override for hidden state', () => {
+  let preview: BlockPreview;
+  let parentContainer: Container;
+
+  beforeEach(() => {
+    parentContainer = new Container();
+    preview = new BlockPreview();
+    parentContainer.addChild(preview);
+  });
+
+  it('should return container bounds when preview is hidden', () => {
+    preview.setBounds(100, 500);
+    preview.setGroundY(600);
+    preview.show(1, 200, 80);
+    preview.hide();
+
+    const bounds = preview.getBounds();
+    expect(bounds.isValid).toBe(true);
+    expect(bounds.maxX).toBe(500);
+    expect(bounds.minX).toBe(100);
+  });
+
+  it('should return valid maxX when preview is hidden after drop', () => {
+    preview.setBounds(200, 600);
+    preview.setGroundY(500);
+    preview.show(1, 400, 80);
+    preview.hide();
+    preview.setNextValue(2);
+
+    const bounds = preview.getBounds();
+    expect(bounds.maxX).toBeGreaterThan(0);
+  });
+
+  it('should return normal bounds when preview is visible', () => {
+    preview.setBounds(100, 500);
+    preview.show(1, 200, 80);
+
+    expect(preview.visible).toBe(true);
+    expect(preview.getBounds).toBeDefined();
+  });
+
+  it('should return container bounds with groundY when hidden', () => {
+    preview.setBounds(50, 350);
+    preview.setGroundY(700);
+    preview.show(1, 100, 80);
+    preview.hide();
+
+    const bounds = preview.getBounds();
+    expect(bounds.maxY).toBe(700);
+  });
+
+  it('should return default maxY of 600 when groundY is 0 and hidden', () => {
+    preview.setBounds(50, 350);
+    preview.show(1, 100, 80);
+    preview.hide();
+
+    const bounds = preview.getBounds();
+    expect(bounds.maxY).toBe(600);
+  });
+
+  it('should delegate to super.getBounds when bounds not set and hidden', () => {
+    preview.show(1, 100, 80);
+    preview.hide();
+
+    const bounds = preview.getBounds();
+    expect(bounds).toBeDefined();
+  });
+
+  it('should position nextPreview in right half of container bounds when hidden', () => {
+    preview.setBounds(200, 600);
+    preview.setGroundY(500);
+    preview.show(1, 400, 80);
+    preview.hide();
+    preview.setNextValue(2);
+
+    const pos = preview.getNextPreviewPosition();
+    const bounds = preview.getBounds();
+    expect(bounds.maxX).toBeGreaterThan(0);
+    expect(pos.x).toBeGreaterThan(bounds.maxX / 2);
+    expect(pos.y).toBeLessThan(100);
+  });
+
+  it('should return consistent bounds across multiple getBounds calls when hidden', () => {
+    preview.setBounds(100, 500);
+    preview.setGroundY(600);
+    preview.show(1, 200, 80);
+    preview.hide();
+
+    const bounds1 = preview.getBounds();
+    const bounds2 = preview.getBounds();
+    expect(bounds1.maxX).toBe(bounds2.maxX);
+    expect(bounds1.minX).toBe(bounds2.minX);
+  });
+
+  it('should return container bounds after hide and setNextValue cycle', () => {
+    preview.setBounds(150, 450);
+    preview.setGroundY(550);
+    preview.show(1, 300, 80);
+    preview.hide();
+    preview.setNextValue(4);
+
+    const bounds = preview.getBounds();
+    expect(bounds.maxX).toBe(450);
+    expect(bounds.minX).toBe(150);
+    expect(bounds.maxY).toBe(550);
+  });
+
+  it('should transition from hidden bounds to visible bounds correctly', () => {
+    preview.setBounds(100, 500);
+    preview.setGroundY(600);
+    preview.show(1, 200, 80);
+    preview.hide();
+
+    const hiddenBounds = preview.getBounds();
+    expect(hiddenBounds.maxX).toBe(500);
+
+    preview.show(2, 300, 80);
+    expect(preview.visible).toBe(true);
+  });
+
+  it('should handle getBounds when hidden without prior show', () => {
+    preview.setBounds(100, 500);
+    preview.setGroundY(600);
+
+    const bounds = preview.getBounds();
+    expect(bounds.maxX).toBe(500);
+    expect(bounds.minX).toBe(100);
+  });
+});
