@@ -1,5 +1,6 @@
+import { logger } from '../../utils/Logger';
 import { eventBus, GameEvents } from '../../utils/EventBus';
-import { Prop, PropConfig, PropType, PropTarget } from './Prop';
+import { Prop, PropConfig, PropType } from './Prop';
 import { BombProp } from './BombProp';
 import { RainbowProp } from './RainbowProp';
 import { FreezeProp } from './FreezeProp';
@@ -84,7 +85,7 @@ export class PropSystem {
     }
   }
 
-  useProp(type: PropType, target?: PropTarget): boolean {
+  useProp(type: PropType, target?: { x: number; y: number }): boolean {
     if (this.isPaused) return false;
     
     const prop = this.props.get(type);
@@ -96,6 +97,7 @@ export class PropSystem {
     const success = prop.use(target);
     if (success) {
       this.eventBus.emit(GameEvents.PROPS_USED, { type, remaining: prop.getRemainingCount() });
+      logger.info('PropSystem', `props:used`, { type, remaining: prop.getRemainingCount() });
     }
     return success;
   }

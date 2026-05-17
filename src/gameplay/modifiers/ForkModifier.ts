@@ -1,3 +1,4 @@
+import { logger } from '../../utils/Logger';
 import Matter from 'matter-js';
 import { Container, Graphics } from 'pixi.js';
 import { ContainerModifier, ModifierConfig } from './ContainerModifier';
@@ -50,6 +51,7 @@ export class ForkModifier extends ContainerModifier {
 
   protected onActivate(): void {
     this.createForkStructure();
+    logger.info('ForkModifier', `激活分叉通道, forkY=${this.forkY}, leftAngle=${this.leftAngle}, rightAngle=${this.rightAngle}, channelWidth=${this.channelWidth}`);
   }
 
   private createForkStructure(): void {

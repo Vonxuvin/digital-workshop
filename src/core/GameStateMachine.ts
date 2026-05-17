@@ -1,3 +1,4 @@
+import { logger } from '../utils/Logger';
 export type GameState = 'boot' | 'loading' | 'menu' | 'playing' | 'paused' | 'gameover' | 'levelComplete';
 
 type StateCallback = (from: GameState, to: GameState) => void;
@@ -54,7 +55,7 @@ export class GameStateMachine {
     const from = this.currentState;
     if (from === to) return false;
     if (!this.canTransition(to)) {
-      console.warn(`[StateMachine] 非法状态转换: ${from} -> ${to}`);
+      logger.warn('StateMachine', `非法状态转换: ${from} -> ${to}`);
       return false;
     }
 
@@ -68,7 +69,7 @@ export class GameStateMachine {
       try {
         cb(from, to);
       } catch (error) {
-        console.error('[StateMachine] 全局监听器执行出错:', error);
+        logger.error('StateMachine', '全局监听器执行出错:', error);
       }
     });
 
@@ -77,10 +78,11 @@ export class GameStateMachine {
       try {
         cb(from, to);
       } catch (error) {
-        console.error(`[StateMachine] 状态监听器(${to})执行出错:`, error);
+        logger.error('StateMachine', `状态监听器(${to})执行出错:`, error);
       }
     });
 
+    logger.info('StateMachine', `${from} -> ${to}`);
     return true;
   }
 

@@ -1,3 +1,4 @@
+import { logger } from '../utils/Logger';
 import { eventBus, GameEvents } from '../utils/EventBus';
 import { PlatformAdapter } from '../platform/PlatformAdapter';
 import { createPlatformAdapter } from '../platform/PlatformFactory';
@@ -113,11 +114,12 @@ export class SaveManager {
       if (saved) {
         const parsed = typeof saved === 'string' ? JSON.parse(saved) : saved;
         this.data = this.deepMerge(this.getDefaultData(), parsed);
+        logger.info('SaveManager', '存档加载成功');
         eventBus.emit(GameEvents.SAVE_LOADED, this.data);
         return true;
       }
     } catch (error) {
-      console.error('[SaveManager] 加载存档失败:', error);
+      logger.error('SaveManager', '加载存档失败:', error);
     }
     return false;
   }
@@ -127,10 +129,11 @@ export class SaveManager {
       this.data.lastSaveTime = Date.now();
       await this.platform.setStorage(this.STORAGE_KEY, JSON.stringify(this.data));
       this.isDirty = false;
+      logger.info('SaveManager', '存档保存成功');
       eventBus.emit(GameEvents.SAVE_SAVED, this.data);
       return true;
     } catch (error) {
-      console.error('[SaveManager] 保存存档失败:', error);
+      logger.error('SaveManager', '保存存档失败:', error);
       return false;
     }
   }
@@ -313,7 +316,7 @@ export class SaveManager {
         try {
           await this.save();
         } catch (error) {
-          console.error('[SaveManager] 自动保存失败:', error);
+          logger.error('SaveManager', '自动保存失败:', error);
         }
       }
     }, intervalMs);
@@ -333,23 +336,27 @@ export class SaveManager {
     eventBus.emit(GameEvents.SAVE_RESET, this.data);
   }
 
-  private deepMerge<T extends object>(target: T, source: Record<string, unknown>): T {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private deepMerge<T extends Record<string, any>>(target: T, source: Record<string, unknown>): T {
     if (!source || typeof source !== 'object') return target;
-    const result = { ...target } as Record<string, unknown>;
+    const result = { ...target };
     for (const key of Object.keys(source)) {
       const sourceVal = source[key];
-      const targetVal = result[key];
+      const targetVal = (result as Record<string, unknown>)[key];
       if (
         targetVal && sourceVal &&
         typeof targetVal === 'object' && !Array.isArray(targetVal) &&
         typeof sourceVal === 'object' && !Array.isArray(sourceVal)
       ) {
-        result[key] = this.deepMerge(targetVal as Record<string, unknown>, sourceVal as Record<string, unknown>);
+        (result as Record<string, unknown>)[key] = this.deepMerge(
+          targetVal as Record<string, unknown>,
+          sourceVal as Record<string, unknown>,
+        );
       } else {
-        result[key] = sourceVal;
+        (result as Record<string, unknown>)[key] = sourceVal;
       }
     }
-    return result as T;
+    return result;
   }
 
   exportSave(): string {
@@ -371,10 +378,11 @@ export class SaveManager {
       }
       this.data = this.deepMerge(this.getDefaultData(), parsed);
       await this.save();
+      logger.info('SaveManager', '存档导入成功');
       eventBus.emit(GameEvents.SAVE_IMPORTED, this.data);
       return true;
     } catch (error) {
-      console.error('[SaveManager] 导入存档失败:', error);
+      logger.error('SaveManager', '导入存档失败:', error);
       return false;
     }
   }

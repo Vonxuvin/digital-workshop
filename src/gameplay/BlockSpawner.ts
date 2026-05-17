@@ -1,3 +1,4 @@
+import { logger } from '../utils/Logger';
 import { Block, getBlockConfig } from '../gameplay/Block';
 import { PhysicsManager } from '../core/PhysicsManager';
 import { MergeSystem } from '../gameplay/MergeSystem';
@@ -93,6 +94,7 @@ export class BlockSpawner {
       }
     }
 
+    logger.info('BlockSpawner', `投放方块 ${value}${isRainbowBlock ? '(彩虹)' : ''}, 下一个: ${this.currentValue}`);
     eventBus.emit(GameEvents.BLOCK_DROPPED);
 
     if (this.onBlockDropped) {
@@ -173,7 +175,7 @@ export class BlockSpawner {
     obstacles.forEach((obs, i) => {
       const config = getBlockConfig(obs.value);
       const posX = obs.x + containerOffsetX;
-      const posY = typeof obs.y === 'number' ? obs.y : groundY - config.radius;
+      const posY = obs.y !== undefined ? obs.y : groundY - config.radius;
 
       const body = this.physics.createCircle(posX, posY, config.radius, {
         isStatic: true,
@@ -184,6 +186,7 @@ export class BlockSpawner {
       this.obstacleBlocks.push(block);
       this.mergeSystem.registerObstacle(block);
     });
+    logger.info('BlockSpawner', `生成 ${obstacles.length} 个障碍物`);
   }
 
   removeBlock(block: Block): void {

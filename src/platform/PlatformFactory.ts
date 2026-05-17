@@ -1,3 +1,4 @@
+import { logger } from '../utils/Logger';
 import { PlatformAdapter } from './PlatformAdapter';
 import { WXAdapter } from './WXAdapter';
 import { MockAdapter } from './MockAdapter';
@@ -14,14 +15,14 @@ export function createPlatformAdapter(): PlatformAdapter {
   try {
     const isWechat = typeof wx !== 'undefined' && typeof wx.getSystemInfoSync === 'function';
     if (isWechat) {
-      console.log('[Platform] 使用微信适配器');
+      logger.info('Platform', '使用微信适配器');
       sharedInstance = new WXAdapter();
     } else {
-      console.log('[Platform] 使用本地调试适配器');
+      logger.info('Platform', '使用本地调试适配器');
       sharedInstance = new MockAdapter();
     }
   } catch {
-    console.log('[Platform] 使用本地调试适配器');
+    logger.info('Platform', '使用本地调试适配器');
     sharedInstance = new MockAdapter();
   }
   return sharedInstance;

@@ -1,3 +1,4 @@
+import { logger } from './utils/Logger';
 import { Game } from './core/Game';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -17,9 +18,9 @@ async function initWechatGame(): Promise<void> {
 
     const game = new Game(canvas as unknown as HTMLCanvasElement);
     await game.init();
-    console.log('[WeChatEntry] 微信小游戏初始化完成');
+    logger.info('WeChatEntry', '微信小游戏初始化完成');
   } catch (err) {
-    console.error('[WeChatEntry] 初始化失败:', err);
+    logger.error('WeChatEntry', '初始化失败:', err);
   }
 }
 

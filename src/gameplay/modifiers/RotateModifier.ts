@@ -1,3 +1,4 @@
+import { logger } from '../../utils/Logger';
 import Matter from 'matter-js';
 import * as PIXI from 'pixi.js';
 import { Container, Graphics } from 'pixi.js';
@@ -54,6 +55,7 @@ export class RotateModifier extends ContainerModifier {
     this.direction = 1;
     this.createVisualWalls();
     this.createRotationIndicator();
+    logger.info('RotateModifier', `激活旋转容器, maxAngle=${this.maxAngle}, oscillate=${this.oscillate}, bodies=${this.containerBodies.length}, center=(${this.centerX.toFixed(0)}, ${this.centerY.toFixed(0)})`);
   }
 
   protected showWarning(): void {

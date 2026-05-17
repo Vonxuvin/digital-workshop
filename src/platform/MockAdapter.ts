@@ -1,10 +1,11 @@
+import { logger } from '../utils/Logger';
 import { PlatformAdapter } from './PlatformAdapter';
 
 export class MockAdapter implements PlatformAdapter {
   private storage: Map<string, unknown> = new Map();
 
   async init(): Promise<void> {
-    console.log('[MockAdapter] 本地调试环境初始化');
+    logger.info('MockAdapter', '本地调试环境初始化');
   }
 
   async login(): Promise<{ code: string }> {
@@ -19,28 +20,28 @@ export class MockAdapter implements PlatformAdapter {
   }
 
   async share(title: string, _imageUrl?: string): Promise<void> {
-    console.log('[MockAdapter] 分享:', title);
+    logger.info('MockAdapter', '分享:', title);
   }
 
   async showRewardedVideo(_adUnitId: string): Promise<boolean> {
-    console.log('[MockAdapter] 显示激励视频（模拟成功）');
+    logger.info('MockAdapter', '显示激励视频（模拟成功）');
     return true;
   }
 
   async showInterstitialAd(_adUnitId: string): Promise<void> {
-    console.log('[MockAdapter] 显示插屏广告（模拟）');
+    logger.info('MockAdapter', '显示插屏广告（模拟）');
   }
 
   async showBannerAd(_adUnitId: string): Promise<void> {
-    console.log('[MockAdapter] 显示 Banner 广告（模拟）');
+    logger.info('MockAdapter', '显示 Banner 广告（模拟）');
   }
 
   async hideBannerAd(): Promise<void> {
-    console.log('[MockAdapter] 隐藏 Banner 广告（模拟）');
+    logger.info('MockAdapter', '隐藏 Banner 广告（模拟）');
   }
 
   async requestPayment(_orderInfo: unknown): Promise<void> {
-    console.log('[MockAdapter] 发起支付（模拟成功）');
+    logger.info('MockAdapter', '发起支付（模拟成功）');
   }
 
   async setStorage(key: string, data: unknown): Promise<void> {
@@ -81,11 +82,11 @@ export class MockAdapter implements PlatformAdapter {
   }
 
   vibrateShort(): void {
-    console.log('[MockAdapter] 短振动');
+    logger.info('MockAdapter', '短振动');
   }
 
   vibrateLong(): void {
-    console.log('[MockAdapter] 长振动');
+    logger.info('MockAdapter', '长振动');
   }
 
   getPlatform(): string {
@@ -97,6 +98,6 @@ export class MockAdapter implements PlatformAdapter {
   }
 
   mockWxAPI(): void {
-    console.log('[MockAdapter] wx API mock not needed in browser');
+    logger.info('MockAdapter', 'wx API mock not needed in browser');
   }
 }

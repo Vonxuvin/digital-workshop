@@ -1,3 +1,4 @@
+import { logger } from '../utils/Logger';
 import { BlockSpawner } from '../gameplay/BlockSpawner';
 import { Block } from '../gameplay/Block';
 import { MergeSystem } from '../gameplay/MergeSystem';
@@ -61,7 +62,7 @@ export class PropEffectHandler {
   handleBombExplode(data: { x: number; y: number; radius: number }): void {
     const bombProp = this.propSystem.getProp(PropType.BOMB);
     if (!bombProp) {
-      console.error('[PropEffectHandler] BombProp 未找到');
+      logger.error('PropEffectHandler', 'BombProp 未找到');
       return;
     }
 

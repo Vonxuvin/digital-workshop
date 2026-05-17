@@ -1,4 +1,5 @@
-import { Prop, PropConfig, PropTarget } from './Prop';
+import { logger } from '../../utils/Logger';
+import { Prop, PropConfig } from './Prop';
 import { eventBus, GameEvents } from '../../utils/EventBus';
 import { Block } from '../Block';
 
@@ -12,7 +13,7 @@ export class BombProp extends Prop {
     super(config);
   }
 
-  use(target?: PropTarget): boolean {
+  use(target?: { x: number; y: number }): boolean {
     if (!this.canUse()) return false;
     
     if (!target) {
@@ -23,6 +24,7 @@ export class BombProp extends Prop {
     this.usedCount++;
     this.lastUseTime = Date.now();
     
+    logger.info('BombProp', '发射爆炸事件', { x: target.x, y: target.y, radius: this.radius });
     this.eventBus.emit(GameEvents.PROPS_BOMB_EXPLODE, {
       x: target.x,
       y: target.y,

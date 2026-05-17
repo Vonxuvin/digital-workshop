@@ -28,6 +28,7 @@ import { BlockTextureCache } from '../utils/BlockTextureCache';
 import { GameScene } from './GameScene';
 import { GameEventRouter } from './GameEventRouter';
 import { SceneManager } from './SceneManager';
+import { logger } from '../utils/Logger';
 import { TutorialOverlay } from '../ui/TutorialOverlay';
 import { TutorialManager } from './TutorialManager';
 import { TimeManager } from '../utils/TimeManager';
@@ -154,11 +155,11 @@ export class Game {
         await Promise.race([initPromise, timeoutPromise]);
       } catch (initErr: unknown) {
         const errMsg = initErr instanceof Error ? initErr.message : String(initErr);
-        if (errMsg.includes('CanvasRenderer is not yet implemented') ||
-            errMsg.includes('No available renderer') ||
-            errMsg.includes('WebGL初始化超时')) {
-          console.warn('[Game] WebGL/WebGPU 渲染器初始化失败，这是沙盒环境的已知限制');
-          console.warn('[Game] 游戏将在降级模式下运行');
+        if (errMsg?.includes('CanvasRenderer is not yet implemented') ||
+            errMsg?.includes('No available renderer') ||
+            errMsg?.includes('WebGL初始化超时')) {
+          logger.warn('Game', 'WebGL/WebGPU 渲染器初始化失败，这是沙盒环境的已知限制');
+          logger.warn('Game', '游戏将在降级模式下运行');
           if (this.stateMachine.getCurrentState() === 'boot') {
             this.stateMachine.transition('loading');
           }
@@ -168,12 +169,12 @@ export class Game {
               this.uiManager = new UIManager(this.app);
             }
             this.uiManager.showScreen('mainMenu');
-          } catch (e) { console.warn('[Game] 降级模式UI初始化失败:', e); }
+          } catch (e) { logger.warn('Game', '降级模式UI初始化失败:', e); }
           try {
             if (!this.sceneManager) {
               this.setupUI();
             }
-          } catch (e) { console.warn('[Game] 降级模式场景初始化失败:', e); }
+          } catch (e) { logger.warn('Game', '降级模式场景初始化失败:', e); }
           return;
         }
         throw initErr;
@@ -198,13 +199,13 @@ export class Game {
 
       await Promise.all([
         this.audioManager.init().catch((audioErr) => {
-          console.warn('[Game] 音频初始化失败，游戏将以静音模式运行:', audioErr);
+          logger.warn('Game', '音频初始化失败，游戏将以静音模式运行:', audioErr);
         }),
         PropsConfigLoader.load(this.propSystem).catch((configErr) => {
-          console.warn('[Game] 关卡配置加载失败，使用默认配置:', configErr);
+          logger.warn('Game', '关卡配置加载失败，使用默认配置:', configErr);
         }),
         this.levelLoader.discoverAndLoadAllLevels().catch((levelErr) => {
-          console.warn('[Game] 关卡数据预加载失败:', levelErr);
+          logger.warn('Game', '关卡数据预加载失败:', levelErr);
         }),
       ]);
 
@@ -257,6 +258,7 @@ export class Game {
       this.setupFPSDisplay();
 
       this.boundStateChange = (from, to) => {
+        logger.info('Game', `状态变化: ${from} -> ${to}`);
         const isPlaying = to === 'playing';
         this.gameScene.setHUDVisible(isPlaying);
         this.gameScene.setWarningLineVisible(isPlaying);
@@ -283,10 +285,11 @@ export class Game {
       this.stateMachine.transition('menu');
       this.uiManager.showScreen('mainMenu');
 
+      logger.info('Game', '初始化完成');
     } catch (err) {
-      console.error('[Game] 初始化失败:', err);
-      console.error('[Game] 错误详情:', JSON.stringify(err, null, 2));
-      console.error('[Game] 错误堆栈:', (err as Error)?.stack);
+      logger.error('Game', '初始化失败:', err);
+      logger.error('Game', '错误详情:', JSON.stringify(err, null, 2));
+      logger.error('Game', '错误堆栈:', (err as Error)?.stack);
       const currentState = this.stateMachine.getCurrentState();
       if (currentState === 'boot') {
         this.stateMachine.transition('loading');
@@ -297,12 +300,12 @@ export class Game {
           this.uiManager = new UIManager(this.app);
         }
         this.uiManager.showScreen('mainMenu');
-      } catch (e) { console.warn('[Game] 错误恢复UI初始化失败:', e); }
+      } catch (e) { logger.warn('Game', '错误恢复UI初始化失败:', e); }
       try {
         if (!this.sceneManager) {
           this.setupUI();
         }
-      } catch (e) { console.warn('[Game] 错误恢复场景初始化失败:', e); }
+      } catch (e) { logger.warn('Game', '错误恢复场景初始化失败:', e); }
     }
   }
 

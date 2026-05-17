@@ -1,3 +1,4 @@
+import { logger } from '../utils/Logger';
 import { Assets } from 'pixi.js';
 
 export class AssetManager {
@@ -14,7 +15,7 @@ export class AssetManager {
         await Assets.loadBundle(bundleId);
         this.loaded.add(bundleId);
       } catch (error) {
-        console.error(`[AssetManager] 加载资源包失败: ${bundleId}`, error);
+        logger.error('AssetManager', `加载资源包失败: ${bundleId}`, error);
         throw error;
       } finally {
         this.loadingBundles.delete(bundleId);
@@ -34,14 +35,14 @@ export class AssetManager {
       this.loaded.add(alias);
       return asset;
     } catch (error) {
-      console.error(`[AssetManager] 加载资源失败: ${alias}`, error);
+      logger.error('AssetManager', `加载资源失败: ${alias}`, error);
       throw error;
     }
   }
 
   get<T = any>(alias: string): T | undefined {
     if (!this.loaded.has(alias)) {
-      console.warn(`[AssetManager] 资源未加载: ${alias}`);
+      logger.warn('AssetManager', `资源未加载: ${alias}`);
       return undefined;
     }
     return Assets.get(alias);
@@ -55,7 +56,7 @@ export class AssetManager {
     try {
       await Assets.unload(alias);
     } catch (error) {
-      console.error(`[AssetManager] 卸载资源失败: ${alias}`, error);
+      logger.error('AssetManager', `卸载资源失败: ${alias}`, error);
     }
     this.loaded.delete(alias);
   }
@@ -67,7 +68,7 @@ export class AssetManager {
       try {
         await Assets.unload(alias);
       } catch (error) {
-        console.error(`[AssetManager] 卸载资源失败: ${alias}`, error);
+        logger.error('AssetManager', `卸载资源失败: ${alias}`, error);
       }
     }
   }

@@ -1,3 +1,4 @@
+import { logger } from '../utils/Logger';
 import { PropSystem } from '../gameplay/props/PropSystem';
 import { PropType, PropConfig } from '../gameplay/props/Prop';
 import propsData from '../data/props/props.json';
@@ -22,7 +23,7 @@ export class PropsConfigLoader {
         return;
       }
     } catch (e) {
-      console.warn('[PropsConfigLoader] 静态导入道具配置失败，尝试fetch加载:', e);
+      logger.warn('PropsConfigLoader', '静态导入道具配置失败，尝试fetch加载:', e);
     }
 
     try {
@@ -33,7 +34,7 @@ export class PropsConfigLoader {
       const data = await response.json();
       await propSystem.loadConfig(data.props || []);
     } catch (e) {
-      console.warn('[PropsConfigLoader] 加载道具配置失败，使用默认配置:', e);
+      logger.warn('PropsConfigLoader', '加载道具配置失败，使用默认配置:', e);
       await propSystem.loadConfig(DEFAULT_PROPS);
     }
   }

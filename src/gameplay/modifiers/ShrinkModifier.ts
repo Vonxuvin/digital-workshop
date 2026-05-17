@@ -1,3 +1,4 @@
+import { logger } from '../../utils/Logger';
 import Matter from 'matter-js';
 import * as PIXI from 'pixi.js';
 import { Container, Graphics } from 'pixi.js';
@@ -53,6 +54,7 @@ export class ShrinkModifier extends ContainerModifier {
   protected onActivate(): void {
     this.findWalls();
     this.createWallGraphics();
+    logger.info('ShrinkModifier', `激活收缩容器, targetWidth=${this.targetWidth}, minWidth=${this.minWidth}`);
   }
 
   protected showWarning(): void {

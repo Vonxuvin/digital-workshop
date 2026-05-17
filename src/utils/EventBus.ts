@@ -1,3 +1,4 @@
+import { logger } from './Logger';
 import { EventPayloadMap } from './EventPayloadMap';
 import { GameEvents, GameEvent } from './GameEvents';
 
@@ -75,7 +76,7 @@ export class EventBus {
         try {
           cb(...args);
         } catch (error) {
-          console.error(`[EventBus] 事件 "${event}" 回调执行出错:`, error);
+          logger.error('EventBus', `事件 "${event}" 回调执行出错:`, error);
         }
       }
     }

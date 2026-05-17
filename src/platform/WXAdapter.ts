@@ -1,3 +1,4 @@
+import { logger } from '../utils/Logger';
 import { PlatformAdapter } from './PlatformAdapter';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -65,7 +66,7 @@ export class WXAdapter implements PlatformAdapter {
   private rewardedVideoAd: WXRewardedVideoAd | null = null;
 
   async init(): Promise<void> {
-    console.log('[WXAdapter] 微信环境初始化');
+    logger.info('WXAdapter', '微信环境初始化');
   }
 
   async login(): Promise<{ code: string }> {
@@ -109,14 +110,14 @@ export class WXAdapter implements PlatformAdapter {
 
       const onLoad = () => {
         this.rewardedVideoAd!.show().catch((err: unknown) => {
-          console.error('[Ad] 激励视频展示失败:', err);
+          logger.error('Ad', '激励视频展示失败:', err);
           cleanup();
           resolve(false);
         });
       };
 
       const onError = (err: unknown) => {
-        console.error('[Ad] 激励视频错误:', err);
+        logger.error('Ad', '激励视频错误:', err);
         cleanup();
         resolve(false);
       };
@@ -138,7 +139,7 @@ export class WXAdapter implements PlatformAdapter {
 
       this.rewardedVideoAd?.show().catch(() => {
         this.rewardedVideoAd?.load().catch((err: unknown) => {
-          console.error('[Ad] 激励视频加载失败:', err);
+          logger.error('Ad', '激励视频加载失败:', err);
           cleanup();
           resolve(false);
         });
@@ -149,7 +150,7 @@ export class WXAdapter implements PlatformAdapter {
   async showInterstitialAd(adUnitId: string): Promise<void> {
     const interstitialAd: WXInterstitialAd = wx.createInterstitialAd({ adUnitId });
     interstitialAd.show().catch((err: unknown) => {
-      console.error('[Ad] 插屏广告错误:', err);
+      logger.error('Ad', '插屏广告错误:', err);
     });
   }
 
@@ -170,7 +171,7 @@ export class WXAdapter implements PlatformAdapter {
       }
     });
     this.bannerAd?.show().catch((err: unknown) => {
-      console.error('[Ad] Banner广告展示失败:', err);
+      logger.error('Ad', 'Banner广告展示失败:', err);
     });
   }
 

@@ -1,3 +1,4 @@
+import { logger } from '../utils/Logger';
 import { Application } from 'pixi.js';
 import { PhysicsManager } from './PhysicsManager';
 import { ScoreSystem } from '../gameplay/ScoreSystem';
@@ -11,7 +12,6 @@ import { GameHUD } from '../ui/hud/GameHUD';
 import { GameEffectManager } from './GameEffectManager';
 import { ModifierManager } from '../gameplay/modifiers/ModifierManager';
 import { PropSystem } from '../gameplay/props/PropSystem';
-import { PropType } from '../gameplay/props/Prop';
 import { PropEffectHandler } from './PropEffectHandler';
 import { PerformanceMonitor } from '../utils/PerformanceMonitor';
 import { ContainerRenderer } from './ContainerRenderer';
@@ -27,12 +27,6 @@ export interface BlockMergedData {
 }
 
 export class GameScene {
-  private static readonly DEFAULT_GROUND_Y = 550;
-  private static readonly HUD_UPDATE_FRAME_MS = 16.67;
-  private static readonly STAR_MULTIPLIERS = { high: 30, medium: 20, low: 10 } as const;
-  private static readonly STAR_FALLBACK_THRESHOLDS = { three: 1000, two: 500, one: 100 } as const;
-  private static readonly AUTO_SPAWN_DROP_Y = 80;
-
   private app: Application;
   private physics: PhysicsManager;
   private preview: BlockPreview;
@@ -80,7 +74,7 @@ export class GameScene {
     this.propSystem = propSystem;
     this.performanceMonitor = performanceMonitor;
     this.containerRenderer = new ContainerRenderer(app, physics);
-    this.groundY = GameScene.DEFAULT_GROUND_Y;
+    this.groundY = 550;
     this.tutorialManager = tutorialManager || null;
     this.timeManager = TimeManager.getInstance();
   }
@@ -162,17 +156,11 @@ export class GameScene {
     this.setupContainer();
     this.resetGame();
     this.gameStartTime = Date.now();
-    this.initLevelState(config);
 
-    if (this.tutorialManager) {
-      this.tutorialManager.startTutorial(config.id, this.app.screen.width, this.app.screen.height);
-    }
-  }
-
-  private initLevelState(config: LevelConfig): void {
     this.modifierManager.setContainerSize(this.containerWidth, this.containerHeight, this.containerOffsetX);
     this.modifierManager.setStageContainer(this.app.stage);
     if (config.modifiers && config.modifiers.length > 0) {
+      logger.info('GameScene', `加载 ${config.modifiers.length} 个变形器`);
       this.modifierManager.loadFromLevelConfig(config.modifiers);
     }
 
@@ -186,6 +174,10 @@ export class GameScene {
       this.gameHUD.setObjectiveProgress(this.levelSystem.getProgress());
     }
     this.gameHUD.updatePropButtons();
+
+    if (this.tutorialManager) {
+      this.tutorialManager.startTutorial(config.id, this.app.screen.width, this.app.screen.height);
+    }
   }
 
   resetGame(): void {
@@ -209,7 +201,20 @@ export class GameScene {
     this.resetGame();
     this.propSystem.reset();
     this.propEffectHandler.initializeProps();
-    this.initLevelState(this.currentLevelConfig);
+    this.physics.start();
+    this.levelSystem?.start();
+    this.drawContainerWalls();
+    this.blockSpawner.spawnObstacles(this.currentLevelConfig!.obstacles, this.containerWidth, this.groundY, this.containerOffsetX);
+    this.startAutoSpawn();
+    if (this.currentLevelConfig?.modifiers) {
+      this.modifierManager.setContainerSize(this.containerWidth, this.containerHeight, this.containerOffsetX);
+      this.modifierManager.setStageContainer(this.app.stage);
+      this.modifierManager.loadFromLevelConfig(this.currentLevelConfig.modifiers);
+      this.modifierManager.startAll();
+    }
+    if (this.levelSystem) {
+      this.gameHUD.setObjectiveProgress(this.levelSystem.getProgress());
+    }
   }
 
   pause(): void {
@@ -290,7 +295,7 @@ export class GameScene {
     this.propEffectHandler.handleLuckyDeactivate();
   }
 
-  handlePropTargetMode(data: { type?: PropType; enabled: boolean }): void {
+  handlePropTargetMode(data: { type?: import('../gameplay/props/Prop').PropType; enabled: boolean }): void {
     this.propEffectHandler.handlePropTargetMode(data);
   }
 
@@ -332,7 +337,7 @@ export class GameScene {
     this.blockSpawner.cleanupOutOfBounds(this.app.screen.height);
     this.blockSpawner.syncAllBlocks(false);
 
-    this.gameHUD.update(deltaMS / GameScene.HUD_UPDATE_FRAME_MS);
+    this.gameHUD.update(deltaMS / 16.67);
     if (this.levelSystem) {
       this.gameHUD.setObjectiveProgress(this.levelSystem.getProgress());
     }
@@ -371,14 +376,14 @@ export class GameScene {
 
     if (config?.objective.type === 'target_merge') {
       const target = config.objective.target;
-      if (score >= target * GameScene.STAR_MULTIPLIERS.high) return 3;
-      if (score >= target * GameScene.STAR_MULTIPLIERS.medium) return 2;
-      if (score >= target * GameScene.STAR_MULTIPLIERS.low) return 1;
+      if (score >= target * 30) return 3;
+      if (score >= target * 20) return 2;
+      if (score >= target * 10) return 1;
     }
 
-    if (score >= GameScene.STAR_FALLBACK_THRESHOLDS.three) return 3;
-    if (score >= GameScene.STAR_FALLBACK_THRESHOLDS.two) return 2;
-    if (score >= GameScene.STAR_FALLBACK_THRESHOLDS.one) return 1;
+    if (score >= 1000) return 3;
+    if (score >= 500) return 2;
+    if (score >= 100) return 1;
     return 0;
   }
 
@@ -389,7 +394,7 @@ export class GameScene {
   private startAutoSpawn(): void {
     const interval = this.currentLevelConfig?.spawn.spawnInterval;
     if (!interval || interval <= 0) return;
-    this.blockSpawner.startAutoSpawn(interval * 1000, GameScene.AUTO_SPAWN_DROP_Y);
+    this.blockSpawner.startAutoSpawn(interval * 1000, 80);
   }
 
   dropBlockWithShrinkCheck(x: number, y: number, value: number): void {

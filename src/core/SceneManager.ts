@@ -3,15 +3,16 @@ import { GameStateMachine, GameState } from './GameStateMachine';
 import { GameScene } from './GameScene';
 import { LevelConfig } from '../gameplay/LevelSystem';
 import { AudioManager } from './AudioManager';
+import { logger } from '../utils/Logger';
 import { SaveManager } from './SaveManager';
 import { ResultScreen, ResultData } from '../ui/screens/ResultScreen';
 import { LevelSelectScreen } from '../ui/screens/LevelSelectScreen';
 import { LevelLoader } from './LevelLoader';
 import { AdManager } from './AdManager';
 
-export class SceneManager {
-  private static readonly MAX_LEVEL_SEARCH = 50;
+const TAG = 'SceneManager';
 
+export class SceneManager {
   private uiManager: UIManager;
   private stateMachine: GameStateMachine;
   private gameScene: GameScene;
@@ -75,7 +76,7 @@ export class SceneManager {
 
   startLevel(config: LevelConfig): boolean {
     if (!this.gameScene) {
-      console.warn('[SceneManager] startLevel: gameScene未初始化(WebGL降级模式)');
+      logger.warn(TAG, 'startLevel: gameScene未初始化(WebGL降级模式)');
       return false;
     }
     this.uiManager.hideCurrentScreen();
@@ -89,7 +90,7 @@ export class SceneManager {
     if (config) {
       return this.startLevel(config);
     }
-    console.warn(`[SceneManager] startLevelById(${levelId}): 关卡配置未找到`);
+    logger.warn(TAG, `startLevelById(${levelId}): 关卡配置未找到`);
     return false;
   }
 
@@ -99,12 +100,12 @@ export class SceneManager {
     if (config) {
       return this.startLevel(config);
     }
-    console.warn(`[SceneManager] startGame: 关卡配置未找到 (firstUnlocked=${firstUnlocked})`);
+    logger.warn(TAG, `startGame: 关卡配置未找到 (firstUnlocked=${firstUnlocked})`);
     return false;
   }
 
   private findFirstUnlockedLevel(): number {
-    for (let id = 1; id <= SceneManager.MAX_LEVEL_SEARCH; id++) {
+    for (let id = 1; id <= 15; id++) {
       const progress = this.saveManager.getLevelProgress(id);
       if (progress.unlocked && !progress.completed) return id;
     }
@@ -118,7 +119,7 @@ export class SceneManager {
       try {
         this.gameScene.pause();
       } catch (err) {
-        console.error('[SceneManager] pauseGame 暂停场景失败:', err);
+        logger.error(TAG, 'pauseGame 暂停场景失败:', err);
       }
     }
   }
@@ -130,7 +131,7 @@ export class SceneManager {
       try {
         this.gameScene.resume();
       } catch (err) {
-        console.error('[SceneManager] resumeGame 恢复场景失败:', err);
+        logger.error(TAG, 'resumeGame 恢复场景失败:', err);
       }
     }
   }
@@ -141,7 +142,7 @@ export class SceneManager {
     try {
       this.gameScene.restartLevel();
     } catch (err) {
-      console.error('[SceneManager] restartGame 重启关卡失败:', err);
+      logger.error(TAG, 'restartGame 重启关卡失败:', err);
     }
   }
 
@@ -154,7 +155,7 @@ export class SceneManager {
       this.gameScene.getModifierManager().pauseAll();
       this.gameScene.getPropEffectHandler().pause();
     } catch (err) {
-      console.error('[SceneManager] failGame 停止游戏逻辑失败:', err);
+      logger.error(TAG, 'failGame 停止游戏逻辑失败:', err);
     }
     this.audioManager.play('gameover');
     try {
@@ -170,7 +171,7 @@ export class SceneManager {
         playTime,
       });
     } catch (err) {
-      console.error('[SceneManager] failGame 保存失败结果失败:', err);
+      logger.error(TAG, 'failGame 保存失败结果失败:', err);
     }
     this.uiManager.showScreen('result');
   }
@@ -182,7 +183,7 @@ export class SceneManager {
       this.gameScene.getGameHUD().skipAnimation();
       this.gameScene.clearEverything();
     } catch (err) {
-      console.error('[SceneManager] completeLevel 停止场景失败:', err);
+      logger.error(TAG, 'completeLevel 停止场景失败:', err);
     }
     this.audioManager.play('levelComplete');
     try {
@@ -205,7 +206,7 @@ export class SceneManager {
         mergedCount: highestMerge,
       });
     } catch (err) {
-      console.error('[SceneManager] completeLevel 保存通关结果失败:', err);
+      logger.error(TAG, 'completeLevel 保存通关结果失败:', err);
     }
     this.uiManager.showScreen('result');
   }
@@ -213,13 +214,14 @@ export class SceneManager {
   async reviveGame(): Promise<void> {
     const watched = await this.adManager.showRewardedVideo();
     if (!watched) {
+      logger.info(TAG, '用户未看完激励视频，取消复活');
       return;
     }
     this.uiManager.hideCurrentScreen();
     try {
       this.gameScene.handleRevive();
     } catch (err) {
-      console.error('[SceneManager] reviveGame 复活处理失败:', err);
+      logger.error(TAG, 'reviveGame 复活处理失败:', err);
     }
     this.stateMachine.transition('playing');
   }
@@ -229,7 +231,7 @@ export class SceneManager {
     try {
       currentId = this.gameScene.getLevelSystem()?.getConfig().id || 1;
     } catch (err) {
-      console.error('[SceneManager] nextLevel 获取当前关卡ID失败:', err);
+      logger.error(TAG, 'nextLevel 获取当前关卡ID失败:', err);
     }
     const nextId = currentId + 1;
     const config = this.levelLoader.getLevelConfig(nextId);

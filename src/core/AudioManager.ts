@@ -1,3 +1,4 @@
+import { logger } from '../utils/Logger';
 import { eventBus, GameEvents } from '../utils/EventBus';
 
 export interface SoundConfig {
@@ -35,26 +36,12 @@ export class AudioManager {
     return AudioManager.instance;
   }
 
-  private boundListeners: Map<string, (...args: any[]) => void> = new Map();
-
   private setupEventListeners(): void {
-    const onBlockDropped = () => this.playSfx('spawn');
-    const onBlockMerged = (data: any) => this.playMergeSound(data.newValue);
-    const onScoreUpdated = (data: any) => this.playComboSound(data.chainCount);
-    const onPropsUsed = (data: any) => this.playPropSound(data.type);
-    const onButtonClick = () => this.playSfx('click');
-
-    eventBus.on(GameEvents.BLOCK_DROPPED, onBlockDropped);
-    eventBus.on(GameEvents.BLOCK_MERGED, onBlockMerged);
-    eventBus.on(GameEvents.SCORE_UPDATED, onScoreUpdated);
-    eventBus.on(GameEvents.PROPS_USED, onPropsUsed);
-    eventBus.on(GameEvents.UI_BUTTON_CLICK, onButtonClick);
-
-    this.boundListeners.set(GameEvents.BLOCK_DROPPED, onBlockDropped);
-    this.boundListeners.set(GameEvents.BLOCK_MERGED, onBlockMerged);
-    this.boundListeners.set(GameEvents.SCORE_UPDATED, onScoreUpdated);
-    this.boundListeners.set(GameEvents.PROPS_USED, onPropsUsed);
-    this.boundListeners.set(GameEvents.UI_BUTTON_CLICK, onButtonClick);
+    eventBus.on(GameEvents.BLOCK_DROPPED, () => this.playSfx('spawn'));
+    eventBus.on(GameEvents.BLOCK_MERGED, (data) => this.playMergeSound(data.newValue));
+    eventBus.on(GameEvents.SCORE_UPDATED, (data) => this.playComboSound(data.chainCount));
+    eventBus.on(GameEvents.PROPS_USED, (data) => this.playPropSound(data.type));
+    eventBus.on(GameEvents.UI_BUTTON_CLICK, () => this.playSfx('click'));
   }
 
   async init(): Promise<void> {
@@ -65,7 +52,7 @@ export class AudioManager {
         this.audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
       }
     } catch (error) {
-      console.warn('[AudioManager] 音频上下文初始化失败:', error);
+      logger.warn('AudioManager', '音频上下文初始化失败:', error);
     }
     this.initialized = true;
   }
@@ -84,7 +71,7 @@ export class AudioManager {
       }, { once: true });
       
       audio.addEventListener('error', () => {
-        console.warn(`[AudioManager] 音效加载失败: ${config.key}`);
+        logger.warn('AudioManager', `音效加载失败: ${config.key}`);
         resolve();
       }, { once: true });
       
@@ -243,6 +230,7 @@ export class AudioManager {
   }
 
   private playSfx(key: string): void {
+    logger.debug('AudioManager', `playSfx('${key}')`);
     this.play(key);
   }
 
@@ -280,10 +268,6 @@ export class AudioManager {
   }
 
   destroy(): void {
-    for (const [event, listener] of this.boundListeners) {
-      eventBus.off(event, listener);
-    }
-    this.boundListeners.clear();
     this.stopAll();
     this.sounds.clear();
     this.volumes.clear();

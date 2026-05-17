@@ -1,3 +1,4 @@
+import { logger } from '../../utils/Logger';
 import { Container } from 'pixi.js';
 import { EventBus, eventBus } from '../../utils/EventBus';
 import { ContainerModifier, ModifierConfig, ModifierType } from './ContainerModifier';
@@ -58,12 +59,12 @@ export class ModifierManager {
 
   createModifier(config: ModifierConfig): ContainerModifier | null {
     if (!this.containerWidth || !this.containerHeight) {
-      console.error('[ModifierManager] 容器尺寸未设置');
+      logger.error('ModifierManager', '容器尺寸未设置');
       return null;
     }
 
     if (this.modifiers.has(config.type)) {
-      console.warn(`[ModifierManager] 类型 ${config.type} 的修饰器已存在，将替换`);
+      logger.warn('ModifierManager', `类型 ${config.type} 的修饰器已存在，将替换`);
       const existing = this.modifiers.get(config.type)!;
       existing.destroy();
     }
@@ -110,7 +111,7 @@ export class ModifierManager {
         );
         break;
       default:
-        console.warn(`[ModifierManager] 不支持的变形类型: ${config.type}`);
+        logger.warn('ModifierManager', `不支持的变形类型: ${config.type}`);
         return null;
     }
 

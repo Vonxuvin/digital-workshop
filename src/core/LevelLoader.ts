@@ -1,3 +1,4 @@
+import { logger } from '../utils/Logger';
 import { LevelConfig } from '../gameplay/LevelSystem';
 import { createPlatformAdapter } from '../platform/PlatformFactory';
 
@@ -104,7 +105,7 @@ export class LevelLoader {
         }
       }
     } catch (e) {
-      console.warn(`[LevelLoader] fetch加载失败(${url}):`, e);
+      logger.warn('LevelLoader', `fetch加载失败(${url}):`, e);
     }
 
     try {
@@ -113,7 +114,7 @@ export class LevelLoader {
       const data = await platform.getStorage<LevelData>(url);
       if (data) return data;
     } catch (e) {
-      console.warn(`[LevelLoader] 平台存储加载失败(${url}):`, e);
+      logger.warn('LevelLoader', `平台存储加载失败(${url}):`, e);
     }
 
     return null;
@@ -151,12 +152,12 @@ export class LevelLoader {
 
     const validation = this.validateConfig(data);
     if (!validation.valid) {
-      console.error(`[LevelLoader] 关卡 ${levelId} 数据校验失败:`, validation.errors);
+      logger.error('LevelLoader', `关卡 ${levelId} 数据校验失败:`, validation.errors);
       return null;
     }
     const config = this.parseLevelConfig(data);
     if (!config) {
-      console.error(`[LevelLoader] 关卡 ${levelId} 数据格式无效`);
+      logger.error('LevelLoader', `关卡 ${levelId} 数据格式无效`);
       return null;
     }
     this.levelConfigs.set(levelId, config);
@@ -175,7 +176,7 @@ export class LevelLoader {
         return (record?.default || record) as LevelData | null;
       }
     } catch (e) {
-      console.warn(`[LevelLoader] require加载失败(${fileName}):`, e);
+      logger.warn('LevelLoader', `require加载失败(${fileName}):`, e);
     }
 
     try {
@@ -188,11 +189,11 @@ export class LevelLoader {
           const content = fs.readFileSync(filePath, 'utf-8');
           return JSON.parse(content) as LevelData;
         } catch (e) {
-          console.warn(`[LevelLoader] 微信文件系统读取失败(${filePath}):`, e);
+          logger.warn('LevelLoader', `微信文件系统读取失败(${filePath}):`, e);
         }
       }
     } catch (e) {
-      console.warn(`[LevelLoader] 微信环境加载失败(${fileName}):`, e);
+      logger.warn('LevelLoader', `微信环境加载失败(${fileName}):`, e);
     }
 
     return null;
@@ -201,12 +202,12 @@ export class LevelLoader {
   loadFromData(levelId: number, data: LevelData): LevelConfig | null {
     const validation = this.validateConfig(data);
     if (!validation.valid) {
-      console.error(`[LevelLoader] 关卡 ${levelId} 数据校验失败:`, validation.errors);
+      logger.error('LevelLoader', `关卡 ${levelId} 数据校验失败:`, validation.errors);
       return null;
     }
     const config = this.parseLevelConfig(data);
     if (!config) {
-      console.error(`[LevelLoader] 关卡 ${levelId} 数据格式无效`);
+      logger.error('LevelLoader', `关卡 ${levelId} 数据格式无效`);
       return null;
     }
     this.levelConfigs.set(levelId, config);

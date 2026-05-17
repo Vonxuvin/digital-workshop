@@ -1,3 +1,4 @@
+import { logger } from '../../utils/Logger';
 import Matter from 'matter-js';
 import * as PIXI from 'pixi.js';
 import { Graphics, Container } from 'pixi.js';
@@ -116,6 +117,7 @@ export class PaddleModifier extends ContainerModifier {
     this.phase = 'extending';
     this.phaseElapsed = 0;
     this.createPaddle();
+    logger.info('PaddleModifier', `激活挡板 mode=${this.mode} side=${this.side} xPosition=${this.xPosition} yPosition=${this.yPosition}`);
 
     this.cycleAnimationId = AnimationManager.getInstance().register(
       (deltaMS) => this.updateCycle(deltaMS),
