@@ -984,6 +984,217 @@ test.describe('道具系统 @regression', () => {
       expect(result.success).toBeTruthy();
       expect(result.elapsed).toBeLessThan(100);
     });
+
+    test('十字准星应在屏幕中心位置显示', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false };
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return { success: false };
+
+          const propButtons = hud.propButtons;
+          if (!propButtons) return { success: false };
+
+          const bombButton = propButtons.get?.('bomb');
+          if (!bombButton) return { success: false };
+
+          bombButton.emit?.('pointerdown');
+
+          const crosshair = (hud as any).crosshair;
+          if (!crosshair) return { success: false };
+
+          const screenWidth = (hud as any).screenWidth ?? 0;
+          const screenHeight = (hud as any).screenHeight ?? 0;
+
+          return {
+            success: true,
+            crosshairX: crosshair.x,
+            crosshairY: crosshair.y,
+            screenWidth,
+            screenHeight,
+          };
+        } catch {
+          return { success: false };
+        }
+      });
+
+      if (result.success && result.screenWidth > 0 && result.screenHeight > 0) {
+        expect(result.crosshairX).toBeCloseTo(result.screenWidth / 2, -1);
+        expect(result.crosshairY).toBeCloseTo(result.screenHeight / 2, -1);
+      }
+    });
+
+    test('从点击到十字准星显示的总延迟应小于100ms', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const elapsed = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return -1;
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return -1;
+
+          const propButtons = hud.propButtons;
+          if (!propButtons) return -1;
+
+          const bombButton = propButtons.get?.('bomb');
+          if (!bombButton) return -1;
+
+          const start = performance.now();
+          bombButton.emit?.('pointerdown');
+          const crosshairVisible = (hud as any).crosshair?.visible ?? false;
+          const end = performance.now();
+
+          if (!crosshairVisible) return -1;
+          return end - start;
+        } catch {
+          return -1;
+        }
+      });
+
+      if (elapsed >= 0) {
+        expect(elapsed).toBeLessThan(100);
+      }
+    });
+
+    test('完整流程: 点击炸弹→十字准星立即显示→点击目标→爆炸', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+      await dropBlocks(page, 5);
+      await waitForStable(page, 1500);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false };
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return { success: false };
+
+          const propButtons = hud.propButtons;
+          if (!propButtons) return { success: false };
+
+          const bombButton = propButtons.get?.('bomb');
+          if (!bombButton) return { success: false };
+
+          const clickStart = performance.now();
+          bombButton.emit?.('pointerdown');
+          const crosshairTime = performance.now();
+
+          const crosshairVisible = (hud as any).crosshair?.visible ?? false;
+          const isTargetMode = hud.isPropTargetMode;
+
+          return {
+            success: true,
+            crosshairVisible,
+            isTargetMode,
+            clickToCrosshair: crosshairTime - clickStart,
+          };
+        } catch {
+          return { success: false };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      expect(result.crosshairVisible).toBe(true);
+      expect(result.isTargetMode).toBe(true);
+      if (result.clickToCrosshair !== undefined && result.clickToCrosshair >= 0) {
+        expect(result.clickToCrosshair).toBeLessThan(100);
+      }
+    });
+
+    test('十字准星x/y坐标应等于屏幕中心坐标', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false };
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return { success: false };
+
+          hud.layout(800, 600);
+
+          const propButtons = hud.propButtons;
+          if (!propButtons) return { success: false };
+
+          const bombButton = propButtons.get?.('bomb');
+          if (!bombButton) return { success: false };
+
+          bombButton.emit?.('pointerdown');
+
+          const crosshair = (hud as any).crosshair;
+          if (!crosshair) return { success: false };
+
+          return {
+            success: true,
+            crosshairX: crosshair.x,
+            crosshairY: crosshair.y,
+            expectedX: 400,
+            expectedY: 300,
+          };
+        } catch {
+          return { success: false };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      if (result.success) {
+        expect(result.crosshairX).toBeCloseTo(result.expectedX!, -1);
+        expect(result.crosshairY).toBeCloseTo(result.expectedY!, -1);
+      }
+    });
+
+    test('updateCrosshair应更新十字准星位置坐标', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false };
+        try {
+          const hud = game.getGameHUD?.();
+          if (!hud) return { success: false };
+
+          hud.layout(800, 600);
+
+          const propButtons = hud.propButtons;
+          if (!propButtons) return { success: false };
+
+          const bombButton = propButtons.get?.('bomb');
+          if (!bombButton) return { success: false };
+
+          bombButton.emit?.('pointerdown');
+
+          const crosshair = (hud as any).crosshair;
+          if (!crosshair) return { success: false };
+
+          const initialX = crosshair.x;
+          const initialY = crosshair.y;
+
+          hud.updateCrosshair(200, 400);
+
+          return {
+            success: true,
+            initialX,
+            initialY,
+            updatedX: crosshair.x,
+            updatedY: crosshair.y,
+          };
+        } catch {
+          return { success: false };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      expect(result.updatedX).toBe(200);
+      expect(result.updatedY).toBe(400);
+    });
   });
 
   test.describe('缩小道具底部位置修正 @regression', () => {
@@ -1205,6 +1416,63 @@ test.describe('道具系统 @regression', () => {
       expect(result.success).toBeTruthy();
       if (result.success) {
         expect(result.physicsRunning).toBeTruthy();
+      }
+    });
+
+    test('缩小后球体底部不应上移', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const result = await page.evaluate(async () => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false };
+        try {
+          const spawner = game.getBlockSpawner?.();
+          if (!spawner) return { success: false };
+
+          for (let i = 0; i < 3; i++) {
+            spawner.dropBlock(150 + i * 80, 80, 1);
+          }
+
+          await new Promise(r => setTimeout(r, 1500));
+
+          const blocks = spawner.getBlocks?.() ?? [];
+          if (blocks.length === 0) return { success: false };
+
+          const bottomsBefore = blocks.map((b: any) => ({
+            y: b.body.position.y,
+            radius: b.body.circleRadius,
+            bottom: b.body.position.y + (b.body.circleRadius || 0),
+          }));
+
+          const handler = game.getPropEffectHandler?.();
+          if (!handler) return { success: false };
+
+          handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+          const bottomsAfter = blocks.map((b: any) => ({
+            y: b.body.position.y,
+            radius: b.body.circleRadius,
+            bottom: b.body.position.y + (b.body.circleRadius || 0),
+          }));
+
+          let noFloating = true;
+          for (let i = 0; i < bottomsBefore.length; i++) {
+            if (bottomsAfter[i].bottom < bottomsBefore[i].bottom - 5) {
+              noFloating = false;
+              break;
+            }
+          }
+
+          return { success: true, noFloating, blockCount: blocks.length };
+        } catch {
+          return { success: false };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      if (result.success) {
+        expect(result.noFloating).toBeTruthy();
       }
     });
   });

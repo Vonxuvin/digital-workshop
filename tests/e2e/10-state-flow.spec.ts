@@ -762,4 +762,47 @@ test.describe('状态流转 @smoke', () => {
       expect(result.visible).toBe(true);
     });
   });
+
+  test.describe('TimeManager window暴露验证 @regression', () => {
+    test('window.__TimeManager应可访问且为构造函数', async ({ page }) => {
+      await navigateToGame(page);
+
+      const result = await page.evaluate(() => {
+        const TimeManager = (window as any).__TimeManager;
+        if (!TimeManager) return { success: false, reason: 'no-TimeManager' };
+        if (typeof TimeManager !== 'function') return { success: false, reason: 'not-function' };
+
+        const hasGetInstance = typeof TimeManager.getInstance === 'function';
+        const hasResetGameTimeline = typeof TimeManager.prototype.resetGameTimeline === 'function';
+
+        return { success: true, hasGetInstance, hasResetGameTimeline };
+      });
+
+      expect(result.success).toBeTruthy();
+      expect(result.hasGetInstance).toBeTruthy();
+      expect(result.hasResetGameTimeline).toBeTruthy();
+    });
+
+    test('window.__TimeManager.getInstance应返回单例实例', async ({ page }) => {
+      await navigateToGame(page);
+
+      const result = await page.evaluate(() => {
+        const TimeManager = (window as any).__TimeManager;
+        if (!TimeManager) return { success: false };
+
+        const instance1 = TimeManager.getInstance();
+        const instance2 = TimeManager.getInstance();
+
+        return {
+          success: true,
+          isSameInstance: instance1 === instance2,
+          hasResetGameTimeline: typeof instance1.resetGameTimeline === 'function',
+        };
+      });
+
+      expect(result.success).toBeTruthy();
+      expect(result.isSameInstance).toBeTruthy();
+      expect(result.hasResetGameTimeline).toBeTruthy();
+    });
+  });
 });

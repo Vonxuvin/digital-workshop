@@ -1022,4 +1022,115 @@ test.describe('核心玩法 @smoke', () => {
       expect(blockCount).toBeGreaterThanOrEqual(0);
     });
   });
+
+  test.describe('自动下落球体可见性验证 @regression', () => {
+    test('自动下落球体应在间隔后出现且可见', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return;
+        try {
+          const spawner = game.getBlockSpawner?.();
+          spawner?.startAutoSpawn?.(500, 80);
+        } catch {}
+      });
+
+      try {
+        await page.waitForFunction(
+          () => {
+            const game = (window as any).__gameInstance;
+            if (!game) return false;
+            try {
+              const spawner = game.getBlockSpawner?.();
+              return (spawner?.getBlocks?.()?.length ?? 0) >= 1;
+            } catch {
+              return false;
+            }
+          },
+          { timeout: 8000 }
+        );
+      } catch {}
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false };
+        try {
+          const spawner = game.getBlockSpawner?.();
+          const blocks = spawner?.getBlocks?.() ?? [];
+          if (blocks.length === 0) return { success: false, reason: 'no-blocks' };
+
+          const block = blocks[0];
+          return {
+            success: true,
+            visible: block.visible,
+            alpha: block.alpha,
+            scaleX: block.scale.x,
+            scaleY: block.scale.y,
+          };
+        } catch {
+          return { success: false };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      if (result.success) {
+        expect(result.visible).toBe(true);
+        expect(result.alpha).toBeGreaterThan(0);
+        expect(result.scaleX).toBeGreaterThan(0);
+        expect(result.scaleY).toBeGreaterThan(0);
+      }
+    });
+
+    test('自动下落多个球体后所有球体应可见', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return;
+        try {
+          const spawner = game.getBlockSpawner?.();
+          spawner?.startAutoSpawn?.(300, 80);
+        } catch {}
+      });
+
+      try {
+        await page.waitForFunction(
+          () => {
+            const game = (window as any).__gameInstance;
+            if (!game) return false;
+            try {
+              const spawner = game.getBlockSpawner?.();
+              return (spawner?.getBlocks?.()?.length ?? 0) >= 2;
+            } catch {
+              return false;
+            }
+          },
+          { timeout: 10000 }
+        );
+      } catch {}
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false };
+        try {
+          const spawner = game.getBlockSpawner?.();
+          const blocks = spawner?.getBlocks?.() ?? [];
+          if (blocks.length < 2) return { success: false, reason: 'insufficient-blocks' };
+
+          const allVisible = blocks.every((b: any) => b.visible && b.alpha > 0 && b.scale.x > 0);
+          return { success: true, allVisible, blockCount: blocks.length };
+        } catch {
+          return { success: false };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      if (result.success) {
+        expect(result.allVisible).toBeTruthy();
+      }
+    });
+  });
 });
