@@ -192,7 +192,11 @@ export class BlockSpawner {
   removeBlock(block: Block): void {
     const idx = this.blocks.indexOf(block);
     if (idx !== -1) {
-      this.blocks.splice(idx, 1);
+      const last = this.blocks.length - 1;
+      if (idx !== last) {
+        this.blocks[idx] = this.blocks[last];
+      }
+      this.blocks.pop();
     }
   }
 
@@ -222,16 +226,18 @@ export class BlockSpawner {
   }
 
   cleanupOutOfBounds(screenHeight: number): void {
-    this.blocks = this.blocks.filter(block => {
-      if (block.isDestroyed) return false;
-      if (block.y > screenHeight + 100) {
+    let writeIdx = 0;
+    for (let readIdx = 0; readIdx < this.blocks.length; readIdx++) {
+      const block = this.blocks[readIdx];
+      if (block.isDestroyed || block.y > screenHeight + 100) {
         this.mergeSystem.unregisterBlock(block);
         this.physics.removeBody(block.body);
         this.blockPool.release(block);
-        return false;
+        continue;
       }
-      return true;
-    });
+      this.blocks[writeIdx++] = block;
+    }
+    this.blocks.length = writeIdx;
   }
 
   syncAllBlocks(force: boolean = false): void {
