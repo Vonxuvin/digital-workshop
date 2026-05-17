@@ -40,7 +40,7 @@ test.describe('NextPreview 修复验证 @regression', () => {
           if (!preview) return false;
           const pos = preview.getNextPreviewPosition?.();
           if (!pos) return false;
-          const maxX = preview.getBounds?.?.()?.maxX ?? 0;
+          const maxX = preview.getBounds?.()?.maxX ?? 0;
           if (maxX === 0) return false;
           return pos.x > maxX / 2 && pos.y < 100;
         } catch {
