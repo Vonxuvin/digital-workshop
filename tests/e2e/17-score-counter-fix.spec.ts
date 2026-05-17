@@ -208,7 +208,7 @@ test.describe('Score Counter - 数字计数器验证 @regression', () => {
         try {
           const hud = game.getGameHUD?.();
           if (!hud) return false;
-          return hud.getScoreTextDisplay?.() !== undefined;
+          return hud.scoreText !== null && hud.scoreText !== undefined;
         } catch {
           return false;
         }
@@ -360,7 +360,7 @@ test.describe('Score Counter - 数字计数器验证 @regression', () => {
           return {
             scoreOk: scoreSystem?.getScore?.() > 0,
             mergeOk: true,
-            counterOk: hud?.getScoreTextDisplay?.() !== undefined,
+            counterOk: hud?.scoreText !== null && hud?.scoreText !== undefined,
           };
         } catch {
           return { scoreOk: false, mergeOk: false, counterOk: false };
