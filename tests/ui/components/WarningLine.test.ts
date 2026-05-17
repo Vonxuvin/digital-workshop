@@ -30,7 +30,7 @@ describe('WarningLine', () => {
   it('should start warning when stable block is above line', () => {
     const handler = vi.fn();
     eventBus.on('warning:started', handler);
-    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 16.67);
+    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 250);
     expect(handler).toHaveBeenCalled();
     eventBus.off('warning:started', handler);
   });
@@ -38,7 +38,7 @@ describe('WarningLine', () => {
   it('should emit warning:ended when block moves below line after grace period', () => {
     const handler = vi.fn();
     eventBus.on('warning:ended', handler);
-    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 16.67);
+    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 250);
     wl.update([{ y: 500, radius: 20, speed: 0 }], 16.67);
     expect(handler).not.toHaveBeenCalled();
     wl.update([{ y: 500, radius: 20, speed: 0 }], 500);
@@ -51,6 +51,7 @@ describe('WarningLine', () => {
   it('should emit game:over after threshold', () => {
     const handler = vi.fn();
     eventBus.on('game:over', handler);
+    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 250);
     for (let i = 0; i < 320; i++) {
       wl.update([{ y: 50, radius: 20, speed: 0.5 }], 16.67);
     }
@@ -59,19 +60,19 @@ describe('WarningLine', () => {
   });
 
   it('should reset correctly', () => {
-    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 16.67);
+    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 250);
     wl.reset();
     expect(wl.getWarningDuration()).toBe(0);
   });
 
   it('should draw line with correct PixiJS v8 stroke API (no tint)', () => {
-    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 16.67);
+    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 250);
     const graphics = (wl as any).graphics;
     expect(graphics).toBeDefined();
   });
 
   it('should update visual feedback with yellow color at low progress', () => {
-    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 16.67);
+    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 250);
     for (let i = 0; i < 30; i++) {
       wl.update([{ y: 50, radius: 20, speed: 0.5 }], 16.67);
     }
@@ -80,7 +81,7 @@ describe('WarningLine', () => {
   });
 
   it('should update visual feedback with orange color at medium progress', () => {
-    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 16.67);
+    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 250);
     for (let i = 0; i < 120; i++) {
       wl.update([{ y: 50, radius: 20, speed: 0.5 }], 16.67);
     }
@@ -90,7 +91,7 @@ describe('WarningLine', () => {
   });
 
   it('should update visual feedback with red color at high progress', () => {
-    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 16.67);
+    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 250);
     for (let i = 0; i < 250; i++) {
       wl.update([{ y: 50, radius: 20, speed: 0.5 }], 16.67);
     }
@@ -99,7 +100,7 @@ describe('WarningLine', () => {
   });
 
   it('should show countdown text when progress >= 0.3', () => {
-    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 16.67);
+    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 250);
     for (let i = 0; i < 120; i++) {
       wl.update([{ y: 50, radius: 20, speed: 0.5 }], 16.67);
     }
@@ -108,7 +109,7 @@ describe('WarningLine', () => {
   });
 
   it('should disable and stop warning after setDisabled(true)', () => {
-    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 16.67);
+    wl.update([{ y: 50, radius: 20, speed: 0.5 }], 250);
     wl.setDisabled(true);
     wl.update([{ y: 50, radius: 20, speed: 0.5 }], 16.67);
     expect(wl.getWarningDuration()).toBe(0);
@@ -121,7 +122,7 @@ describe('WarningLine', () => {
       gracePeriod: 500,
     });
     customWl.y = 100;
-    customWl.update([{ y: 50, radius: 20, speed: 0.5 }], 16.67);
+    customWl.update([{ y: 50, radius: 20, speed: 0.5 }], 250);
     expect(customWl.getWarningDuration()).toBeGreaterThan(0);
     customWl.destroy();
   });

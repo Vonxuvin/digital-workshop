@@ -33,7 +33,7 @@ describe('P0-2: WarningLine tint 修复 - TC-002 关联测试', () => {
   describe('TC-002-01: 方块超过警戒线 0-30% 时间 → 黄色轻微闪烁', () => {
     it('warning progress < 0.3 时使用黄色 (0xffff44)', () => {
       const wh = wl.getWarningHeight();
-      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
+      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 250);
       const progress = wl.getWarningProgress();
       expect(progress).toBeGreaterThan(0);
       expect(progress).toBeLessThan(0.3);
@@ -41,7 +41,7 @@ describe('P0-2: WarningLine tint 修复 - TC-002 关联测试', () => {
 
     it('0-30% 阶段不显示倒计时', () => {
       const wh = wl.getWarningHeight();
-      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 500);
+      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 250);
       const progress = wl.getWarningProgress();
       if (progress < 0.3) {
         expect(wl.children[1].visible).toBe(false);
@@ -89,7 +89,7 @@ describe('P0-2: WarningLine tint 修复 - TC-002 关联测试', () => {
   describe('TC-002-04: 方块短暂越过警戒线后回落 → 1秒宽限期内不触发警告', () => {
     it('方块回落后宽限期内不结束警告', () => {
       const wh = wl.getWarningHeight();
-      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
+      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 250);
       expect(wl.getWarningDuration()).toBeGreaterThan(0);
 
       wl.update([{ y: wh + 100, radius: 5, speed: 0 }], 16.67);
@@ -101,7 +101,7 @@ describe('P0-2: WarningLine tint 修复 - TC-002 关联测试', () => {
       const handler = vi.fn();
       eventBus.on('warning:ended', handler);
 
-      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
+      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 250);
       wl.update([{ y: wh + 100, radius: 5, speed: 0 }], 16.67);
       expect(handler).not.toHaveBeenCalled();
 
@@ -132,7 +132,7 @@ describe('P0-2: WarningLine tint 修复 - TC-002 关联测试', () => {
       const handler = vi.fn();
       eventBus.on('warning:started', handler);
 
-      wl.update([{ y: wh - 10, radius: 5, speed: 1 }], 16.67);
+      wl.update([{ y: wh - 10, radius: 5, speed: 1 }], 250);
       expect(handler).toHaveBeenCalled();
 
       eventBus.off('warning:started', handler);
@@ -143,7 +143,7 @@ describe('P0-2: WarningLine tint 修复 - TC-002 关联测试', () => {
       const handler = vi.fn();
       eventBus.on('warning:started', handler);
 
-      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
+      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 250);
       expect(handler).toHaveBeenCalled();
 
       eventBus.off('warning:started', handler);
