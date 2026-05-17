@@ -16,10 +16,13 @@ export class BlockPreview extends Container {
   private radius: number = 20;
   private static readonly DASH_GAP = 6;
   private static readonly DASH_LENGTH = 6;
+  private static readonly NEXT_PREVIEW_PADDING_X = 40;
+  private static readonly NEXT_PREVIEW_PADDING_Y = 40;
   private minX: number = 0;
   private maxX: number = 0;
   private groundY: number = 0;
   private gravityAngle: number = 0;
+  private nextPreviewActive: boolean = false;
 
   constructor() {
     super();
@@ -64,6 +67,7 @@ export class BlockPreview extends Container {
     this.drawPreview();
     this.drawTrail(x, dropY);
     this.drawLandingMarker(x, dropY);
+    this.hideNextPreview();
   }
 
   private drawPreview(): void {
@@ -141,6 +145,7 @@ export class BlockPreview extends Container {
   setBounds(minX: number, maxX: number): void {
     this.minX = minX;
     this.maxX = maxX;
+    this.updateNextPreviewPosition();
   }
 
   setGravityAngle(angleRad: number): void {
@@ -166,9 +171,14 @@ export class BlockPreview extends Container {
     this.nextPreview.y = y;
   }
 
+  getNextPreviewPosition(): { x: number; y: number } {
+    return this.calculateNextPosition();
+  }
+
   private updateNextPreview(): void {
     if (!this.nextPreview) {
       this.nextPreview = new Container();
+      this.nextPreview.visible = false;
       this.parent?.addChild(this.nextPreview);
     }
 
@@ -213,11 +223,27 @@ export class BlockPreview extends Container {
     valText.y = 2;
     this.nextPreview.addChild(valText);
 
+    this.updateNextPreviewPosition();
     this.nextPreview.visible = true;
+    this.nextPreviewActive = true;
+  }
+
+  private calculateNextPosition(): { x: number; y: number } {
+    return {
+      x: this.maxX - BlockPreview.NEXT_PREVIEW_PADDING_X,
+      y: BlockPreview.NEXT_PREVIEW_PADDING_Y,
+    };
+  }
+
+  private updateNextPreviewPosition(): void {
+    if (!this.nextPreview) return;
+    const pos = this.calculateNextPosition();
+    this.nextPreview.x = pos.x;
+    this.nextPreview.y = pos.y;
   }
 
   showNextPreview(): void {
-    if (this.nextPreview) {
+    if (this.nextPreview && this.nextPreviewActive) {
       this.nextPreview.visible = true;
     }
   }
@@ -226,6 +252,21 @@ export class BlockPreview extends Container {
     if (this.nextPreview) {
       this.nextPreview.visible = false;
     }
+  }
+
+  deactivateNextPreview(): void {
+    if (this.nextPreview) {
+      this.nextPreview.visible = false;
+    }
+    this.nextPreviewActive = false;
+  }
+
+  isNextPreviewActive(): boolean {
+    return this.nextPreviewActive;
+  }
+
+  isNextPreviewVisible(): boolean {
+    return this.nextPreview?.visible ?? false;
   }
 
   destroy(): void {

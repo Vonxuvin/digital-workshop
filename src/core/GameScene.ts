@@ -225,6 +225,7 @@ export class GameScene {
     this.propEffectHandler.pause();
     this.blockSpawner.pause();
     this.preview.hide();
+    this.preview.hideNextPreview();
     this.propEffectHandler.clearBombTargetMode();
     this.timeManager.pause();
   }
@@ -234,6 +235,7 @@ export class GameScene {
     this.levelSystem?.resume();
     this.modifierManager.resumeAll();
     this.blockSpawner.resume();
+    this.preview.showNextPreview();
     this.timeManager.resume();
   }
 
@@ -250,6 +252,7 @@ export class GameScene {
     this.blockSpawner.clearObstacles();
     this.blockSpawner.stopAutoSpawn();
     this.preview.hide();
+    this.preview.deactivateNextPreview();
     this.effectManager.clearAll();
   }
 

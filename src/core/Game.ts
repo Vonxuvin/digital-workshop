@@ -262,6 +262,9 @@ export class Game {
         const isPlaying = to === 'playing';
         this.gameScene.setHUDVisible(isPlaying);
         this.gameScene.setWarningLineVisible(isPlaying);
+        if (!isPlaying) {
+          this.gameScene.getPreview().deactivateNextPreview();
+        }
       };
       this.stateMachine.onAnyChange(this.boundStateChange);
 
