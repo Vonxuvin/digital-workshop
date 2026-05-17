@@ -13,7 +13,7 @@ export class EventBus {
   private events: Map<string, ((...args: any[]) => void)[]> = new Map();
   private namespaces: Map<string, Set<string>> = new Map();
 
-  on<E extends GameEvent>(event: E, callback: EventCallback<EventPayloadMap[E]>): void;
+  on<E extends keyof EventPayloadMap>(event: E, callback: EventCallback<EventPayloadMap[E]>): void;
   on(event: string, callback: EventCallback): void;
   on(event: string, callback: EventCallback): void {
     if (!this.events.has(event)) {
@@ -22,7 +22,7 @@ export class EventBus {
     this.events.get(event)!.push(callback);
   }
 
-  onInNamespace<E extends GameEvent>(namespace: string, event: E, callback: EventCallback<EventPayloadMap[E]>): void;
+  onInNamespace<E extends keyof EventPayloadMap>(namespace: string, event: E, callback: EventCallback<EventPayloadMap[E]>): void;
   onInNamespace(namespace: string, event: string, callback: EventCallback): void;
   onInNamespace(namespace: string, event: string, callback: EventCallback): void {
     this.on(event, callback);
@@ -32,7 +32,7 @@ export class EventBus {
     this.namespaces.get(namespace)!.add(event);
   }
 
-  once<E extends GameEvent>(event: E, callback: EventCallback<EventPayloadMap[E]>): void;
+  once<E extends keyof EventPayloadMap>(event: E, callback: EventCallback<EventPayloadMap[E]>): void;
   once(event: string, callback: EventCallback): void;
   once(event: string, callback: EventCallback): void {
     const wrapper: EventCallback = (...args) => {
@@ -64,7 +64,7 @@ export class EventBus {
     }
   }
 
-  emit<E extends GameEvent>(event: E, ...args: EventPayloadMap[E] extends void ? [] : [EventPayloadMap[E]]): void;
+  emit<E extends keyof EventPayloadMap>(event: E, ...args: EventPayloadMap[E] extends void ? [] : [EventPayloadMap[E]]): void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   emit(event: string, ...args: any[]): void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -107,7 +107,7 @@ export class NamespacedEventBus {
     this.namespace = namespace;
   }
 
-  on<E extends GameEvent>(event: E, callback: EventCallback<EventPayloadMap[E]>): void;
+  on<E extends keyof EventPayloadMap>(event: E, callback: EventCallback<EventPayloadMap[E]>): void;
   on(event: string, callback: EventCallback): void;
   on(event: string, callback: EventCallback): void {
     const oldCb = this.callbacks.get(event);
@@ -119,7 +119,7 @@ export class NamespacedEventBus {
     this.callbacks.set(event, callback);
   }
 
-  once<E extends GameEvent>(event: E, callback: EventCallback<EventPayloadMap[E]>): void;
+  once<E extends keyof EventPayloadMap>(event: E, callback: EventCallback<EventPayloadMap[E]>): void;
   once(event: string, callback: EventCallback): void;
   once(event: string, callback: EventCallback): void {
     const wrapper: EventCallback = (...args) => {
@@ -140,7 +140,7 @@ export class NamespacedEventBus {
     }
   }
 
-  emit<E extends GameEvent>(event: E, ...args: EventPayloadMap[E] extends void ? [] : [EventPayloadMap[E]]): void;
+  emit<E extends keyof EventPayloadMap>(event: E, ...args: EventPayloadMap[E] extends void ? [] : [EventPayloadMap[E]]): void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   emit(event: string, ...args: any[]): void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
