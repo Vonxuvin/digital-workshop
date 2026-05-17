@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { navigateToGame, dropBlocks, waitForStable, isGamePlaying } from './helpers';
+import { navigateToGame, dropBlocks, waitForStable, ensurePlaying, ensureGameScene } from './helpers';
 
 test.describe('道具系统 @regression', () => {
   test.describe('道具初始化 @smoke', () => {
@@ -97,6 +97,7 @@ test.describe('道具系统 @regression', () => {
 
     test('使用道具应触发效果', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasEffectHandler = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -116,8 +117,7 @@ test.describe('道具系统 @regression', () => {
 
     test('道具使用后数量应减少', async ({ page }) => {
       await navigateToGame(page);
-      const playing = await isGamePlaying(page);
-      expect(playing).toBe(true);
+      await ensurePlaying(page);
 
       const propSystem = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -160,8 +160,7 @@ test.describe('道具系统 @regression', () => {
   test.describe('道具效果 @regression', () => {
     test('炸弹道具应清除方块', async ({ page }) => {
       await navigateToGame(page);
-      const playing = await isGamePlaying(page);
-      expect(playing).toBe(true);
+      await ensurePlaying(page);
       await dropBlocks(page, 5);
       await waitForStable(page);
 
@@ -183,6 +182,7 @@ test.describe('道具系统 @regression', () => {
 
     test('道具效果应有视觉反馈', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasEffectManager = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -223,8 +223,7 @@ test.describe('道具系统 @regression', () => {
   test.describe('道具与物理交互 @regression', () => {
     test('使用道具后物理应继续运行', async ({ page }) => {
       await navigateToGame(page);
-      const playing = await isGamePlaying(page);
-      expect(playing).toBe(true);
+      await ensurePlaying(page);
       await dropBlocks(page, 5);
       await waitForStable(page);
 
@@ -245,8 +244,7 @@ test.describe('道具系统 @regression', () => {
 
     test('道具效果不应破坏物理稳定性', async ({ page }) => {
       await navigateToGame(page);
-      const playing = await isGamePlaying(page);
-      expect(playing).toBe(true);
+      await ensurePlaying(page);
       await dropBlocks(page, 10, 400);
       await waitForStable(page, 2000);
 
@@ -268,8 +266,7 @@ test.describe('道具系统 @regression', () => {
   test.describe('道具与计分交互 @regression', () => {
     test('道具效果应正确计分', async ({ page }) => {
       await navigateToGame(page);
-      const playing = await isGamePlaying(page);
-      expect(playing).toBe(true);
+      await ensurePlaying(page);
       await dropBlocks(page, 5);
       await waitForStable(page);
 
@@ -290,8 +287,7 @@ test.describe('道具系统 @regression', () => {
 
     test('幸运倍率道具应正确应用', async ({ page }) => {
       await navigateToGame(page);
-      const playing = await isGamePlaying(page);
-      expect(playing).toBe(true);
+      await ensurePlaying(page);
 
       const hasLuckyMultiplier = await page.evaluate(() => {
         const game = (window as any).__gameInstance;

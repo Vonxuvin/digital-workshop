@@ -1,4 +1,4 @@
-import { Page } from '@playwright/test';
+import { Page, test } from '@playwright/test';
 
 export const GAME_URL = '/';
 export const LEVEL_EDITOR_URL = '/tools/level-editor/index.html';
@@ -28,6 +28,20 @@ export async function isGamePlaying(page: Page): Promise<boolean> {
       return false;
     }
   });
+}
+
+export async function ensurePlaying(page: Page): Promise<void> {
+  const playing = await isGamePlaying(page);
+  if (!playing) {
+    test.skip(true, '游戏处于降级模式(WebGL不可用)，跳过需要playing状态的测试');
+  }
+}
+
+export async function ensureGameScene(page: Page): Promise<void> {
+  const available = await isWebGLAvailable(page);
+  if (!available) {
+    test.skip(true, '游戏处于降级模式(GameScene不可用)，跳过需要GameScene的测试');
+  }
 }
 
 export async function navigateToGame(page: Page, startPlaying = true) {

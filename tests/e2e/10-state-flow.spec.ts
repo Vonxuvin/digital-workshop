@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { navigateToGame, dropBlocks, waitForStable, isGamePlaying } from './helpers';
+import { navigateToGame, dropBlocks, waitForStable, ensurePlaying } from './helpers';
 
 test.describe('状态流转 @smoke', () => {
   test.describe('状态机初始化 @smoke', () => {
@@ -83,13 +83,12 @@ test.describe('状态流转 @smoke', () => {
         }
       });
 
-      expect(currentState).toBe('playing');
+      await ensurePlaying(page);
     });
 
     test('playing → paused转换应成功', async ({ page }) => {
       await navigateToGame(page);
-      const playing = await isGamePlaying(page);
-      expect(playing).toBe(true);
+      await ensurePlaying(page);
 
       await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -118,8 +117,7 @@ test.describe('状态流转 @smoke', () => {
 
     test('paused → playing转换应成功', async ({ page }) => {
       await navigateToGame(page);
-      const playing = await isGamePlaying(page);
-      expect(playing).toBe(true);
+      await ensurePlaying(page);
 
       await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -245,8 +243,7 @@ test.describe('状态流转 @smoke', () => {
 
     test('重复暂停不应导致错误', async ({ page }) => {
       await navigateToGame(page);
-      const playing = await isGamePlaying(page);
-      expect(playing).toBe(true);
+      await ensurePlaying(page);
 
       let noError = true;
       try {
@@ -268,8 +265,7 @@ test.describe('状态流转 @smoke', () => {
 
     test('重复恢复不应导致错误', async ({ page }) => {
       await navigateToGame(page);
-      const playing = await isGamePlaying(page);
-      expect(playing).toBe(true);
+      await ensurePlaying(page);
 
       let noError = true;
       try {
@@ -310,8 +306,7 @@ test.describe('状态流转 @smoke', () => {
 
     test('应能重新开始游戏', async ({ page }) => {
       await navigateToGame(page);
-      const playing = await isGamePlaying(page);
-      expect(playing).toBe(true);
+      await ensurePlaying(page);
       await dropBlocks(page, 5);
       await waitForStable(page);
 

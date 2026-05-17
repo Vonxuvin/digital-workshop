@@ -1,13 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { navigateToGame, dropBlocks, waitForStable, clickCanvasCenter, isGamePlaying } from './helpers';
+import { navigateToGame, dropBlocks, waitForStable, clickCanvasCenter, ensurePlaying, ensureGameScene } from './helpers';
 
 test.describe('玩法边界 @full', () => {
   test.describe('方块生成边界 @regression', () => {
     test('连续快速生成方块不应崩溃', async ({ page }) => {
       await navigateToGame(page);
 
-      const playing = await isGamePlaying(page);
-      expect(playing).toBe(true);
+      await ensurePlaying(page);
 
       for (let i = 0; i < 20; i++) {
         await clickCanvasCenter(page);
@@ -27,8 +26,7 @@ test.describe('玩法边界 @full', () => {
     test('方块生成冷却应正确工作', async ({ page }) => {
       await navigateToGame(page);
 
-      const playing = await isGamePlaying(page);
-      expect(playing).toBe(true);
+      await ensurePlaying(page);
 
       await clickCanvasCenter(page);
       await page.waitForTimeout(100);
@@ -70,8 +68,7 @@ test.describe('玩法边界 @full', () => {
     test('大量方块物理应稳定', async ({ page }) => {
       await navigateToGame(page);
 
-      const playing = await isGamePlaying(page);
-      expect(playing).toBe(true);
+      await ensurePlaying(page);
 
       await dropBlocks(page, 20, 300);
       await waitForStable(page, 5000);
@@ -93,8 +90,7 @@ test.describe('玩法边界 @full', () => {
     test('物理暂停恢复应正确', async ({ page }) => {
       await navigateToGame(page);
 
-      const playing = await isGamePlaying(page);
-      expect(playing).toBe(true);
+      await ensurePlaying(page);
 
       await dropBlocks(page, 5);
       await waitForStable(page);
@@ -155,8 +151,7 @@ test.describe('玩法边界 @full', () => {
     test('分数不应为负数', async ({ page }) => {
       await navigateToGame(page);
 
-      const playing = await isGamePlaying(page);
-      expect(playing).toBe(true);
+      await ensurePlaying(page);
 
       const score = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -214,8 +209,7 @@ test.describe('玩法边界 @full', () => {
     test('多次重启不应崩溃', async ({ page }) => {
       await navigateToGame(page);
 
-      const playing = await isGamePlaying(page);
-      expect(playing).toBe(true);
+      await ensurePlaying(page);
 
       for (let i = 0; i < 3; i++) {
         await page.evaluate(() => {
@@ -240,8 +234,7 @@ test.describe('玩法边界 @full', () => {
     test('重启后分数应重置', async ({ page }) => {
       await navigateToGame(page);
 
-      const playing = await isGamePlaying(page);
-      expect(playing).toBe(true);
+      await ensurePlaying(page);
 
       await dropBlocks(page, 5);
       await waitForStable(page);
@@ -274,8 +267,7 @@ test.describe('玩法边界 @full', () => {
     test('重启后方块应清空', async ({ page }) => {
       await navigateToGame(page);
 
-      const playing = await isGamePlaying(page);
-      expect(playing).toBe(true);
+      await ensurePlaying(page);
 
       await dropBlocks(page, 5);
       await waitForStable(page);
@@ -371,6 +363,7 @@ test.describe('玩法边界 @full', () => {
   test.describe('ShrinkModifier 墙壁偏移 @full', () => {
     test('ShrinkModifier 应支持 containerOffsetX', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasShrinkModifier = await page.evaluate(async () => {
         const game = (window as any).__gameInstance;
@@ -395,6 +388,7 @@ test.describe('玩法边界 @full', () => {
 
     test('ShrinkModifier 应支持 activate/deactivate', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const canToggle = await page.evaluate(async () => {
         const game = (window as any).__gameInstance;
@@ -421,6 +415,7 @@ test.describe('玩法边界 @full', () => {
 
     test('ShrinkModifier getType 应返回 shrink', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const typeCorrect = await page.evaluate(async () => {
         const game = (window as any).__gameInstance;

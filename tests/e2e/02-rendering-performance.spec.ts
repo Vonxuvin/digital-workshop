@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { navigateToGame, dropBlocks, waitForStable, isGamePlaying } from './helpers';
+import { navigateToGame, dropBlocks, waitForStable, ensurePlaying, ensureGameScene } from './helpers';
 
 test.describe('渲染与性能 @regression', () => {
   test.describe('基础渲染 @smoke', () => {
@@ -85,6 +85,7 @@ test.describe('渲染与性能 @regression', () => {
 
     test('游戏容器应正确渲染', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasContainer = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -104,8 +105,7 @@ test.describe('渲染与性能 @regression', () => {
 
     test('方块应正确渲染', async ({ page }) => {
       await navigateToGame(page);
-      const playing = await isGamePlaying(page);
-      expect(playing).toBe(true);
+      await ensurePlaying(page);
       await dropBlocks(page, 3);
       await waitForStable(page);
 
@@ -127,8 +127,7 @@ test.describe('渲染与性能 @regression', () => {
 
     test('方块应显示数字文本', async ({ page }) => {
       await navigateToGame(page);
-      const playing = await isGamePlaying(page);
-      expect(playing).toBe(true);
+      await ensurePlaying(page);
       await dropBlocks(page, 3);
       await waitForStable(page);
 
@@ -189,8 +188,7 @@ test.describe('渲染与性能 @regression', () => {
 
     test('大量方块时FPS不应严重下降', async ({ page }) => {
       await navigateToGame(page);
-      const playing = await isGamePlaying(page);
-      expect(playing).toBe(true);
+      await ensurePlaying(page);
       await dropBlocks(page, 15, 400);
       await waitForStable(page, 3000);
 
@@ -212,8 +210,7 @@ test.describe('渲染与性能 @regression', () => {
   test.describe('内存管理 @full', () => {
     test('场景切换后旧资源应被释放', async ({ page }) => {
       await navigateToGame(page);
-      const playing = await isGamePlaying(page);
-      expect(playing).toBe(true);
+      await ensurePlaying(page);
       await dropBlocks(page, 5);
       await waitForStable(page);
 

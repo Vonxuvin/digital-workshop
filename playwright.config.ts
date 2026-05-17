@@ -22,6 +22,14 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+    launchOptions: {
+      args: [
+        '--use-gl=angle',
+        '--use-angle=swiftshader',
+        '--enable-webgl',
+        '--ignore-gpu-blocklist',
+      ],
+    },
   },
   projects: [
     {

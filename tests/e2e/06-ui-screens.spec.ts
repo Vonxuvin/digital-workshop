@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { navigateToGame, dropBlocks, waitForStable, isGamePlaying } from './helpers';
+import { navigateToGame, dropBlocks, waitForStable, ensurePlaying, ensureGameScene } from './helpers';
 
 test.describe('UI界面 @regression', () => {
   test.describe('主菜单界面 @smoke', () => {
@@ -229,9 +229,7 @@ test.describe('UI界面 @regression', () => {
 
     test('暂停界面应包含继续按钮', async ({ page }) => {
       await navigateToGame(page);
-
-      const playing = await isGamePlaying(page);
-      expect(playing).toBe(true);
+      await ensurePlaying(page);
 
       await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -338,9 +336,7 @@ test.describe('UI界面 @regression', () => {
 
     test('暂停时游戏应停止运行', async ({ page }) => {
       await navigateToGame(page);
-
-      const playing = await isGamePlaying(page);
-      expect(playing).toBe(true);
+      await ensurePlaying(page);
 
       await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -638,6 +634,7 @@ test.describe('UI界面 @regression', () => {
 
     test('场景生命周期应正确管理', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasLifecycle = await page.evaluate(() => {
         const game = (window as any).__gameInstance;

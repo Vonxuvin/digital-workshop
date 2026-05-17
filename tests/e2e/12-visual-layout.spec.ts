@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { navigateToGame, dropBlocks, waitForStable, isGamePlaying } from './helpers';
+import { navigateToGame, dropBlocks, waitForStable, ensurePlaying, ensureGameScene } from './helpers';
 
 test.describe('视觉布局 @regression', () => {
   test.describe('游戏场景布局 @smoke', () => {
     test('游戏容器应居中显示', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const isCentered = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -26,6 +27,7 @@ test.describe('视觉布局 @regression', () => {
 
     test('容器高度应正确计算', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasHeight = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -45,6 +47,7 @@ test.describe('视觉布局 @regression', () => {
 
     test('警戒线应在正确位置', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const warningLineValid = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -179,8 +182,7 @@ test.describe('视觉布局 @regression', () => {
   test.describe('方块布局 @regression', () => {
     test('方块应在容器范围内', async ({ page }) => {
       await navigateToGame(page);
-      const playing = await isGamePlaying(page);
-      expect(playing).toBe(true);
+      await ensurePlaying(page);
       await dropBlocks(page, 5);
       await waitForStable(page);
 
@@ -203,8 +205,7 @@ test.describe('视觉布局 @regression', () => {
 
     test('方块大小应一致', async ({ page }) => {
       await navigateToGame(page);
-      const playing = await isGamePlaying(page);
-      expect(playing).toBe(true);
+      await ensurePlaying(page);
       await dropBlocks(page, 5);
       await waitForStable(page);
 
@@ -226,8 +227,7 @@ test.describe('视觉布局 @regression', () => {
 
     test('方块间距应均匀', async ({ page }) => {
       await navigateToGame(page);
-      const playing = await isGamePlaying(page);
-      expect(playing).toBe(true);
+      await ensurePlaying(page);
       await dropBlocks(page, 5);
       await waitForStable(page);
 
@@ -251,6 +251,7 @@ test.describe('视觉布局 @regression', () => {
   test.describe('WarningLine PixiJS v8 兼容性 @regression', () => {
     test('警戒线应使用 PixiJS v8 stroke API 而非 tint', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const usesStrokeAPI = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -273,6 +274,7 @@ test.describe('视觉布局 @regression', () => {
 
     test('警戒线应支持颜色参数', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const supportsColor = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -294,6 +296,7 @@ test.describe('视觉布局 @regression', () => {
 
     test('警戒线应支持透明度参数', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const supportsAlpha = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -315,6 +318,7 @@ test.describe('视觉布局 @regression', () => {
 
     test('警戒线应在游戏场景中可见', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const isVisible = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
