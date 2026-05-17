@@ -138,6 +138,9 @@ export class BlockPreview extends Container {
 
   hide(): void {
     this.visible = false;
+    this.trailGraphics.clear();
+    this.landingMarker.clear();
+    this.graphics.clear();
   }
 
   override getBounds(skipUpdate?: boolean, bounds?: Bounds): Bounds {

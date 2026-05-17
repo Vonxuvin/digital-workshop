@@ -34,6 +34,7 @@ export class BlockSpawner {
   private containerWidth: number = 400;
   private containerOffsetX: number = 0;
   private isPaused: boolean = false;
+  private isAutoDropping: boolean = false;
 
   constructor(
     physics: PhysicsManager,
@@ -81,8 +82,13 @@ export class BlockSpawner {
 
     block.scale.set(0.3);
     block.alpha = 0.5;
-    gsap.to(block.scale, { x: 1, y: 1, duration: 0.2, ease: 'back.out(1.5)' });
-    gsap.to(block, { alpha: 1, duration: 0.15 });
+    if (this.isAutoDropping) {
+      gsap.to(block.scale, { x: 1, y: 1, duration: 0.1, ease: 'back.out(1.5)' });
+      gsap.to(block, { alpha: 1, duration: 0.08 });
+    } else {
+      gsap.to(block.scale, { x: 1, y: 1, duration: 0.2, ease: 'back.out(1.5)' });
+      gsap.to(block, { alpha: 1, duration: 0.15 });
+    }
 
     this.currentValue = this.getRandomValue();
 
@@ -166,7 +172,9 @@ export class BlockSpawner {
         const minX = this.containerOffsetX + margin;
         const maxX = this.containerOffsetX + this.containerWidth - margin;
         const x = Math.random() * (maxX - minX) + minX;
+        this.isAutoDropping = true;
         this.dropBlock(x, this.autoSpawnDropY, this.currentValue);
+        this.isAutoDropping = false;
         this.startCooldown();
       }
     }
@@ -284,6 +292,10 @@ export class BlockSpawner {
     return this.canDrop;
   }
 
+  getIsAutoDropping(): boolean {
+    return this.isAutoDropping;
+  }
+
   getBlocks(): Block[] {
     return this.blocks;
   }
@@ -313,6 +325,7 @@ export class BlockSpawner {
     this.luckyMultiplier = 1;
     this.currentValue = 1;
     this.isPaused = false;
+    this.isAutoDropping = false;
     this.blockPool.clear();
   }
 

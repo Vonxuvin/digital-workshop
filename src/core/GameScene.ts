@@ -348,6 +348,10 @@ export class GameScene {
     this.blockSpawner.update(deltaMS);
     this.levelSystem?.update(deltaMS);
 
+    if (this.blockSpawner.getIsAutoDropping() && this.preview.visible) {
+      this.preview.hide();
+    }
+
     this.blockSpawner.cleanupOutOfBounds(this.app.screen.height);
     this.blockSpawner.syncAllBlocks(false);
 

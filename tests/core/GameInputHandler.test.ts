@@ -38,6 +38,7 @@ function createMockGameScene() {
     getCanDrop: vi.fn(() => true),
     getCurrentValue: vi.fn(() => 2),
     startCooldown: vi.fn(),
+    getIsAutoDropping: vi.fn(() => false),
   };
   return {
     getBlockSpawner: vi.fn(() => blockSpawner),
@@ -424,5 +425,62 @@ describe('GameInputHandler', () => {
     handler.setup();
     input._downCbs[0]({ position: { x: 200, y: 300 }, isDown: true });
     expect(gameHUD.showCrosshair).toHaveBeenCalled();
+  });
+
+  describe('auto-drop conflict prevention', () => {
+    it('should not show preview when auto-dropping is in progress', () => {
+      gameScene._blockSpawner.getIsAutoDropping.mockReturnValue(true);
+      handler.setup();
+      input._downCbs[0]({ position: { x: 200, y: 300 }, isDown: true });
+      expect(gameScene._preview.show).not.toHaveBeenCalled();
+    });
+
+    it('should hide preview and not drop block on up when auto-dropping', () => {
+      handler.setup();
+      input._downCbs[0]({ position: { x: 200, y: 300 }, isDown: true });
+      expect(gameScene._preview.show).toHaveBeenCalled();
+
+      gameScene._blockSpawner.getIsAutoDropping.mockReturnValue(true);
+      input._upCbs[0]();
+      expect(gameScene._preview.hide).toHaveBeenCalled();
+      expect(gameScene.dropBlockWithShrinkCheck).not.toHaveBeenCalled();
+    });
+
+    it('should hide preview on up when preview is visible but cannot drop', () => {
+      handler.setup();
+      input._downCbs[0]({ position: { x: 200, y: 300 }, isDown: true });
+      expect(gameScene._preview.show).toHaveBeenCalled();
+
+      gameScene._blockSpawner.getCanDrop.mockReturnValue(false);
+      input._upCbs[0]();
+      expect(gameScene._preview.hide).toHaveBeenCalled();
+    });
+
+    it('should hide preview on up when not playing and preview is visible', () => {
+      handler.setup();
+      input._downCbs[0]({ position: { x: 200, y: 300 }, isDown: true });
+      expect(gameScene._preview.show).toHaveBeenCalled();
+
+      sceneManager.isPlaying.mockReturnValue(false);
+      input._upCbs[0]();
+      expect(gameScene._preview.hide).toHaveBeenCalled();
+    });
+
+    it('should allow normal drop when auto-dropping is false', () => {
+      gameScene._blockSpawner.getIsAutoDropping.mockReturnValue(false);
+      handler.setup();
+      input._downCbs[0]({ position: { x: 200, y: 300 }, isDown: true });
+      input._upCbs[0]();
+      expect(gameScene.dropBlockWithShrinkCheck).toHaveBeenCalled();
+    });
+
+    it('should not start cooldown when auto-dropping prevents drop', () => {
+      handler.setup();
+      input._downCbs[0]({ position: { x: 200, y: 300 }, isDown: true });
+
+      gameScene._blockSpawner.getIsAutoDropping.mockReturnValue(true);
+      input._upCbs[0]();
+      expect(gameScene._blockSpawner.startCooldown).not.toHaveBeenCalled();
+    });
   });
 });

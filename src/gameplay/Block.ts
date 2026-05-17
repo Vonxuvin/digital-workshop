@@ -1,6 +1,7 @@
 import { Container, Sprite, Graphics } from 'pixi.js';
 import Matter from 'matter-js';
 import { BlockTextureCache } from '../utils/BlockTextureCache';
+import gsap from 'gsap';
 
 export interface BlockConfig {
   value: number;
@@ -137,6 +138,8 @@ export class Block extends Container {
   destroy(): void {
     if (this._destroyed) return;
     this._destroyed = true;
+    gsap.killTweensOf(this);
+    gsap.killTweensOf(this.scale);
     super.destroy({ children: true });
   }
 
@@ -152,6 +155,8 @@ export class Block extends Container {
     this.rotation = 0;
     this.x = 0;
     this.y = 0;
+    gsap.killTweensOf(this);
+    gsap.killTweensOf(this.scale);
   }
 
   reinit(body: Matter.Body, value: number, isRainbow: boolean = false, isObstacle: boolean = false): void {

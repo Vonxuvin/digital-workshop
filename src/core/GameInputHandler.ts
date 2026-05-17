@@ -71,6 +71,7 @@ export class GameInputHandler {
         return;
       }
       if (!this.gameScene.getBlockSpawner().getCanDrop()) return;
+      if (this.gameScene.getBlockSpawner().getIsAutoDropping()) return;
       this.touchStartedInContainer = this.isTouchInValidDropZone(state.position.x, state.position.y);
       if (!this.touchStartedInContainer) return;
       const dropY = this.calculateDropY(state.position.y);
@@ -88,12 +89,18 @@ export class GameInputHandler {
     });
 
     this.input.onUp(() => {
-      this.touchStartedInContainer = false;
+      if (this.touchStartedInContainer) {
+        this.touchStartedInContainer = false;
+      }
       if (this.gameHUD.consumePropButtonClick()) return;
       if (this.isInTargetMode() && this.sceneManager.isPlaying()) {
         const pos = this.input.getState().position;
         this.gameScene.usePropAtPosition(pos.x, pos.y);
         this.gameHUD.hideCrosshair();
+        return;
+      }
+      if (this.gameScene.getBlockSpawner().getIsAutoDropping()) {
+        this.gameScene.getPreview().hide();
         return;
       }
       if (this.gameScene.getPreview().visible && this.gameScene.getBlockSpawner().getCanDrop() && this.sceneManager.isPlaying()) {
@@ -103,6 +110,8 @@ export class GameInputHandler {
         this.gameScene.getPreview().hide();
         this.gameScene.getBlockSpawner().startCooldown();
         this.gameScene.getPreview().setNextValue(this.gameScene.getBlockSpawner().getCurrentValue());
+      } else {
+        this.gameScene.getPreview().hide();
       }
     });
   }
