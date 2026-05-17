@@ -74,6 +74,7 @@ export class PropButton extends PIXI.Container {
     this.on('pointerup', this.handlePointerUp.bind(this));
     this.on('pointerover', this.handlePointerOver.bind(this));
     this.on('pointerout', this.handlePointerOut.bind(this));
+    this.on('pointercancel', this.handlePointerCancel.bind(this));
   }
 
   private drawBackground(fillColor: number, strokeColor: number, strokeWidth: number = 2): void {
@@ -111,6 +112,7 @@ export class PropButton extends PIXI.Container {
       ease: 'power2.out',
       onComplete: () => { this.scaleTween = null; },
     });
+    this.onClick(this.propType);
   }
 
   private handlePointerUp(): void {
@@ -123,7 +125,17 @@ export class PropButton extends PIXI.Container {
       ease: 'power2.out',
       onComplete: () => { this.scaleTween = null; },
     });
-    this.onClick(this.propType);
+  }
+
+  private handlePointerCancel(): void {
+    this.killScaleTween();
+    this.scaleTween = gsap.to(this.scale, {
+      x: 1,
+      y: 1,
+      duration: 0.1,
+      ease: 'power2.out',
+      onComplete: () => { this.scaleTween = null; },
+    });
   }
 
   private handlePointerOver(): void {

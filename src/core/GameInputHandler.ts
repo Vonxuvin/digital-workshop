@@ -62,7 +62,7 @@ export class GameInputHandler {
 
     this.input.onDown((state) => {
       if (!this.sceneManager.isPlaying()) return;
-      if (this.gameScene.getBombTargetMode()) {
+      if (this.gameScene.getBombTargetMode() || this.gameHUD.isPropTargetMode) {
         this.gameHUD.showCrosshair(state.position.x, state.position.y);
         return;
       }
@@ -74,7 +74,7 @@ export class GameInputHandler {
     });
 
     this.input.onMove((state) => {
-      if (state.isDown && this.gameScene.getBombTargetMode() && this.sceneManager.isPlaying()) {
+      if (state.isDown && (this.gameScene.getBombTargetMode() || this.gameHUD.isPropTargetMode) && this.sceneManager.isPlaying()) {
         this.gameHUD.updateCrosshair(state.position.x, state.position.y);
         return;
       }
@@ -86,7 +86,7 @@ export class GameInputHandler {
     this.input.onUp(() => {
       this.touchStartedInContainer = false;
       if (this.gameHUD.consumePropButtonClick()) return;
-      if (this.gameScene.getBombTargetMode() && this.sceneManager.isPlaying()) {
+      if ((this.gameScene.getBombTargetMode() || this.gameHUD.isPropTargetMode) && this.sceneManager.isPlaying()) {
         const pos = this.input.getState().position;
         this.gameScene.usePropAtPosition(pos.x, pos.y);
         this.gameHUD.hideCrosshair();
