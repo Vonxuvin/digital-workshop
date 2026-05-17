@@ -74,4 +74,5 @@ export interface EventPayloadMap {
   [GameEvents.SKIN_UNLOCKED]: string;
   [GameEvents.TALENT_UNLOCKED]: string;
   [GameEvents.AUDIO_MUTE_CHANGED]: { isMuted: boolean };
+  [GameEvents.LEVEL_OBJECTIVE_DISMISSED]: void;
 }

@@ -258,6 +258,29 @@ export class LevelSystem {
     return this.config.objective.type;
   }
 
+  getObjectiveTarget(): number {
+    return this.config.objective.target;
+  }
+
+  getCurrentProgressValue(): number {
+    switch (this.config.objective.type) {
+      case 'score':
+        return this.currentScore;
+      case 'target_merge':
+        return this.highestMergeValue;
+      case 'clear_obstacle':
+        return this.obstaclesCleared;
+      case 'survival':
+        return this.survivalTime;
+      default:
+        return 0;
+    }
+  }
+
+  getTimeLimit(): number | undefined {
+    return this.config.objective.timeLimit;
+  }
+
   getHighestMergeValue(): number {
     return this.highestMergeValue;
   }

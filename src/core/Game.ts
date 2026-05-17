@@ -245,6 +245,7 @@ export class Game {
       this.gameInputHandler.setup();
       this.gameScene.addPreviewToStage();
       this.gameScene.addHUDToStage();
+      this.gameScene.addLevelObjectiveOverlayToStage();
 
       this.eventRouter = new GameEventRouter(
         this.gameScene,

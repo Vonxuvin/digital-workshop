@@ -2,12 +2,14 @@
 import { Container, Text, Graphics } from 'pixi.js';
 import { eventBus, GameEvents } from '../../utils/EventBus';
 import { UIProgressBar } from '../components/UIProgressBar';
+import { ObjectiveDisplay, ObjectiveDisplayData } from '../components/ObjectiveDisplay';
 import { PropButton } from '../components/PropButton';
 import { PropSystem } from '../../gameplay/props/PropSystem';
 import { PropType } from '../../gameplay/props/Prop';
 import gsap from 'gsap';
 import { ComboDisplay } from '../components/ComboDisplay';
 import { TimeManager } from '../../utils/TimeManager';
+import { ObjectiveType } from '../../gameplay/LevelSystem';
 
 export class GameHUD extends Container {
   private _scoreText!: Text;
@@ -16,6 +18,10 @@ export class GameHUD extends Container {
   private _pauseButton!: Container;
   private timerText!: Text;
   private _objectiveBar!: UIProgressBar;
+  private _objectiveDisplay!: ObjectiveDisplay;
+  private _currentObjectiveType: ObjectiveType | null = null;
+  private _currentObjectiveTarget = 0;
+  private _currentTimeLimit: number | undefined = undefined;
   private currentScore = 0;
   private displayScore = 0;
   private scoreProxy: { value: number };
@@ -38,6 +44,7 @@ export class GameHUD extends Container {
   get pauseButton(): Container { return this._pauseButton; }
   get propsContainer(): Container { return this._propsContainer; }
   get objectiveBar(): UIProgressBar { return this._objectiveBar; }
+  get objectiveDisplay(): ObjectiveDisplay { return this._objectiveDisplay; }
   get comboDisplay(): ComboDisplay | null { return this._comboDisplay; }
   get propButtons(): Map<PropType, PropButton> { return this._propButtons; }
   get propsContainerX(): number { return this._propsContainer?.x ?? 0; }
@@ -60,6 +67,7 @@ export class GameHUD extends Container {
     this.createPauseButton();
     this.createTimerDisplay();
     this.createObjectiveBar();
+    this.createObjectiveDisplay();
     this.setupEventListeners();
   }
 
@@ -347,8 +355,39 @@ export class GameHUD extends Container {
     this.addChild(this._objectiveBar);
   }
 
+  private createObjectiveDisplay(): void {
+    this._objectiveDisplay = new ObjectiveDisplay(200);
+    this._objectiveDisplay.x = -100;
+    this._objectiveDisplay.y = 105;
+    this.addChild(this._objectiveDisplay);
+  }
+
   setObjectiveProgress(progress: number): void {
     this._objectiveBar.setProgress(progress);
+  }
+
+  setObjectiveInfo(type: ObjectiveType, target: number, timeLimit?: number): void {
+    this._currentObjectiveType = type;
+    this._currentObjectiveTarget = target;
+    this._currentTimeLimit = timeLimit;
+    const data: ObjectiveDisplayData = {
+      type,
+      target,
+      currentValue: 0,
+      timeLimit,
+    };
+    this._objectiveDisplay.setObjective(data);
+  }
+
+  updateObjectiveProgress(currentValue: number): void {
+    if (!this._currentObjectiveType) return;
+    const data: ObjectiveDisplayData = {
+      type: this._currentObjectiveType,
+      target: this._currentObjectiveTarget,
+      currentValue,
+      timeLimit: this._currentTimeLimit,
+    };
+    this._objectiveDisplay.updateProgress(data);
   }
 
   private setupEventListeners(): void {
@@ -459,6 +498,8 @@ export class GameHUD extends Container {
     this.timerText.x = screenWidth / 2;
     this._objectiveBar.x = screenWidth - 250;
     this._objectiveBar.y = 85;
+    this._objectiveDisplay.x = screenWidth - 250;
+    this._objectiveDisplay.y = 105;
   }
 
   reset(): void {
@@ -475,6 +516,10 @@ export class GameHUD extends Container {
     this.timerText.visible = false;
     this.timerText.text = '';
     this._objectiveBar.setProgress(0);
+    this._objectiveDisplay.reset();
+    this._currentObjectiveType = null;
+    this._currentObjectiveTarget = 0;
+    this._currentTimeLimit = undefined;
     this.updatePropButtons();
     this.exitPropTargetMode();
   }

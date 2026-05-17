@@ -81,6 +81,7 @@ export class SceneManager {
     }
     this.uiManager.hideCurrentScreen();
     this.gameScene.loadLevel(config);
+    this.gameScene.showLevelObjective(config);
     this.stateMachine.transition('playing');
     return true;
   }

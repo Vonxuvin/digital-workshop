@@ -191,9 +191,11 @@ export class LevelSelectScreen extends Screen {
     nameText.y = 12;
     card.addChild(nameText);
 
-    const objectiveIcon = data.objectiveType === 'score' ? '🎯' : '⭐';
+    const objectiveIcon = data.objectiveType === 'score' ? '🎯' : data.objectiveType === 'target_merge' ? '🔮' : data.objectiveType === 'clear_obstacle' ? '💥' : '⏱';
+    const objectiveLabel = data.objectiveType === 'score' ? '得分' : data.objectiveType === 'target_merge' ? '合成' : data.objectiveType === 'clear_obstacle' ? '清除障碍' : '生存';
+    const objectiveUnit = data.objectiveType === 'clear_obstacle' ? '个' : data.objectiveType === 'survival' ? '秒' : '';
     const objectiveText = new Text({
-      text: `${objectiveIcon} ${data.objectiveType === 'score' ? '得分' : '目标'}: ${data.objectiveTarget}`,
+      text: `${objectiveIcon} ${objectiveLabel}: ${data.objectiveTarget}${objectiveUnit}`,
       style: {
         fontFamily: 'Arial',
         fontSize: 13,

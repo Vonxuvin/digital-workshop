@@ -17,6 +17,7 @@ import { PerformanceMonitor } from '../utils/PerformanceMonitor';
 import { ContainerRenderer } from './ContainerRenderer';
 import { TutorialManager } from './TutorialManager';
 import { TimeManager } from '../utils/TimeManager';
+import { LevelObjectiveOverlay } from '../ui/screens/LevelObjectiveOverlay';
 
 export interface BlockMergedData {
   newValue: number;
@@ -51,6 +52,7 @@ export class GameScene {
   private warningLineData: Array<{ y: number; radius: number; speed: number }> = [];
   private tutorialManager: TutorialManager | null = null;
   private timeManager: TimeManager;
+  private levelObjectiveOverlay: LevelObjectiveOverlay;
 
   constructor(
     app: Application,
@@ -77,6 +79,7 @@ export class GameScene {
     this.groundY = 550;
     this.tutorialManager = tutorialManager || null;
     this.timeManager = TimeManager.getInstance();
+    this.levelObjectiveOverlay = new LevelObjectiveOverlay();
   }
 
   init(): void {
@@ -154,6 +157,7 @@ export class GameScene {
     this.propEffectHandler.setLevelSystem(this.levelSystem);
     this.blockSpawner.setLevelConfig(config);
     this.gameHUD.updateLevel(config.id, config.name);
+    this.gameHUD.setObjectiveInfo(config.objective.type, config.objective.target, config.objective.timeLimit);
     this.setupContainer();
     this.resetGame();
     this.gameStartTime = Date.now();
@@ -350,6 +354,7 @@ export class GameScene {
     this.gameHUD.update(deltaMS / 16.67);
     if (this.levelSystem) {
       this.gameHUD.setObjectiveProgress(this.levelSystem.getProgress());
+      this.gameHUD.updateObjectiveProgress(this.levelSystem.getCurrentProgressValue());
     }
 
     const warningLine = this.containerRenderer.getWarningLine();
@@ -498,6 +503,27 @@ export class GameScene {
   addHUDToStage(): void {
     this.gameHUD.visible = false;
     this.app.stage.addChild(this.gameHUD);
+  }
+
+  addLevelObjectiveOverlayToStage(): void {
+    this.app.stage.addChild(this.levelObjectiveOverlay);
+    this.levelObjectiveOverlay.layout(this.app.screen.width, this.app.screen.height);
+  }
+
+  showLevelObjective(config: LevelConfig): void {
+    this.levelObjectiveOverlay.showObjective(config);
+  }
+
+  hideLevelObjective(): void {
+    this.levelObjectiveOverlay.hide();
+  }
+
+  isLevelObjectiveVisible(): boolean {
+    return this.levelObjectiveOverlay.isVisible();
+  }
+
+  getLevelObjectiveOverlay(): LevelObjectiveOverlay {
+    return this.levelObjectiveOverlay;
   }
 
   destroy(): void {

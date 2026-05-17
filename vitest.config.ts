@@ -49,6 +49,7 @@ export default defineConfig({
         'src/ui/components/UIButton.ts',
         'src/ui/components/UIPanel.ts',
         'src/ui/components/UIProgressBar.ts',
+        'src/ui/components/ObjectiveDisplay.ts',
         'src/ui/effects/ParticleEffect.ts',
         'src/ui/effects/MergeEffect.ts',
         'src/ui/effects/ExplosionEffect.ts',

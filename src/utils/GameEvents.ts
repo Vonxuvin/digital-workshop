@@ -58,6 +58,7 @@ export const GameEvents = {
   AUDIO_MUTE_CHANGED: 'audio:muteChanged',
   CONTAINER_ROTATED: 'container:rotated',
   CONTAINER_SHRUNK: 'container:shrunk',
+  LEVEL_OBJECTIVE_DISMISSED: 'level:objectiveDismissed',
 } as const;
 
 export type GameEvent = (typeof GameEvents)[keyof typeof GameEvents];
