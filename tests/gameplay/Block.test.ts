@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { PhysicsManager } from '../../src/core/PhysicsManager';
 import { Block, BLOCK_CONFIGS } from '../../src/gameplay/Block';
 import gsap from 'gsap';
+import Matter from 'matter-js';
 
 describe('Block', () => {
   let physics: PhysicsManager;
@@ -80,6 +81,29 @@ describe('Block', () => {
     const body = physics.createCircle(100, 200, 20);
     const block = new Block(body, 1);
     expect(block.body).toBe(body);
+  });
+
+  describe('syncFromBody after body position change', () => {
+    it('should update position when body moves', () => {
+      const body = physics.createCircle(100, 200, 20);
+      const block = new Block(body, 1);
+      expect(block.x).toBe(100);
+      expect(block.y).toBe(200);
+
+      Matter.Body.setPosition(body, { x: 300, y: 400 });
+      block.syncFromBody();
+      expect(block.x).toBe(300);
+      expect(block.y).toBe(400);
+    });
+
+    it('should update rotation from body angle', () => {
+      const body = physics.createCircle(100, 200, 20);
+      const block = new Block(body, 1);
+
+      Matter.Body.setAngle(body, Math.PI / 4);
+      block.syncFromBody();
+      expect(block.rotation).toBeCloseTo(Math.PI / 4, 5);
+    });
   });
 });
 

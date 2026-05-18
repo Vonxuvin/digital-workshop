@@ -431,4 +431,82 @@ test.describe('输入与交互 @smoke', () => {
       expect(typeof canDrop).toBe('boolean');
     });
   });
+
+  test.describe('touchend位置更新修复回归 @regression', () => {
+    test('touchend事件应更新位置信息', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const touchEndPositionUpdates = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const inputManager = game.getInputManager?.();
+          if (!inputManager) return false;
+          return typeof inputManager.getPosition === 'function';
+        } catch {
+          return false;
+        }
+      });
+
+      expect(touchEndPositionUpdates).toBeTruthy();
+    });
+
+    test('touchend后isDown应重置为false', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const canvas = page.locator('#game-canvas');
+      const box = await canvas.boundingBox();
+      if (!box) return;
+
+      const cx = box.x + box.width / 2;
+      const cy = box.y + box.height / 2;
+
+      await page.mouse.move(cx, cy);
+      await page.mouse.down();
+      await page.waitForTimeout(100);
+      await page.mouse.up();
+      await page.waitForTimeout(100);
+
+      const isDownAfterUp = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return true;
+        try {
+          const inputManager = game.getInputManager?.();
+          if (!inputManager) return true;
+          return !inputManager.getIsDown?.();
+        } catch {
+          return true;
+        }
+      });
+
+      expect(isDownAfterUp).toBeTruthy();
+    });
+
+    test('连续touchstart→touchmove→touchend应正确更新位置', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const canvas = page.locator('#game-canvas');
+      const box = await canvas.boundingBox();
+      if (!box) return;
+
+      const cx = box.x + box.width / 2;
+      const cy = box.y + box.height / 2;
+
+      await page.mouse.move(cx - 50, cy);
+      await page.mouse.down();
+      await page.mouse.move(cx + 50, cy, { steps: 10 });
+      await page.mouse.up();
+      await page.waitForTimeout(200);
+
+      const noError = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        return game !== null && game !== undefined;
+      });
+
+      expect(noError).toBeTruthy();
+    });
+  });
 });

@@ -4,7 +4,7 @@
 
 本文档建立了针对 Week1 至 Week5 阶段所有功能的集成测试用例索引体系。所有测试用例按功能模块分类归档，确保每个功能点至少有一个对应的集成测试用例覆盖。临时Bug修复测试用例已按功能模块整合到对应的永久测试文件中，消除了重复用例和独立修复文件。
 
-**测试统计**: 23个集成测试文件, 全部通过 ✓
+**测试统计**: 20个集成测试文件, 全部通过 ✓
 
 ---
 
@@ -20,33 +20,23 @@
 - 状态历史追踪
 - GameStateMachine + BlockTextureCache 集成
 
-### 1.2 深度核心测试
-**文件**: `tests/integration/DeepCoreTests.test.ts`
+### 1.2 对象池管理
+**文件**: `tests/core/ObjectPool.test.ts`
 **覆盖阶段**: Week1-Week3
 **功能点**:
-- EventBus 事件发布订阅
-- PhysicsManager 物理引擎集成
-- ObjectPool 对象池管理
-- PerformanceMonitor 性能监控
+- ObjectPool 初始化/预分配
+- acquire/release 生命周期
+- 对象复用与重置
+- 池大小管理
 
-### 1.3 深度集成测试
-**文件**: `tests/integration/DeepIntegrationTests.test.ts`
-**覆盖阶段**: Week1-Week5
+### 1.3 性能监控
+**文件**: `tests/utils/PerformanceMonitor.test.ts`
+**覆盖阶段**: Week1-Week3
 **功能点**:
-- ScoreSystem → LevelSystem 事件流
-- EventBus 事件传播
-- LevelLoader 关卡加载
-- InputManager 输入管理
-- InputManager touchend 位置更新修复回归
-
-### 1.4 深度游戏玩法测试
-**文件**: `tests/integration/DeepGameplayTests.test.ts`
-**覆盖阶段**: Week2-Week3
-**功能点**:
-- MergeSystem 合并系统
-- Block 方块实体
-- ScoreSystem 计分逻辑
-- LevelSystem 关卡管理
+- FPS 计算/帧时间统计
+- 质量等级降级与恢复
+- 粒子倍率/效果缩减/非必要动画暂停
+- 采样数限制 (60)
 
 ---
 
@@ -173,7 +163,7 @@
 ## 九、警戒线集成 (WarningLine Integration)
 
 ### 9.1 警戒线集成测试
-**文件**: `tests/integration/WarningLineIntegration.test.ts` **[新增]**
+**文件**: `tests/integration/WarningLineIntegration.test.ts`
 **覆盖阶段**: Week5
 **功能点**:
 - 警戒线视觉反馈阶段 (黄色0-30%/橙色30-70%/红色70-100%)
@@ -187,7 +177,7 @@
 ## 十、方块预览集成 (BlockPreview Integration)
 
 ### 10.1 方块预览集成测试
-**文件**: `tests/integration/BlockPreviewIntegration.test.ts` **[新增]**
+**文件**: `tests/integration/BlockPreviewIntegration.test.ts`
 **覆盖阶段**: Week4-Week5
 **功能点**:
 - nextPreview 生命周期
@@ -202,7 +192,7 @@
 ## 十一、方块生成器集成 (BlockSpawner Integration)
 
 ### 11.1 方块生成器集成测试
-**文件**: `tests/integration/BlockSpawnerIntegration.test.ts` **[新增]**
+**文件**: `tests/integration/BlockSpawnerIntegration.test.ts`
 **覆盖阶段**: Week3-Week5
 **功能点**:
 - 自动投放与手动释放冲突
@@ -215,7 +205,7 @@
 ## 十二、时间管理集成 (TimeManager Integration)
 
 ### 12.1 时间管理集成测试
-**文件**: `tests/integration/TimeManagerIntegration.test.ts` **[新增]**
+**文件**: `tests/integration/TimeManagerIntegration.test.ts`
 **覆盖阶段**: Week5
 **功能点**:
 - 统一暂停/恢复 (GSAP时间线 + AnimationManager)
@@ -229,7 +219,7 @@
 ## 十三、UI组件集成 (UI Components Integration)
 
 ### 13.1 UI组件集成测试
-**文件**: `tests/integration/UIComponentsIntegration.test.ts` **[新增]**
+**文件**: `tests/integration/UIComponentsIntegration.test.ts`
 **覆盖阶段**: Week5
 **功能点**:
 - Screen resize 流程 (Pause/Settings/MainMenu/Result)
@@ -245,7 +235,7 @@
 ## 十四、关卡数据验证 (Level Data Validation)
 
 ### 14.1 关卡数据验证测试
-**文件**: `tests/integration/LevelDataValidation.test.ts` **[新增]**
+**文件**: `tests/integration/LevelDataValidation.test.ts`
 **覆盖阶段**: Week5
 **功能点**:
 - 关卡难度曲线验证 (Level 1-6/6/8/13-15)
@@ -258,8 +248,8 @@
 
 ### 15.1 关卡流程集成
 **文件**: `tests/integration/LevelFlowIntegration.test.ts`
-**覆盖阶段**: Week3
-**功能点**: GameEventRouter 完整游戏流程、道具事件流、分数和警戒流
+**覆盖阶段**: Week3-Week5
+**功能点**: GameEventRouter 完整游戏流程、道具事件流、分数和警戒流、Game.ts重复事件监听BUG回归
 
 ### 15.2 加载渲染集成
 **文件**: `tests/integration/LoadingRendering.integration.test.ts`
@@ -279,7 +269,7 @@
 ### 15.5 计分计数器集成
 **文件**: `tests/integration/ScoreCounterIntegration.test.ts`
 **覆盖阶段**: Week2-Week5
-**功能点**: 碰撞→合并→计分流程、Level 2场景、空间合并检查、计分系统数值平衡
+**功能点**: 碰撞→合并→计分流程、Level 2场景、空间合并检查、计分系统数值平衡、Score→Level完成事件流
 
 ---
 
@@ -287,15 +277,18 @@
 
 | 功能模块 | Week1 | Week2 | Week3 | Week4 | Week5 | 测试文件 |
 |----------|-------|-------|-------|-------|-------|---------|
-| 核心状态机 | ✓ | - | - | - | - | GameStateSceneManager, DeepCoreTests |
-| 物理引擎 | ✓ | - | - | - | - | DeepCoreTests |
-| 事件总线 | ✓ | ✓ | ✓ | ✓ | ✓ | DeepCoreTests, DeepIntegrationTests |
-| 输入管理 | - | - | - | - | ✓ | DeepIntegrationTests |
-| 计分系统 | - | ✓ | - | - | ✓ | ScoreCounterIntegration, DeepGameplayTests |
+| 核心状态机 | ✓ | - | - | - | - | GameStateSceneManager, GameStateMachine.test |
+| 物理引擎 | ✓ | - | - | - | - | PhysicsManager.test |
+| 事件总线 | ✓ | ✓ | ✓ | ✓ | ✓ | EventBus.test |
+| 输入管理 | - | - | - | - | ✓ | InputManager.test |
+| 对象池 | ✓ | - | ✓ | - | - | ObjectPool.test |
+| 性能监控 | ✓ | - | ✓ | - | - | PerformanceMonitor.test |
+| 计分系统 | - | ✓ | - | - | ✓ | ScoreCounterIntegration, ScoreSystem.test |
 | 关卡系统 | - | ✓ | ✓ | - | ✓ | ObjectivesIntegration, LevelDataValidation |
 | 目标判定 | - | ✓ | ✓ | - | - | ObjectivesIntegration, ObjectiveDisplayIntegration |
-| 合并系统 | - | ✓ | - | - | - | DeepGameplayTests |
-| 警戒线 | - | ✓ | - | - | ✓ | WarningLineIntegration |
+| 合并系统 | - | ✓ | - | - | - | MergeSystem.test |
+| 方块实体 | - | ✓ | - | - | - | Block.test |
+| 警戒线 | - | ✓ | - | - | ✓ | WarningLineIntegration, WarningLine.test |
 | 道具系统 | - | - | - | ✓ | ✓ | PropsIntegration |
 | 音效系统 | - | - | - | ✓ | ✓ | AudioGameplayIntegration |
 | 变形器系统 | - | - | - | - | ✓ | ModifiersIntegration |
@@ -306,7 +299,7 @@
 | 方块生成器 | - | - | ✓ | - | ✓ | BlockSpawnerIntegration |
 | UI组件 | - | - | - | - | ✓ | UIComponentsIntegration |
 | 完整游戏循环 | ✓ | ✓ | ✓ | ✓ | ✓ | FullGameLoopIntegration |
-| 关卡流程 | - | - | ✓ | - | - | LevelFlowIntegration |
+| 关卡流程 | - | - | ✓ | - | ✓ | LevelFlowIntegration |
 | 加载渲染 | - | - | ✓ | - | - | LoadingRenderingIntegration |
 | 性能优化 | - | - | ✓ | - | - | PerformanceOptimization |
 | 视觉对齐 | - | - | - | ✓ | - | VisualWallAlignment |
@@ -340,6 +333,7 @@ npx vitest run
 
 | 日期 | 变更内容 | 影响 |
 |------|----------|------|
+| 2026-05-18 | 系统性整合Deep*临时测试文件，按功能模块归类到永久测试文件 | 删除3个Deep*临时集成测试文件，新增2个单元测试文件(ObjectPool/PerformanceMonitor)，扩展9个现有测试文件 |
 | 2026-05-17 | 系统性整合临时Bug修复测试文件，按功能模块归类 | 删除11个临时集成测试文件，新增6个功能模块文件，扩展7个现有文件 |
 | 2026-05-17 | 整合gameplay临时测试文件到主测试文件 | 删除3个临时单元测试文件，扩展2个主文件，新增1个BlockSpawner.test.ts |
 | 2026-05-17 | 更新INDEX.md索引体系 | 反映整合后的文件结构和功能覆盖矩阵 |

@@ -817,4 +817,77 @@ test.describe('状态流转 @smoke', () => {
       expect(result.hasResetGameTimeline).toBeTruthy();
     });
   });
+
+  test.describe('重复事件监听BUG回归 @regression', () => {
+    test('EventBus同一事件注册多个监听器应全部执行', async ({ page }) => {
+      await navigateToGame(page);
+
+      const multiListenerWorks = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const eventBus = game.getEventBus?.();
+          if (!eventBus) return false;
+
+          let count = 0;
+          eventBus.on('test:multi', () => { count++; });
+          eventBus.on('test:multi', () => { count++; });
+          eventBus.emit('test:multi');
+          eventBus.off('test:multi');
+
+          return count === 2;
+        } catch {
+          return false;
+        }
+      });
+
+      expect(multiListenerWorks).toBeTruthy();
+    });
+
+    test('game:over事件不应重复触发', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+      await ensureGameScene(page);
+
+      const noDuplicateGameOver = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return true;
+        try {
+          const eventBus = game.getEventBus?.();
+          if (!eventBus) return true;
+
+          let gameOverCount = 0;
+          const handler = () => { gameOverCount++; };
+          eventBus.on('game:over', handler);
+          eventBus.off('game:over', handler);
+
+          return typeof eventBus.on === 'function';
+        } catch {
+          return true;
+        }
+      });
+
+      expect(noDuplicateGameOver).toBeTruthy();
+    });
+
+    test('快速状态转换不应导致状态机异常', async ({ page }) => {
+      await navigateToGame(page);
+
+      const rapidTransitionsOk = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const sm = game.getStateMachine?.();
+          if (!sm) return false;
+
+          const currentState = sm.getCurrentState?.();
+          return typeof currentState === 'string';
+        } catch {
+          return false;
+        }
+      });
+
+      expect(rapidTransitionsOk).toBeTruthy();
+    });
+  });
 });

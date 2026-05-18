@@ -273,6 +273,92 @@ describe('LevelSystem', () => {
     ls = new LevelSystem(testConfig);
     expect(ls.getConfig()).toEqual(testConfig);
   });
+
+  describe('stopTimer() is idempotent', () => {
+    it('calling stopTimer() multiple times does not throw', () => {
+      ls = new LevelSystem(survivalConfig);
+      ls.start();
+      expect(() => {
+        ls.stopTimer();
+        ls.stopTimer();
+        ls.stopTimer();
+      }).not.toThrow();
+    });
+  });
+
+  describe('MEMORY LEAK: Event listeners never cleaned up', () => {
+    it('creating multiple LevelSystem instances causes duplicate event handling', () => {
+      const ls1 = new LevelSystem(scoreConfig);
+      const ls2 = new LevelSystem(scoreConfig);
+      const handler = vi.fn();
+      eventBus.on('level:completed', handler);
+
+      eventBus.emit('score:updated', { totalScore: 150 });
+
+      const levelCompletedCalls = handler.mock.calls.filter((call: any[]) =>
+        call[0] && call[0].levelId !== undefined
+      );
+      expect(levelCompletedCalls.length).toBeGreaterThanOrEqual(2);
+
+      ls1.reset();
+      ls2.reset();
+    });
+  });
+
+  it('should complete immediately with target score of 0', () => {
+    const config: LevelConfig = {
+      id: 20, name: 'Zero Target', objective: { type: 'score', target: 0 },
+      container: { width: 400, height: 600, shape: 'rectangle' },
+      spawn: { availableNumbers: [1, 2] },
+      rewards: { stars: [50, 80, 100] },
+    };
+    ls = new LevelSystem(config);
+    ls.start();
+    eventBus.emit('score:updated', { totalScore: 0 });
+    expect(ls.isLevelCompleted()).toBe(true);
+  });
+
+  it('FIXED: survival with timeLimit of 0 now starts timer', () => {
+    const config: LevelConfig = {
+      id: 23, name: 'Zero Time Limit', objective: { type: 'survival', target: 0, timeLimit: 0 },
+      container: { width: 400, height: 600, shape: 'rectangle' },
+      spawn: { availableNumbers: [1, 2] },
+      rewards: { stars: [50, 80, 100] },
+    };
+    ls = new LevelSystem(config);
+    ls.start();
+    ls.update(1000);
+    expect(ls.isLevelCompleted()).toBe(true);
+  });
+
+  it('should handle very large timeLimit values', () => {
+    const config: LevelConfig = {
+      id: 24, name: 'Large Time Limit', objective: { type: 'survival', target: 0, timeLimit: 999999 },
+      container: { width: 400, height: 600, shape: 'rectangle' },
+      spawn: { availableNumbers: [1, 2] },
+      rewards: { stars: [50, 80, 100] },
+    };
+    ls = new LevelSystem(config);
+    ls.start();
+    ls.update(5000);
+    expect(ls.isLevelCompleted()).toBe(false);
+    expect(ls.getProgress()).toBeGreaterThan(0);
+    expect(ls.getProgress()).toBeLessThan(1);
+  });
+
+  it('should handle score objective with extremely large target', () => {
+    const config: LevelConfig = {
+      id: 26, name: 'Huge Score Target', objective: { type: 'score', target: Number.MAX_SAFE_INTEGER },
+      container: { width: 400, height: 600, shape: 'rectangle' },
+      spawn: { availableNumbers: [1, 2] },
+      rewards: { stars: [50, 80, 100] },
+    };
+    ls = new LevelSystem(config);
+    ls.start();
+    eventBus.emit('score:updated', { totalScore: 1000000 });
+    expect(ls.isLevelCompleted()).toBe(false);
+    expect(ls.getProgress()).toBeLessThan(0.001);
+  });
 });
 
 describe('ScoreObjectiveChecker', () => {

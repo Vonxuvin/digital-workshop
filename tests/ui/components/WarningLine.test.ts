@@ -255,3 +255,192 @@ describe('WarningLine - 重置与可见性', () => {
     eventBus.off('warning:started', handler);
   });
 });
+
+describe('Warning trigger at exact boundary', () => {
+  let wl: WarningLine;
+
+  beforeEach(() => {
+    wl = new WarningLine(600);
+    wl.y = 600 * 0.2;
+  });
+
+  afterEach(() => {
+    wl.reset();
+  });
+
+  it('should trigger warning when block top is just above warning height', () => {
+    const wh = wl.getWarningHeight();
+    const handler = vi.fn();
+    eventBus.on('warning:started', handler);
+    wl.update([{ y: wh - 1, radius: 0, speed: 0 }], 250);
+    expect(handler).toHaveBeenCalled();
+    eventBus.off('warning:started', handler);
+  });
+
+  it('should not trigger warning when block top equals warning height', () => {
+    const wh = wl.getWarningHeight();
+    const handler = vi.fn();
+    eventBus.on('warning:started', handler);
+    wl.update([{ y: wh, radius: 0, speed: 0 }], 16.67);
+    expect(handler).not.toHaveBeenCalled();
+    eventBus.off('warning:started', handler);
+  });
+
+  it('should not trigger warning when block top is below warning height', () => {
+    const wh = wl.getWarningHeight();
+    const handler = vi.fn();
+    eventBus.on('warning:started', handler);
+    wl.update([{ y: wh + 1, radius: 0, speed: 0 }], 16.67);
+    expect(handler).not.toHaveBeenCalled();
+    eventBus.off('warning:started', handler);
+  });
+
+  it('should consider block radius in warning detection', () => {
+    const wh = wl.getWarningHeight();
+    const handler = vi.fn();
+    eventBus.on('warning:started', handler);
+    wl.update([{ y: wh + 10, radius: 20, speed: 0 }], 250);
+    expect(handler).toHaveBeenCalled();
+    eventBus.off('warning:started', handler);
+  });
+
+  it('should not trigger warning for fast-moving blocks above line', () => {
+    const wh = wl.getWarningHeight();
+    const handler = vi.fn();
+    eventBus.on('warning:started', handler);
+    wl.update([{ y: wh - 10, radius: 5, speed: 5 }], 16.67);
+    expect(handler).not.toHaveBeenCalled();
+    eventBus.off('warning:started', handler);
+  });
+});
+
+describe('Delta normalization (deltaMS)', () => {
+  let wl: WarningLine;
+
+  beforeEach(() => {
+    wl = new WarningLine(600);
+    wl.y = 600 * 0.2;
+  });
+
+  afterEach(() => {
+    wl.reset();
+  });
+
+  it('should accumulate warning duration based on delta', () => {
+    const wh = wl.getWarningHeight();
+    wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 250);
+    const d1 = wl.getWarningDuration();
+    wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
+    const d2 = wl.getWarningDuration();
+    expect(d2).toBeGreaterThan(d1);
+  });
+
+  it('should accumulate faster with larger delta', () => {
+    const wh = wl.getWarningHeight();
+    wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 250);
+    wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 33.34);
+    const durationWithDelta2 = wl.getWarningDuration();
+    wl.reset();
+    wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 250);
+    wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
+    const durationWithDelta1 = wl.getWarningDuration();
+    expect(durationWithDelta2).toBeGreaterThan(durationWithDelta1);
+  });
+});
+
+describe('game:over emitted exactly once at threshold', () => {
+  let wl: WarningLine;
+
+  beforeEach(() => {
+    wl = new WarningLine(600);
+    wl.y = 600 * 0.2;
+  });
+
+  afterEach(() => {
+    wl.reset();
+  });
+
+  it('should emit game:over when warningDuration >= 5000', () => {
+    const wh = wl.getWarningHeight();
+    const handler = vi.fn();
+    eventBus.on('game:over', handler);
+
+    for (let i = 0; i < 320; i++) {
+      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
+    }
+
+    expect(handler).toHaveBeenCalled();
+    eventBus.off('game:over', handler);
+  });
+
+  it('should not emit game:over again after threshold reached and blocks remain above', () => {
+    const wh = wl.getWarningHeight();
+    const handler = vi.fn();
+    eventBus.on('game:over', handler);
+
+    for (let i = 0; i < 320; i++) {
+      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
+    }
+    const callCount = handler.mock.calls.length;
+    expect(callCount).toBeGreaterThanOrEqual(1);
+
+    wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
+    wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
+    expect(handler.mock.calls.length).toBe(callCount);
+    eventBus.off('game:over', handler);
+  });
+});
+
+describe('Frozen state pauses warning accumulation (B-12)', () => {
+  let wl: WarningLine;
+
+  beforeEach(() => {
+    wl = new WarningLine(600);
+    wl.y = 600 * 0.2;
+  });
+
+  afterEach(() => {
+    wl.reset();
+  });
+
+  it('should not accumulate warning duration when frozen', () => {
+    const wh = wl.getWarningHeight();
+    wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 250);
+    expect(wl.getWarningDuration()).toBeGreaterThan(0);
+
+    const durationBeforeFreeze = wl.getWarningDuration();
+    wl.setFrozen(true);
+    wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 1000);
+    expect(wl.getWarningDuration()).toBe(durationBeforeFreeze);
+
+    wl.setFrozen(false);
+    wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 250);
+    expect(wl.getWarningDuration()).toBeGreaterThan(durationBeforeFreeze);
+  });
+
+  it('should not emit game:over while frozen even if warning duration would exceed threshold', () => {
+    const wh = wl.getWarningHeight();
+    const handler = vi.fn();
+    eventBus.on('game:over', handler);
+
+    wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 250);
+    wl.setFrozen(true);
+
+    for (let i = 0; i < 320; i++) {
+      wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 16.67);
+    }
+
+    expect(handler).not.toHaveBeenCalled();
+
+    wl.setFrozen(false);
+    eventBus.off('game:over', handler);
+  });
+
+  it('should reset frozen state on reset()', () => {
+    wl.setFrozen(true);
+    wl.reset();
+    const wh = wl.getWarningHeight();
+    wl.update([{ y: wh - 10, radius: 5, speed: 0 }], 250);
+    expect(wl.getWarningDuration()).toBeGreaterThan(0);
+  });
+});

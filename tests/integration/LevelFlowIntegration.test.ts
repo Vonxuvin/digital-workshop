@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { GameStateMachine } from '../../src/core/GameStateMachine';
 import { GameEventRouter } from '../../src/core/GameEventRouter';
-import { GameEvents, eventBus } from '../../src/utils/EventBus';
+import { EventBus, GameEvents, eventBus } from '../../src/utils/EventBus';
 import { LevelLoader } from '../../src/core/LevelLoader';
 
 function createMockGameScene() {
@@ -180,6 +180,70 @@ describe('Level Flow Integration Tests', () => {
       router.destroy();
       eventBus.emit(GameEvents.GAME_OVER);
       expect(sceneManager.failGame).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Duplicate event listener BUG in Game.ts', () => {
+    it('BUG: registering two listeners for the same event causes double execution', () => {
+      const bus = new EventBus();
+      let executionCount = 0;
+
+      bus.on('game:over', () => { executionCount++; });
+      bus.on('game:over', () => { executionCount++; });
+
+      bus.emit('game:over');
+
+      expect(executionCount).toBe(2);
+    });
+
+    it('BUG: Game.ts registers game:over twice (setupGameEvents + setupUIEvents)', () => {
+      const bus = new EventBus();
+      const setupGameEventsHandler = vi.fn();
+      const setupUIEventsHandler = vi.fn();
+
+      bus.on('game:over', setupGameEventsHandler);
+      bus.on('game:over', setupUIEventsHandler);
+
+      bus.emit('game:over');
+
+      expect(setupGameEventsHandler).toHaveBeenCalledTimes(1);
+      expect(setupUIEventsHandler).toHaveBeenCalledTimes(1);
+
+      const totalCalls = setupGameEventsHandler.mock.calls.length + setupUIEventsHandler.mock.calls.length;
+      expect(totalCalls).toBe(2);
+    });
+
+    it('BUG: Game.ts registers level:completed twice (setupGameEvents + setupUIEvents)', () => {
+      const bus = new EventBus();
+      const handler1 = vi.fn();
+      const handler2 = vi.fn();
+
+      bus.on('level:completed', handler1);
+      bus.on('level:completed', handler2);
+
+      bus.emit('level:completed', { levelId: 1, score: 100, time: 30 });
+
+      expect(handler1).toHaveBeenCalledTimes(1);
+      expect(handler2).toHaveBeenCalledTimes(1);
+      expect(handler1).toHaveBeenCalledWith({ levelId: 1, score: 100, time: 30 });
+      expect(handler2).toHaveBeenCalledWith({ levelId: 1, score: 100, time: 30 });
+    });
+
+    it('BUG: duplicate game:over listeners cause both handlers to execute', () => {
+      const sm = new GameStateMachine();
+      const bus = new EventBus();
+      const handler1 = vi.fn();
+      const handler2 = vi.fn();
+
+      bus.on('game:over', () => { handler1(); sm.transition('gameover'); });
+      bus.on('game:over', () => { handler2(); sm.transition('gameover'); });
+
+      sm.transition('playing');
+      bus.emit('game:over');
+
+      expect(handler1).toHaveBeenCalledTimes(1);
+      expect(handler2).toHaveBeenCalledTimes(1);
+      expect(sm.getCurrentState()).toBe('gameover');
     });
   });
 });

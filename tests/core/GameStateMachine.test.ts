@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { GameStateMachine } from '../../src/core/GameStateMachine';
+import { GameStateMachine, GameState } from '../../src/core/GameStateMachine';
 
 describe('GameStateMachine', () => {
   let sm: GameStateMachine;
@@ -132,6 +132,97 @@ describe('GameStateMachine', () => {
       bootSm.transition('loading');
       expect(bootSm.transition('playing')).toBe(false);
       expect(bootSm.getCurrentState()).toBe('loading');
+    });
+  });
+
+  describe('stateHistory grows unbounded (memory leak potential)', () => {
+    it('stateHistory grows with every transition and is never trimmed', () => {
+      for (let i = 0; i < 1000; i++) {
+        sm.transition('playing');
+        sm.transition('paused');
+      }
+      expect(sm.getPreviousState()).toBe('playing');
+    });
+
+    it('reset() clears stateHistory', () => {
+      for (let i = 0; i < 50; i++) {
+        sm.transition('playing');
+        sm.transition('paused');
+      }
+      sm.reset();
+      expect(sm.getPreviousState()).toBeNull();
+    });
+  });
+
+  describe('listeners can never be removed', () => {
+    it('no offEnter/offRemoveListener method exists - listeners accumulate', () => {
+      const callback = vi.fn();
+      sm.onEnter('playing', callback);
+      sm.transition('playing');
+      expect(callback).toHaveBeenCalledTimes(1);
+      sm.transition('paused');
+      sm.transition('playing');
+      expect(callback).toHaveBeenCalledTimes(2);
+    });
+
+    it('onAnyChange listeners cannot be removed', () => {
+      const callback = vi.fn();
+      sm.onAnyChange(callback);
+      sm.transition('playing');
+      expect(callback).toHaveBeenCalledTimes(1);
+      sm.transition('paused');
+      expect(callback).toHaveBeenCalledTimes(2);
+    });
+
+    it('multiple onEnter calls for same state accumulate callbacks', () => {
+      const cb1 = vi.fn();
+      const cb2 = vi.fn();
+      sm.onEnter('playing', cb1);
+      sm.onEnter('playing', cb2);
+      sm.transition('playing');
+      expect(cb1).toHaveBeenCalledWith('menu', 'playing');
+      expect(cb2).toHaveBeenCalledWith('menu', 'playing');
+    });
+  });
+
+  describe('rapid transitions and edge cases', () => {
+    it('should handle rapid state transitions', () => {
+      sm.transition('playing');
+      sm.transition('paused');
+      sm.transition('playing');
+      sm.transition('gameover');
+      sm.transition('menu');
+      sm.transition('playing');
+      expect(sm.getCurrentState()).toBe('playing');
+    });
+
+    it('should track full state history through rapid transitions', () => {
+      sm.transition('playing');
+      sm.transition('paused');
+      sm.transition('playing');
+      expect(sm.getPreviousState()).toBe('paused');
+    });
+
+    it('should handle reset during transition callbacks', () => {
+      const states: GameState[] = [];
+      sm.onAnyChange((from, to) => {
+        states.push(to);
+        if (to === 'gameover') {
+          sm.reset();
+        }
+      });
+      sm.transition('playing');
+      sm.transition('gameover');
+      expect(sm.getCurrentState()).toBe('menu');
+      expect(states).toContain('playing');
+      expect(states).toContain('gameover');
+    });
+
+    it('transition() now validates against canTransition rules and blocks invalid transitions', () => {
+      expect(sm.canTransition('gameover')).toBe(false);
+      const result = sm.transition('gameover');
+      expect(result).toBe(false);
+      expect(sm.getCurrentState()).toBe('menu');
     });
   });
 });

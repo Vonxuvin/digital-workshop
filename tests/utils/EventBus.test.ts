@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { EventBus, NamespacedEventBus } from '../../src/utils/EventBus';
+import { EventBus, NamespacedEventBus, eventBus } from '../../src/utils/EventBus';
 
 describe('EventBus', () => {
   let bus: EventBus;
@@ -226,6 +226,80 @@ describe('EventBus', () => {
       bus.destroy();
       bus.emit('test');
       expect(fn).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('eventBus singleton', () => {
+    it('eventBus is a shared singleton instance', () => {
+      expect(eventBus).toBeInstanceOf(EventBus);
+    });
+
+    it('importing eventBus twice returns the same instance', async () => {
+      const mod = await import('../../src/utils/EventBus');
+      expect(mod.eventBus).toBe(eventBus);
+    });
+  });
+
+  describe('EventBus boundary conditions', () => {
+    it('should emit with many arguments', () => {
+      const handler = vi.fn();
+      bus.on('multi-args', handler);
+      bus.emit('multi-args', 1, 'two', { three: 3 }, [4], true, null, undefined);
+      expect(handler).toHaveBeenCalledWith(1, 'two', { three: 3 }, [4], true, null, undefined);
+    });
+
+    it('should call same callback multiple times when registered multiple times', () => {
+      const callback = vi.fn();
+      bus.on('dup', callback);
+      bus.on('dup', callback);
+      bus.emit('dup');
+      expect(callback).toHaveBeenCalledTimes(2);
+    });
+
+    it('should only remove first occurrence of callback with off', () => {
+      const callback = vi.fn();
+      bus.on('dup', callback);
+      bus.on('dup', callback);
+      bus.off('dup', callback);
+      bus.emit('dup');
+      expect(callback).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle off with non-existent event gracefully', () => {
+      const callback = vi.fn();
+      expect(() => bus.off('nonexistent', callback)).not.toThrow();
+    });
+
+    it('should handle off with non-existent callback gracefully', () => {
+      const callback1 = vi.fn();
+      const callback2 = vi.fn();
+      bus.on('test', callback1);
+      expect(() => bus.off('test', callback2)).not.toThrow();
+    });
+
+    it('should emit with undefined arguments', () => {
+      const handler = vi.fn();
+      bus.on('undef', handler);
+      bus.emit('undef', undefined);
+      expect(handler).toHaveBeenCalledWith(undefined);
+    });
+
+    it('should emit with null arguments', () => {
+      const handler = vi.fn();
+      bus.on('null', handler);
+      bus.emit('null', null);
+      expect(handler).toHaveBeenCalledWith(null);
+    });
+
+    it('should handle emit with no listeners', () => {
+      expect(() => bus.emit('no-listeners')).not.toThrow();
+    });
+
+    it('should handle emit with no arguments beyond event name', () => {
+      const handler = vi.fn();
+      bus.on('no-args', handler);
+      bus.emit('no-args');
+      expect(handler).toHaveBeenCalledWith();
     });
   });
 });

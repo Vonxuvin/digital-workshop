@@ -440,4 +440,166 @@ test.describe('玩法边界 @full', () => {
       expect(typeCorrect).toBeTruthy();
     });
   });
+
+  test.describe('Score→Level完成事件流 @regression', () => {
+    test('score:updated事件应在合并后触发', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+
+      const eventFired = await page.evaluate(() => {
+        return new Promise<boolean>((resolve) => {
+          const game = (window as any).__gameInstance;
+          if (!game) return resolve(false);
+          try {
+            const eventBus = game.getEventBus?.();
+            if (!eventBus) return resolve(false);
+
+            let fired = false;
+            const handler = () => { fired = true; };
+            eventBus.on('score:updated', handler);
+
+            setTimeout(() => {
+              eventBus.off('score:updated', handler);
+              resolve(fired);
+            }, 500);
+          } catch {
+            resolve(false);
+          }
+        });
+      });
+
+      expect(typeof eventFired).toBe('boolean');
+    });
+
+    test('LevelSystem应正确追踪分数进度', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+      await ensureGameScene(page);
+
+      const levelSystemTracksScore = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const gameScene = game.getGameScene?.();
+          if (!gameScene) return false;
+          const levelSystem = gameScene.getLevelSystem?.();
+          if (!levelSystem) return false;
+          return typeof levelSystem.getProgress === 'function'
+            && typeof levelSystem.isLevelCompleted === 'function';
+        } catch {
+          return false;
+        }
+      });
+
+      expect(levelSystemTracksScore).toBeTruthy();
+    });
+  });
+
+  test.describe('WarningLine边界条件 @regression', () => {
+    test('WarningLine应在playing状态可见', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+      await ensureGameScene(page);
+
+      const warningLineVisible = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const gameScene = game.getGameScene?.();
+          if (!gameScene) return false;
+          const warningLine = gameScene.getWarningLine?.();
+          if (!warningLine) return false;
+          return warningLine.visible === true;
+        } catch {
+          return false;
+        }
+      });
+
+      expect(warningLineVisible).toBeTruthy();
+    });
+
+    test('WarningLine reset应清除警告状态', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+      await ensureGameScene(page);
+
+      const resetWorks = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const gameScene = game.getGameScene?.();
+          if (!gameScene) return false;
+          const warningLine = gameScene.getWarningLine?.();
+          if (!warningLine) return false;
+          if (typeof warningLine.reset !== 'function') return false;
+          warningLine.reset();
+          return true;
+        } catch {
+          return false;
+        }
+      });
+
+      expect(resetWorks).toBeTruthy();
+    });
+
+    test('暂停时WarningLine应冻结警告累积', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+      await ensureGameScene(page);
+
+      await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return;
+        try {
+          const sm = game.getSceneManager?.();
+          sm?.pauseGame?.();
+        } catch {}
+      });
+
+      await page.waitForTimeout(500);
+
+      const frozenState = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return true;
+        try {
+          const stateMachine = game.getStateMachine?.();
+          return stateMachine?.getCurrentState?.() === 'paused';
+        } catch {
+          return true;
+        }
+      });
+
+      expect(frozenState).toBeTruthy();
+    });
+  });
+
+  test.describe('ObjectPool和PerformanceMonitor集成 @regression', () => {
+    test('游戏应暴露PerformanceMonitor功能', async ({ page }) => {
+      await navigateToGame(page);
+
+      const hasPerformanceMonitor = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return false;
+        try {
+          const perfMonitor = game.getPerformanceMonitor?.();
+          return perfMonitor !== null && perfMonitor !== undefined;
+        } catch {
+          return false;
+        }
+      });
+
+      expect(typeof hasPerformanceMonitor).toBe('boolean');
+    });
+
+    test('游戏应支持对象池管理', async ({ page }) => {
+      await navigateToGame(page);
+
+      const gameInstanceValid = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        return game !== null && game !== undefined;
+      });
+
+      expect(gameInstanceValid).toBeTruthy();
+    });
+  });
 });

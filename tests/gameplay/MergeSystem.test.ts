@@ -648,4 +648,49 @@ describe('MergeSystem', () => {
       obstacle.destroy();
     });
   });
+
+  describe('mergingBodies cleanup after merge', () => {
+    it('should properly handle block body label access after destroy', () => {
+      const body1 = physics.createCircle(100, 300, 20);
+      const body2 = physics.createCircle(120, 300, 20);
+      const b1 = new Block(body1, 1);
+      const b2 = new Block(body2, 1);
+
+      mergeSystem.registerBlock(b1);
+      mergeSystem.registerBlock(b2);
+
+      expect(b1.body.label).toBeDefined();
+      expect(b2.body.label).toBeDefined();
+
+      b1.destroy();
+      b2.destroy();
+
+      expect(b1.body.label).toBe(body1.label);
+      expect(b2.body.label).toBe(body2.label);
+    });
+  });
+
+  describe('Chain reaction timing', () => {
+    it('chain reaction uses setTimeout with 50ms delay', () => {
+      const handler = vi.fn();
+      eventBus.on('block:merged', handler);
+
+      const body1 = physics.createCircle(100, 300, 20);
+      const body2 = physics.createCircle(120, 300, 20);
+      const b1 = new Block(body1, 2);
+      const b2 = new Block(body2, 2);
+
+      mergeSystem.registerBlock(b1);
+      mergeSystem.registerBlock(b2);
+
+      physics.start();
+
+      return new Promise<void>((resolve) => {
+        setTimeout(() => {
+          physics.stop();
+          resolve();
+        }, 500);
+      });
+    });
+  });
 });

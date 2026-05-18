@@ -228,6 +228,152 @@ it('should apply lucky multiplier to score calculation', () => {
     expect(customSS.getCurrentScore()).toBeGreaterThan(0);
     customSS.reset();
   });
+
+  describe('Multiple instances', () => {
+    it('creating multiple ScoreSystem instances does not cause double scoring', () => {
+      const ss2 = new ScoreSystem();
+      const handler = vi.fn();
+      eventBus.on('score:updated', handler);
+
+      ss.addMergeScore(2, false);
+      ss2.addMergeScore(2, false);
+
+      const allCalls = handler.mock.calls;
+      const scoreUpdatedCalls = allCalls.filter((call: any[]) => call[0] && call[0].earnedScore !== undefined);
+      expect(scoreUpdatedCalls.length).toBe(2);
+
+      ss2.reset();
+      eventBus.off('score:updated', handler);
+    });
+  });
+
+  describe('Chain counter accuracy', () => {
+    it('chainCount in score:updated matches ScoreSystem internal counter', () => {
+      const handler = vi.fn();
+      eventBus.on('score:updated', handler);
+
+      ss.addMergeScore(2, false);
+      const lastCall = handler.mock.calls[handler.mock.calls.length - 1][0];
+      expect(lastCall.chainCount).toBe(1);
+
+      eventBus.off('score:updated', handler);
+    });
+  });
+
+  describe('Score calculation accuracy', () => {
+    it('should calculate exact score for value 2 (first merge, chainBonus=1.0)', () => {
+      const handler = vi.fn();
+      eventBus.on('score:updated', handler);
+      ss.addMergeScore(2, false);
+      const data = handler.mock.calls[0][0];
+      const expected = Math.round(SCORE_CONFIGS[2].baseScore * SCORE_CONFIGS[2].chainMultiplier * 1.0);
+      expect(data.earnedScore).toBe(expected);
+      expect(data.earnedScore).toBe(1);
+      eventBus.off('score:updated', handler);
+    });
+
+    it('should calculate exact score for value 4 (first merge)', () => {
+      const handler = vi.fn();
+      eventBus.on('score:updated', handler);
+      ss.addMergeScore(4, false);
+      const lastCall = handler.mock.calls[handler.mock.calls.length - 1][0];
+      const expected = Math.round(SCORE_CONFIGS[4].baseScore * SCORE_CONFIGS[4].chainMultiplier * 1.0);
+      expect(lastCall.earnedScore).toBe(expected);
+      expect(lastCall.earnedScore).toBe(2);
+      eventBus.off('score:updated', handler);
+    });
+
+    it('should apply chain bonus for second merge (isCombo=true)', () => {
+      const scoreBefore = ss.getCurrentScore();
+      const chainBefore = ss.getChainCount();
+      ss.addMergeScore(2, true);
+      expect(ss.getCurrentScore()).toBeGreaterThan(scoreBefore);
+      expect(ss.getChainCount()).toBe(chainBefore + 1);
+    });
+
+    it('should use SCORE_CONFIGS for known values', () => {
+      const handler = vi.fn();
+      eventBus.on('score:updated', handler);
+      ss.addMergeScore(512, false);
+      const data = handler.mock.calls[0][0];
+      expect(data.baseScore).toBeGreaterThan(0);
+      expect(data.chainMultiplier).toBeCloseTo(SCORE_CONFIGS[512].chainMultiplier, 5);
+      eventBus.off('score:updated', handler);
+    });
+  });
+
+  describe('Chain timeout behavior', () => {
+    it('chain timer resets on consecutive merges within timeout', () => {
+      ss.addMergeScore(2, false);
+      expect(ss.getChainCount()).toBe(1);
+
+      ss.update(1500);
+      ss.addMergeScore(2, false);
+      expect(ss.getChainCount()).toBe(2);
+
+      ss.update(1500);
+      ss.addMergeScore(2, false);
+      expect(ss.getChainCount()).toBe(3);
+    });
+
+    it('chain resets after full timeout', () => {
+      ss.addMergeScore(2, false);
+      ss.update(3100);
+      expect(ss.getChainCount()).toBe(0);
+
+      ss.addMergeScore(2, false);
+      expect(ss.getChainCount()).toBe(1);
+    });
+  });
+
+  describe('Boundary conditions', () => {
+    it('should handle merge with very large value (2048)', () => {
+      const handler = vi.fn();
+      eventBus.on('score:updated', handler);
+      ss.addMergeScore(2048, false);
+      expect(handler).toHaveBeenCalled();
+      const data = handler.mock.calls[0][0];
+      expect(data.earnedScore).toBeGreaterThan(0);
+      expect(ss.getCurrentScore()).toBeGreaterThan(0);
+      eventBus.off('score:updated', handler);
+    });
+
+    it('should handle chain count with many consecutive merges (100+)', () => {
+      for (let i = 0; i < 110; i++) {
+        ss.addMergeScore(2, false);
+      }
+      expect(ss.getChainCount()).toBe(110);
+      expect(ss.getCurrentScore()).toBeGreaterThan(0);
+    });
+
+    it('should handle score overflow potential with extremely large values', () => {
+      ss.addMergeScore(2048, false);
+      const score1 = ss.getCurrentScore();
+      expect(score1).toBeGreaterThan(0);
+      expect(isFinite(score1)).toBe(true);
+      expect(isNaN(score1)).toBe(false);
+    });
+
+    it('should handle chain bonus calculation at high chain counts', () => {
+      const scores: number[] = [];
+      for (let i = 0; i < 10; i++) {
+        ss.addMergeScore(2, false);
+        scores.push(ss.getCurrentScore());
+      }
+      for (let i = 1; i < scores.length; i++) {
+        expect(scores[i]).toBeGreaterThan(scores[i - 1]);
+      }
+    });
+
+    it('should reset chain count after timeout even at high chain counts', () => {
+      for (let i = 0; i < 50; i++) {
+        ss.addMergeScore(2, false);
+      }
+      expect(ss.getChainCount()).toBe(50);
+      ss.update(3100);
+      expect(ss.getChainCount()).toBe(0);
+    });
+  });
 });
 
 describe('SCORE_CONFIGS', () => {

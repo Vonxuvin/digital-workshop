@@ -245,6 +245,106 @@ describe('Score Counter Integration Tests', () => {
       expect(scoreSystem.getCurrentScore()).toBeGreaterThan(0);
     });
   });
+
+  describe('Score → Level completion flow', () => {
+    let scoreSystem: ScoreSystem;
+    let levelSystem: LevelSystem;
+
+    const scoreTargetConfig: LevelConfig = {
+      id: 10,
+      name: 'Integration Score Level',
+      objective: { type: 'score', target: 1 },
+      container: { width: 400, height: 600, shape: 'rectangle' },
+      spawn: { availableNumbers: [1, 2, 4] },
+      rewards: { stars: [50, 80, 100] },
+    };
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      scoreSystem = new ScoreSystem();
+      levelSystem = new LevelSystem(scoreTargetConfig);
+    });
+
+    afterEach(() => {
+      scoreSystem.reset();
+      levelSystem.reset();
+      vi.useRealTimers();
+    });
+
+    it('should emit score:updated when addMergeScore is called', () => {
+      const scoreHandler = vi.fn();
+      eventBus.on('score:updated', scoreHandler);
+      scoreSystem.addMergeScore(2, false);
+      expect(scoreHandler).toHaveBeenCalled();
+      const data = scoreHandler.mock.calls[0][0];
+      expect(data.totalScore).toBeGreaterThan(0);
+      expect(data.earnedScore).toBeGreaterThan(0);
+    });
+
+    it('should emit level:completed when score reaches target', () => {
+      const levelHandler = vi.fn();
+      eventBus.on('level:completed', levelHandler);
+      scoreSystem.addMergeScore(2, false);
+      expect(levelSystem.isLevelCompleted()).toBe(true);
+      expect(levelHandler).toHaveBeenCalled();
+    });
+
+    it('should complete the full chain: addMergeScore → score:updated → level:completed', () => {
+      const scoreHandler = vi.fn();
+      const levelHandler = vi.fn();
+      eventBus.on('score:updated', scoreHandler);
+      eventBus.on('level:completed', levelHandler);
+
+      scoreSystem.addMergeScore(2, false);
+
+      expect(scoreHandler).toHaveBeenCalled();
+      expect(levelHandler).toHaveBeenCalled();
+      expect(levelSystem.isLevelCompleted()).toBe(true);
+      expect(scoreSystem.getCurrentScore()).toBeGreaterThan(0);
+    });
+
+    it('should not emit level:completed for high-target level before score reaches target', () => {
+      const highTargetConfig: LevelConfig = {
+        id: 11,
+        name: 'High Target Level',
+        objective: { type: 'score', target: 99999 },
+        container: { width: 400, height: 600, shape: 'rectangle' },
+        spawn: { availableNumbers: [1, 2, 4] },
+        rewards: { stars: [50, 80, 100] },
+      };
+      const highLevelSystem = new LevelSystem(highTargetConfig);
+
+      scoreSystem.addMergeScore(2, false);
+
+      expect(highLevelSystem.isLevelCompleted()).toBe(false);
+      highLevelSystem.reset();
+    });
+
+    it('should propagate score data through the full chain', () => {
+      const scoreHandler = vi.fn();
+      const levelHandler = vi.fn();
+      eventBus.on('score:updated', scoreHandler);
+      eventBus.on('level:completed', levelHandler);
+
+      scoreSystem.addMergeScore(4, false);
+
+      expect(scoreHandler).toHaveBeenCalled();
+      const scoreCall = scoreHandler.mock.calls.find((call: any[]) => call[0].baseScore === SCORE_CONFIGS[4].baseScore);
+      expect(scoreCall).toBeDefined();
+      const scoreData = scoreCall![0];
+      expect(scoreData).toHaveProperty('totalScore');
+      expect(scoreData).toHaveProperty('earnedScore');
+      expect(scoreData).toHaveProperty('chainCount');
+      expect(scoreData).toHaveProperty('chainMultiplier');
+
+      expect(levelHandler).toHaveBeenCalled();
+      const levelCall = levelHandler.mock.calls.find((call: any[]) => call[0].levelId === scoreTargetConfig.id);
+      expect(levelCall).toBeDefined();
+      const levelData = levelCall![0];
+      expect(levelData).toHaveProperty('levelId');
+      expect(levelData).toHaveProperty('score');
+    });
+  });
 });
 
 const levelsDir = path.resolve(__dirname, '../../src/data/levels');
