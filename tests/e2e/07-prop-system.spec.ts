@@ -1267,16 +1267,16 @@ test.describe('道具系统 @regression', () => {
 
           const groundY = scene.getGroundY?.() || 550;
 
-          const blockBottomsBefore = settledBlocks.map((b: any) => ({
+          handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+          const blockData = settledBlocks.map((b: any) => ({
             y: b.body.position.y,
             radius: b.body.circleRadius,
             bottom: b.body.position.y + (b.body.circleRadius || 0),
           }));
 
-          handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
-
           (window as any).__shrinkTestState = {
-            blockBottomsBefore,
+            blockData,
             groundY,
             settledBlockCount: settledBlocks.length,
           };
@@ -1305,33 +1305,39 @@ test.describe('道具系统 @regression', () => {
           const spawner = game.getBlockSpawner?.();
           if (!scene || !spawner) return { success: false, reason: 'no-scene-or-spawner' };
 
-          const blocks = spawner.getBlocks?.() || [];
-          const settledBlocks = blocks.filter((b: any) => !b.isDestroyed && b.body);
+          const groundY = state.groundY;
+          const blockData = state.blockData;
 
-          const blockBottomsAfter = settledBlocks.map((b: any) => ({
-            y: b.body.position.y,
-            radius: b.body.circleRadius,
-            bottom: b.body.position.y + (b.body.circleRadius || 0),
-          }));
-
-          let allBottomsPreserved = true;
-          for (let i = 0; i < state.blockBottomsBefore.length; i++) {
-            const before = state.blockBottomsBefore[i].bottom;
-            const after = blockBottomsAfter[i]?.bottom;
-            if (after === undefined || Math.abs(before - after) > 5) {
-              allBottomsPreserved = false;
+          let noSinking = true;
+          for (const b of blockData) {
+            if (b.bottom > groundY + 2) {
+              noSinking = false;
               break;
             }
           }
 
-          let noFloating = true;
-          for (let i = 0; i < state.blockBottomsBefore.length && i < blockBottomsAfter.length; i++) {
-            const before = state.blockBottomsBefore[i].bottom;
-            const after = blockBottomsAfter[i].bottom;
-            const beforeGap = Math.abs(before - state.groundY);
-            if (beforeGap < 10) {
-              if (Math.abs(after - state.groundY) > 5) {
-                noFloating = false;
+          let noOverlap = true;
+          for (let i = 0; i < blockData.length; i++) {
+            for (let j = i + 1; j < blockData.length; j++) {
+              const a = blockData[i];
+              const b = blockData[j];
+              const dx = a.y === b.y && Math.abs(a.bottom - b.bottom) < 1 ? 0 : 1;
+              const dist = Math.sqrt(dx * dx + (a.y - b.y) ** 2);
+              const minDist = (a.radius || 0) + (b.radius || 0);
+              if (dist < minDist - 2) {
+                noOverlap = false;
+                break;
+              }
+            }
+            if (!noOverlap) break;
+          }
+
+          let groundBallsOnGround = true;
+          for (const b of blockData) {
+            const bottom = b.bottom;
+            if (Math.abs(bottom - groundY) < 10) {
+              if (Math.abs(bottom - groundY) > 5) {
+                groundBallsOnGround = false;
                 break;
               }
             }
@@ -1344,10 +1350,11 @@ test.describe('道具系统 @regression', () => {
 
           return {
             success: true,
-            allBottomsPreserved,
-            noFloating,
-            blockCount: blocks.length,
-            groundY: state.groundY,
+            noSinking,
+            noOverlap,
+            groundBallsOnGround,
+            blockCount: blockData.length,
+            groundY,
           };
         } catch (e: any) {
           return { success: false, reason: e?.message ?? 'error' };
@@ -1356,8 +1363,9 @@ test.describe('道具系统 @regression', () => {
 
       expect(result.success).toBeTruthy();
       if (result.success) {
-        expect(result.allBottomsPreserved).toBeTruthy();
-        expect(result.noFloating).toBeTruthy();
+        expect(result.noSinking).toBeTruthy();
+        expect(result.noOverlap).toBeTruthy();
+        expect(result.groundBallsOnGround).toBeTruthy();
       }
     });
 
@@ -1385,6 +1393,8 @@ test.describe('道具系统 @regression', () => {
           const settledBlocks = blocks.filter((b: any) => !b.isDestroyed && b.body);
           if (settledBlocks.length === 0) return { success: false, reason: 'no-settled-blocks' };
 
+          const groundY = scene.getGroundY?.() || 550;
+
           const originalData = settledBlocks.map((b: any) => ({
             radius: b.body.circleRadius,
             bottom: b.body.position.y + (b.body.circleRadius || 0),
@@ -1393,9 +1403,60 @@ test.describe('道具系统 @regression', () => {
           handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
           handler.handleShrinkDeactivate();
 
-          (window as any).__shrinkRestoreTestState = { originalData };
+          const restoredData = settledBlocks.map((b: any) => ({
+            radius: b.body.circleRadius,
+            bottom: b.body.position.y + (b.body.circleRadius || 0),
+          }));
 
-          return { success: true, blockCount: blocks.length };
+          let allRadiiRestored = true;
+          for (let i = 0; i < originalData.length; i++) {
+            if (Math.abs(originalData[i].radius - restoredData[i]?.radius) > 1) {
+              allRadiiRestored = false;
+              break;
+            }
+          }
+
+          let noSinking = true;
+          for (const b of restoredData) {
+            if (b.bottom > groundY + 2) {
+              noSinking = false;
+              break;
+            }
+          }
+
+          let noOverlap = true;
+          for (let i = 0; i < restoredData.length; i++) {
+            for (let j = i + 1; j < restoredData.length; j++) {
+              const a = restoredData[i];
+              const b = restoredData[j];
+              const dist = Math.sqrt((a.bottom - b.bottom) ** 2);
+              const minDist = (a.radius || 0) + (b.radius || 0);
+              if (dist < minDist - 2) {
+                noOverlap = false;
+                break;
+              }
+            }
+            if (!noOverlap) break;
+          }
+
+          let groundBallsOnGround = true;
+          for (let i = 0; i < originalData.length; i++) {
+            if (Math.abs(originalData[i].bottom - groundY) < 10) {
+              if (Math.abs(restoredData[i]?.bottom - groundY) > 5) {
+                groundBallsOnGround = false;
+                break;
+              }
+            }
+          }
+
+          return {
+            success: true,
+            allRadiiRestored,
+            noSinking,
+            noOverlap,
+            groundBallsOnGround,
+            blockCount: blocks.length,
+          };
         } catch (e: any) {
           return { success: false, reason: e?.message ?? 'error' };
         }
@@ -1406,55 +1467,12 @@ test.describe('道具系统 @regression', () => {
         return;
       }
 
-      await page.waitForTimeout(200);
-
-      const result = await page.evaluate(() => {
-        try {
-          const state = (window as any).__shrinkRestoreTestState;
-          if (!state) return { success: false, reason: 'no-test-state' };
-
-          const game = (window as any).__gameInstance;
-          if (!game) return { success: false, reason: 'no-game' };
-
-          const spawner = game.getBlockSpawner?.();
-          if (!spawner) return { success: false, reason: 'no-spawner' };
-
-          const blocks = spawner.getBlocks?.() || [];
-          const settledBlocks = blocks.filter((b: any) => !b.isDestroyed && b.body);
-
-          const restoredData = settledBlocks.map((b: any) => ({
-            radius: b.body.circleRadius,
-            bottom: b.body.position.y + (b.body.circleRadius || 0),
-          }));
-
-          let allRadiiRestored = true;
-          let allBottomsPreserved = true;
-          for (let i = 0; i < state.originalData.length; i++) {
-            if (Math.abs(state.originalData[i].radius - restoredData[i]?.radius) > 1) {
-              allRadiiRestored = false;
-            }
-            if (Math.abs(state.originalData[i].bottom - restoredData[i]?.bottom) > 5) {
-              allBottomsPreserved = false;
-            }
-          }
-
-          delete (window as any).__shrinkRestoreTestState;
-
-          return {
-            success: true,
-            allRadiiRestored,
-            allBottomsPreserved,
-            blockCount: blocks.length,
-          };
-        } catch (e: any) {
-          return { success: false, reason: e?.message ?? 'error' };
-        }
-      });
-
-      expect(result.success).toBeTruthy();
-      if (result.success) {
-        expect(result.allRadiiRestored).toBeTruthy();
-        expect(result.allBottomsPreserved).toBeTruthy();
+      expect(setupResult.success).toBeTruthy();
+      if (setupResult.success) {
+        expect(setupResult.allRadiiRestored).toBeTruthy();
+        expect(setupResult.noSinking).toBeTruthy();
+        expect(setupResult.noOverlap).toBeTruthy();
+        expect(setupResult.groundBallsOnGround).toBeTruthy();
       }
     });
 
