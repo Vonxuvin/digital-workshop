@@ -46,7 +46,6 @@ export async function ensureGameScene(page: Page): Promise<void> {
 
 export async function navigateToGame(page: Page, startPlaying = true) {
   await page.goto(GAME_URL);
-  await page.waitForLoadState('domcontentloaded');
   await page.waitForSelector('#game-canvas', { timeout: 15000 });
 
   try {
