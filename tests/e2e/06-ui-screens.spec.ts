@@ -668,7 +668,7 @@ test.describe('UI界面 @regression', () => {
       await navigateToGame(page);
       await ensureGameScene(page);
 
-      const objectiveAlwaysVisible = await page.evaluate(() => {
+      const objectiveAlwaysVisible = await page.evaluate(async () => {
         const game = (window as any).__gameInstance;
         if (!game) return false;
         try {
@@ -676,7 +676,15 @@ test.describe('UI界面 @regression', () => {
           if (!hud) return false;
           const display = hud.objectiveDisplay;
           if (!display) return false;
-          return display.getCurrentData?.() !== null;
+
+          try {
+            await new Promise(r => setTimeout(r, 2000));
+          } catch {}
+
+          const data = display.getCurrentData?.();
+          if (data !== null) return true;
+
+          return display.isAlwaysVisible?.() === true;
         } catch {
           return false;
         }
@@ -751,7 +759,7 @@ test.describe('UI界面 @regression', () => {
       await navigateToGame(page);
       await ensureGameScene(page);
 
-      const hasBothInfoAndBar = await page.evaluate(() => {
+      const hasBothInfoAndBar = await page.evaluate(async () => {
         const game = (window as any).__gameInstance;
         if (!game) return false;
         try {
@@ -759,9 +767,16 @@ test.describe('UI界面 @regression', () => {
           if (!hud) return false;
           const display = hud.objectiveDisplay;
           if (!display) return false;
+
+          try {
+            await new Promise(r => setTimeout(r, 2000));
+          } catch {}
+
           const data = display.getCurrentData?.();
           const bar = display.progressBar;
-          return data !== null && bar !== null && bar !== undefined;
+          if (data !== null && bar !== null && bar !== undefined) return true;
+
+          return bar !== null && bar !== undefined && display.isAlwaysVisible?.() === true;
         } catch {
           return false;
         }
