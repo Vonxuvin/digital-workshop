@@ -288,6 +288,63 @@ export class PropEffectHandler {
     return bottomY - radius;
   }
 
+  private resolveBlockOverlaps(bodies: Matter.Body[]): void {
+    if (bodies.length === 0) return;
+
+    const activeBodies = bodies.filter(b => !b.isStatic && (b.circleRadius || 0) > 0);
+    if (activeBodies.length === 0) return;
+
+    const items = activeBodies.map(b => ({
+      body: b,
+      radius: b.circleRadius || 0,
+      x: b.position.x,
+      y: b.position.y,
+    }));
+
+    for (let iter = 0; iter < 10; iter++) {
+      let changed = false;
+
+      if (this.groundY > 0) {
+        for (const item of items) {
+          const bottom = item.y + item.radius;
+          if (bottom > this.groundY) {
+            item.y = this.groundY - item.radius;
+            changed = true;
+          }
+        }
+      }
+
+      for (let i = 0; i < items.length; i++) {
+        for (let j = i + 1; j < items.length; j++) {
+          const a = items[i];
+          const b = items[j];
+          const dx = a.x - b.x;
+          const dy = a.y - b.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          const minDistance = a.radius + b.radius;
+
+          if (distance < minDistance) {
+            const overlap = minDistance - distance;
+            if (a.y < b.y) {
+              a.y -= overlap;
+            } else {
+              b.y -= overlap;
+            }
+            changed = true;
+          }
+        }
+      }
+
+      if (!changed) break;
+    }
+
+    for (const item of items) {
+      if (Math.abs(item.y - item.body.position.y) > 0.01) {
+        Matter.Body.setPosition(item.body, { x: item.x, y: item.y });
+      }
+    }
+  }
+
   reset(): void {
     this.bombTargetMode = false;
     this.shrinkActive = false;

@@ -1640,5 +1640,168 @@ test.describe('道具系统 @regression', () => {
         expect(result.maxGap).toBeLessThanOrEqual(2);
       }
     });
+
+    test('缩小道具栈叠球体：完整缩放周期后球体不应重叠', async ({ page }) => {
+      await navigateToGame(page);
+      await ensureGameScene(page);
+
+      const result = await page.evaluate(() => {
+        try {
+          const game = (window as any).__gameInstance;
+          if (!game) return { success: false, reason: 'no game instance' };
+
+          const tests = (window as any).__testModules;
+          if (!tests) return { success: false, reason: 'no test modules' };
+
+          const PropEffectHandler = tests.PropEffectHandler?.default;
+          const Block = tests.Block?.default;
+          if (!PropEffectHandler || !Block) {
+            return { success: false, reason: 'missing test modules' };
+          }
+
+          const Matter = (window as any).Matter;
+          if (!Matter) return { success: false, reason: 'Matter not found' };
+
+          const mockBlockSpawner = { getBlocks: () => [] };
+          const mockMergeSystem = { unregisterBlock: () => {} };
+          const mockPhysics = { removeBody: () => {}, createCircle: () => {}, start: () => {}, stop: () => {} };
+          const mockEffectManager = { addExplosionEffect: () => {}, addFreezeEffect: () => {}, removeFreezeEffect: () => {} };
+          const mockPropSystem = { getProp: () => null };
+          const mockGameHUD = {};
+          const mockPreview = {};
+
+          const handler = new PropEffectHandler(
+            mockBlockSpawner as any,
+            mockMergeSystem as any,
+            mockPhysics as any,
+            mockEffectManager as any,
+            mockPropSystem as any,
+            mockGameHUD as any,
+            mockPreview as any,
+          );
+
+          const groundY = 590;
+          handler.setGroundY(groundY);
+
+          const radius = 20;
+          const body1 = Matter.Bodies.circle(200, groundY - radius, radius);
+          const block1 = new Block(body1, 1);
+          const body2 = Matter.Bodies.circle(200, groundY - radius * 2 - 1, radius);
+          const block2 = new Block(body2, 2);
+          const body3 = Matter.Bodies.circle(200, groundY - radius * 3 - 1, radius);
+          const block3 = new Block(body3, 4);
+
+          (mockBlockSpawner as any).getBlocks = () => [block1, block2, block3];
+
+          handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+          handler.handleShrinkDeactivate();
+
+          const r1 = body1.circleRadius || 0;
+          const r2 = body2.circleRadius || 0;
+          const r3 = body3.circleRadius || 0;
+
+          const dist12 = Math.sqrt(
+            (body1.position.x - body2.position.x) ** 2 +
+            (body1.position.y - body2.position.y) ** 2
+          );
+          const dist23 = Math.sqrt(
+            (body2.position.x - body3.position.x) ** 2 +
+            (body2.position.y - body3.position.y) ** 2
+          );
+
+          const noOverlap12 = dist12 >= (r1 + r2) - 1;
+          const noOverlap23 = dist23 >= (r2 + r3) - 1;
+          const bottomOnGround = Math.abs(body1.position.y + r1 - groundY) < 2;
+          const allRadiiRestored = [block1, block2, block3].every(b => b.scale.x === 1);
+
+          return {
+            success: true,
+            noOverlap12,
+            noOverlap23,
+            bottomOnGround,
+            allRadiiRestored,
+          };
+        } catch (e: any) {
+          return { success: false, reason: e?.message ?? 'error' };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      if (result.success) {
+        expect(result.noOverlap12).toBeTruthy();
+        expect(result.noOverlap23).toBeTruthy();
+        expect(result.bottomOnGround).toBeTruthy();
+        expect(result.allRadiiRestored).toBeTruthy();
+      }
+    });
+
+    test('缩小道具栈叠球体：缩小期间球体不应陷入容器底部', async ({ page }) => {
+      await navigateToGame(page);
+      await ensureGameScene(page);
+
+      const result = await page.evaluate(() => {
+        try {
+          const game = (window as any).__gameInstance;
+          if (!game) return { success: false, reason: 'no game instance' };
+
+          const tests = (window as any).__testModules;
+          if (!tests) return { success: false, reason: 'no test modules' };
+
+          const PropEffectHandler = tests.PropEffectHandler?.default;
+          const Block = tests.Block?.default;
+          if (!PropEffectHandler || !Block) {
+            return { success: false, reason: 'missing test modules' };
+          }
+
+          const Matter = (window as any).Matter;
+          if (!Matter) return { success: false, reason: 'Matter not found' };
+
+          const mockBlockSpawner = { getBlocks: () => [] };
+          const mockMock = {};
+          const handler = new PropEffectHandler(
+            mockBlockSpawner as any,
+            { unregisterBlock: () => {} } as any,
+            { removeBody: () => {} } as any,
+            { addExplosionEffect: () => {}, removeFreezeEffect: () => {} } as any,
+            { getProp: () => null } as any,
+            {} as any,
+            {} as any,
+          );
+
+          const groundY = 590;
+          handler.setGroundY(groundY);
+
+          const radius = 30;
+          const body1 = Matter.Bodies.circle(200, groundY - radius, radius);
+          const block1 = new Block(body1, 1);
+          const body2 = Matter.Bodies.circle(200, groundY - radius * 2, radius);
+          const block2 = new Block(body2, 2);
+          const body3 = Matter.Bodies.circle(200, groundY - radius * 3, radius);
+          const block3 = new Block(body3, 4);
+
+          (mockBlockSpawner as any).getBlocks = () => [block1, block2, block3];
+
+          handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+          const r1 = body1.circleRadius || 0;
+          const bottom1 = body1.position.y + r1;
+          const noSinking = bottom1 <= groundY + 2;
+
+          return {
+            success: true,
+            bottomOnGround: Math.abs(bottom1 - groundY) < 2,
+            noSinking,
+          };
+        } catch (e: any) {
+          return { success: false, reason: e?.message ?? 'error' };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      if (result.success) {
+        expect(result.bottomOnGround).toBeTruthy();
+        expect(result.noSinking).toBeTruthy();
+      }
+    });
   });
 });

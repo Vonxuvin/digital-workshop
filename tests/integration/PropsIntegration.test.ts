@@ -1430,6 +1430,120 @@ describe('Shrink bottom position integration', () => {
       expect(shrunkBottom1).toBeCloseTo(bottom1, 0);
       expect(shrunkBottom2).toBeCloseTo(bottom2, 0);
     });
+
+    it('should resolve stacked ball overlaps after shrink-restore cycle with real physics', async () => {
+      physics.start();
+      const groundY = 590;
+      const ground = physics.createRectangle(200, groundY + 25, 400, 50);
+      ground.label = 'ground';
+      ground.isStatic = true;
+
+      const radius = 20;
+      const body1 = physics.createCircle(200, groundY - radius, radius);
+      const block1 = new Block(body1, 1);
+      const body2 = physics.createCircle(200, groundY - radius * 2 - 1, radius);
+      const block2 = new Block(body2, 2);
+      const body3 = physics.createCircle(200, groundY - radius * 3 - 1, radius);
+      const block3 = new Block(body3, 4);
+
+      blockSpawner.getBlocks.mockReturnValue([block1, block2, block3]);
+
+      for (let i = 0; i < 120; i++) {
+        physics.step(1000 / 60);
+      }
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      for (let i = 0; i < 30; i++) {
+        physics.step(1000 / 60);
+      }
+
+      handler.handleShrinkDeactivate();
+
+      for (let i = 0; i < 60; i++) {
+        physics.step(1000 / 60);
+      }
+
+      const r1 = body1.circleRadius || 0;
+      const r2 = body2.circleRadius || 0;
+      const r3 = body3.circleRadius || 0;
+
+      const dist12 = Math.sqrt(
+        (body1.position.x - body2.position.x) ** 2 +
+        (body1.position.y - body2.position.y) ** 2
+      );
+      expect(dist12).toBeGreaterThanOrEqual((r1 + r2) - 2);
+
+      const dist23 = Math.sqrt(
+        (body2.position.x - body3.position.x) ** 2 +
+        (body2.position.y - body3.position.y) ** 2
+      );
+      expect(dist23).toBeGreaterThanOrEqual((r2 + r3) - 2);
+
+      expect(body1.position.y + r1).toBeCloseTo(groundY, 0);
+    });
+
+    it('should not cause balls to overlap during shrink effect with real physics', async () => {
+      physics.start();
+      const groundY = 590;
+      const ground = physics.createRectangle(200, groundY + 25, 400, 50);
+      ground.label = 'ground';
+      ground.isStatic = true;
+
+      const radius = 20;
+      const body1 = physics.createCircle(200, groundY - radius, radius);
+      const block1 = new Block(body1, 1);
+      const body2 = physics.createCircle(200, groundY - radius * 2 - 1, radius);
+      const block2 = new Block(body2, 2);
+
+      blockSpawner.getBlocks.mockReturnValue([block1, block2]);
+
+      for (let i = 0; i < 120; i++) {
+        physics.step(1000 / 60);
+      }
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      const r1 = body1.circleRadius || 0;
+      const r2 = body2.circleRadius || 0;
+      const dist = Math.sqrt(
+        (body1.position.x - body2.position.x) ** 2 +
+        (body1.position.y - body2.position.y) ** 2
+      );
+      expect(dist).toBeGreaterThanOrEqual((r1 + r2) - 1);
+    });
+
+    it('should not sink bottom ball into ground during shrink with three stacked balls', async () => {
+      physics.start();
+      const groundY = 590;
+      const ground = physics.createRectangle(200, groundY + 25, 400, 50);
+      ground.label = 'ground';
+      ground.isStatic = true;
+
+      const radius = 30;
+      const body1 = physics.createCircle(200, groundY - radius, radius);
+      const block1 = new Block(body1, 1);
+      const body2 = physics.createCircle(200, groundY - radius * 2 - 1, radius);
+      const block2 = new Block(body2, 2);
+      const body3 = physics.createCircle(200, groundY - radius * 3 - 1, radius);
+      const block3 = new Block(body3, 4);
+
+      blockSpawner.getBlocks.mockReturnValue([block1, block2, block3]);
+
+      for (let i = 0; i < 120; i++) {
+        physics.step(1000 / 60);
+      }
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      for (let i = 0; i < 30; i++) {
+        physics.step(1000 / 60);
+      }
+
+      const r1 = body1.circleRadius || 0;
+      const bottom1 = body1.position.y + r1;
+      expect(bottom1).toBeLessThanOrEqual(groundY + 1);
+    });
   });
 
   describe('Shrink + EventBus Integration', () => {
