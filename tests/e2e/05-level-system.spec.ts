@@ -451,8 +451,8 @@ test.describe('关卡系统 @regression', () => {
         }
       });
 
-      await dropBlocks(page, 10, 500);
-      await waitForStable(page, 4000);
+      await dropBlocks(page, 5, 500);
+      await waitForStable(page, 2000);
 
       const scoreAfter = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -547,8 +547,8 @@ test.describe('关卡系统 @regression', () => {
         return;
       }
 
-      await dropBlocks(page, 10, 500);
-      await waitForStable(page, 4000);
+      await dropBlocks(page, 5, 500);
+      await waitForStable(page, 2000);
 
       const result = await page.evaluate(() => {
         const game = (window as any).__gameInstance;

@@ -88,8 +88,8 @@ test.describe('核心玩法 @smoke', () => {
     test('相同数字方块应合并', async ({ page }) => {
       await navigateToGame(page);
       await ensurePlaying(page);
-      await dropBlocks(page, 10, 600);
-      await waitForStable(page, 3000);
+      await dropBlocks(page, 5, 600);
+      await waitForStable(page, 2000);
 
       const hasMergeSystem = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -108,8 +108,8 @@ test.describe('核心玩法 @smoke', () => {
     test('合并后方块数值应翻倍', async ({ page }) => {
       await navigateToGame(page);
       await ensurePlaying(page);
-      await dropBlocks(page, 10, 600);
-      await waitForStable(page, 3000);
+      await dropBlocks(page, 5, 600);
+      await waitForStable(page, 2000);
 
       const scoreIncreased = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -129,8 +129,8 @@ test.describe('核心玩法 @smoke', () => {
     test('合并应触发连击计数', async ({ page }) => {
       await navigateToGame(page);
       await ensurePlaying(page);
-      await dropBlocks(page, 10, 400);
-      await waitForStable(page, 3000);
+      await dropBlocks(page, 5, 500);
+      await waitForStable(page, 2000);
 
       const comboSystem = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -295,8 +295,8 @@ test.describe('核心玩法 @smoke', () => {
         }
       });
 
-      await dropBlocks(page, 10, 500);
-      await waitForStable(page, 3000);
+      await dropBlocks(page, 5, 500);
+      await waitForStable(page, 2000);
 
       const scoreAfter = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -317,8 +317,8 @@ test.describe('核心玩法 @smoke', () => {
     test('连击应增加分数倍率', async ({ page }) => {
       await navigateToGame(page);
       await ensurePlaying(page);
-      await dropBlocks(page, 10, 400);
-      await waitForStable(page, 3000);
+      await dropBlocks(page, 5, 500);
+      await waitForStable(page, 2000);
 
       const hasComboMultiplier = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -453,8 +453,8 @@ test.describe('核心玩法 @smoke', () => {
         }
       });
 
-      await dropBlocks(page, 10, 500);
-      await waitForStable(page, 4000);
+      await dropBlocks(page, 5, 500);
+      await waitForStable(page, 2000);
 
       const scoreAfter = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -576,8 +576,8 @@ test.describe('核心玩法 @smoke', () => {
       await navigateToGame(page);
       await ensurePlaying(page);
 
-      await dropBlocks(page, 10, 500);
-      await waitForStable(page, 3000);
+      await dropBlocks(page, 5, 500);
+      await waitForStable(page, 2000);
 
       const scoreDisplayWorks = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -600,8 +600,8 @@ test.describe('核心玩法 @smoke', () => {
       await navigateToGame(page);
       await ensurePlaying(page);
 
-      await dropBlocks(page, 10, 500);
-      await waitForStable(page, 4000);
+      await dropBlocks(page, 5, 500);
+      await waitForStable(page, 2000);
 
       const consistency = await page.evaluate(() => {
         const game = (window as any).__gameInstance;

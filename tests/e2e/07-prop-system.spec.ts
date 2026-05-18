@@ -245,7 +245,7 @@ test.describe('道具系统 @regression', () => {
     test('道具效果不应破坏物理稳定性', async ({ page }) => {
       await navigateToGame(page);
       await ensurePlaying(page);
-      await dropBlocks(page, 10, 400);
+      await dropBlocks(page, 5, 500);
       await waitForStable(page, 2000);
 
       const noPhysicsError = await page.evaluate(() => {

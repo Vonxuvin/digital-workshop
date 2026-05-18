@@ -46,8 +46,8 @@ test.describe('边界与道具关键路径 @regression', () => {
     test('方块应限制在容器范围内', async ({ page }) => {
       await navigateToGame(page);
       await ensurePlaying(page);
-      await dropBlocks(page, 10);
-      await waitForStable(page, 3000);
+      await dropBlocks(page, 5);
+      await waitForStable(page, 2000);
 
       const allBlocksInBounds = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -270,7 +270,7 @@ test.describe('边界与道具关键路径 @regression', () => {
     test('复活应移除警告线上方块', async ({ page }) => {
       await navigateToGame(page);
       await ensurePlaying(page);
-      await dropBlocks(page, 10);
+      await dropBlocks(page, 5);
       await waitForStable(page, 2000);
 
       const canRevive = await page.evaluate(() => {

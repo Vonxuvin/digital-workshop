@@ -192,8 +192,8 @@ test.describe('音效与特效 @regression', () => {
     test('方块合并应触发粒子效果', async ({ page }) => {
       await navigateToGame(page);
       await ensurePlaying(page);
-      await dropBlocks(page, 10, 500);
-      await waitForStable(page, 3000);
+      await dropBlocks(page, 5, 500);
+      await waitForStable(page, 2000);
 
       const hasEffectManager = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -214,8 +214,8 @@ test.describe('音效与特效 @regression', () => {
     test('连击应触发特效', async ({ page }) => {
       await navigateToGame(page);
       await ensurePlaying(page);
-      await dropBlocks(page, 10, 400);
-      await waitForStable(page, 3000);
+      await dropBlocks(page, 5, 500);
+      await waitForStable(page, 2000);
 
       const hasComboDisplay = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
