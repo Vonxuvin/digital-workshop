@@ -47,7 +47,7 @@ export async function ensureGameScene(page: Page): Promise<void> {
 export async function navigateToGame(page: Page, startPlaying = true) {
   await page.goto(GAME_URL);
   await page.waitForLoadState('domcontentloaded');
-  await page.waitForSelector('#game-canvas', { timeout: 20000 });
+  await page.waitForSelector('#game-canvas', { timeout: 15000 });
 
   try {
     await page.waitForFunction(
@@ -63,14 +63,14 @@ export async function navigateToGame(page: Page, startPlaying = true) {
           return false;
         }
       },
-      { timeout: 20000 }
+      { timeout: 15000 }
     );
   } catch {
     const webglAvailable = await isWebGLAvailable(page);
     if (!webglAvailable) {
       test.skip(true, '游戏初始化超时且WebGL不可用，跳过测试');
     }
-    throw new Error('[navigateToGame] 游戏未能离开boot状态(20s超时)');
+    throw new Error('[navigateToGame] 游戏未能离开boot状态(15s超时)');
   }
 
   try {
@@ -86,14 +86,14 @@ export async function navigateToGame(page: Page, startPlaying = true) {
           return false;
         }
       },
-      { timeout: 15000 }
+      { timeout: 10000 }
     );
   } catch {
     const webglAvailable = await isWebGLAvailable(page);
     if (!webglAvailable) {
       test.skip(true, '游戏未到达menu状态且WebGL不可用，跳过测试');
     }
-    throw new Error('[navigateToGame] 游戏未能到达menu状态(15s超时)');
+    throw new Error('[navigateToGame] 游戏未能到达menu状态(10s超时)');
   }
   if (startPlaying) {
     const startResult = await page.evaluate(() => {
@@ -138,7 +138,7 @@ export async function navigateToGame(page: Page, startPlaying = true) {
           if (!stateMachine) return false;
           return stateMachine.getCurrentState?.() === 'playing';
         },
-        { timeout: 10000 }
+        { timeout: 8000 }
       );
     } catch {
       const currentState = await page.evaluate(() => {
@@ -215,8 +215,35 @@ export async function dropBlocks(page: Page, count: number, intervalMs = 800) {
   }
 }
 
-export async function waitForStable(page: Page, ms = 2000) {
-  await page.waitForTimeout(ms);
+export async function waitForStable(page: Page, ms = 1500) {
+  try {
+    await page.waitForFunction(
+      (maxMs: number) => {
+        const game = (window as any).__gameInstance;
+        if (!game) return true;
+        try {
+          const spawner = game.getBlockSpawner?.();
+          const blocks = spawner?.getBlocks?.();
+          if (!blocks || blocks.length === 0) return true;
+          const positions: string[] = [];
+          for (const b of blocks) {
+            positions.push(`${Math.round(b.x)},${Math.round(b.y)}`);
+          }
+          const key = positions.join('|');
+          if (!(window as any).__lastBlockPositions) {
+            (window as any).__lastBlockPositions = key;
+            return false;
+          }
+          return (window as any).__lastBlockPositions === key;
+        } catch {
+          return true;
+        }
+      },
+      ms,
+      { timeout: ms, polling: 200 }
+    );
+  } catch {}
+  await page.evaluate(() => { (window as any).__lastBlockPositions = undefined; });
 }
 
 export function collectConsoleLogs(page: Page, pattern: RegExp): string[] {
