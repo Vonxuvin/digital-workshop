@@ -46,8 +46,8 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-  smoke-e2e:
-    name: Smoke E2E Tests
+  build:
+    name: Build
     runs-on: ubuntu-latest
     needs: [lint-and-unit]
     steps:
@@ -67,17 +67,15 @@ jobs:
       - if: steps.node-modules-cache.outputs.cache-hit != 'true'
         run: npm ci
 
-      - uses: actions/cache@v5
-        id: playwright-cache
+      - name: 构建项目
+        run: npm run build
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v5
         with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-
-      - if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium
-
-      - name: Run Smoke E2E Tests
-        run: npx playwright test --grep @smoke --project=chromium-desktop
+          name: dist
+          path: dist/
+          retention-days: 7
 
   integration-tests:
     name: Integration Tests
@@ -114,84 +112,53 @@ jobs:
           if-no-files-found: ignore
 
   e2e-tests:
-    needs: [lint-and-unit]
+    needs: [build]
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2]
     uses: ./.github/workflows/e2e-shard-job.yml
     with:
       project: chromium-desktop
       shard-index: ${{ matrix.shard }}
-      shard-total: 4
+      shard-total: 2
       artifact-prefix: playwright-report
 
   e2e-tests-mobile:
-    needs: [lint-and-unit]
+    needs: [build]
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2]
     uses: ./.github/workflows/e2e-shard-job.yml
     with:
       project: chromium-mobile
       shard-index: ${{ matrix.shard }}
-      shard-total: 4
+      shard-total: 2
       artifact-prefix: playwright-report-mobile
 
   e2e-tests-small-mobile:
-    needs: [lint-and-unit]
+    needs: [build]
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2]
     uses: ./.github/workflows/e2e-shard-job.yml
     with:
       project: chromium-small-mobile
       shard-index: ${{ matrix.shard }}
-      shard-total: 4
+      shard-total: 2
       artifact-prefix: playwright-report-small-mobile
 
   e2e-tests-tablet:
-    needs: [lint-and-unit]
+    needs: [build]
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2]
     uses: ./.github/workflows/e2e-shard-job.yml
     with:
       project: chromium-tablet
       shard-index: ${{ matrix.shard }}
-      shard-total: 4
+      shard-total: 2
       artifact-prefix: playwright-report-tablet
-
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    needs: [lint-and-unit]
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          cache: npm
-
-      - uses: actions/cache@v5
-        id: node-modules-cache
-        with:
-          path: node_modules
-          key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-
-      - if: steps.node-modules-cache.outputs.cache-hit != 'true'
-        run: npm ci
-
-      - name: 构建项目
-        run: npm run build
-
-      - name: 上传构建产物
-        uses: actions/upload-artifact@v5
-        with:
-          name: dist
-          path: dist/
-          retention-days: 7
