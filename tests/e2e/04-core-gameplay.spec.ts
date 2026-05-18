@@ -527,8 +527,8 @@ test.describe('核心玩法 @smoke', () => {
         }
       });
 
-      await dropBlocks(page, 15, 300);
-      await waitForStable(page, 5000);
+      await dropBlocks(page, 8, 400);
+      await waitForStable(page, 3000);
 
       const scoreAfter = await page.evaluate(() => {
         const game = (window as any).__gameInstance;

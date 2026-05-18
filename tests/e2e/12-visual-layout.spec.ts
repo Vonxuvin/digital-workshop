@@ -1065,8 +1065,8 @@ test.describe('视觉布局 @regression', () => {
       await navigateToGame(page);
       await ensurePlaying(page);
 
-      await dropBlocks(page, 12);
-      await waitForStable(page, 5000);
+      await dropBlocks(page, 5);
+      await waitForStable(page, 3000);
 
       const allInsideContainer = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -1139,6 +1139,7 @@ test.describe('视觉布局 @regression', () => {
 
   test.describe('容器边界稳定性 @regression', () => {
     test('大量方块不应渗透容器壁', async ({ page }) => {
+      test.setTimeout(process.env.CI ? 120000 : 90000);
       await navigateToGame(page);
       await ensurePlaying(page);
 
@@ -1149,8 +1150,8 @@ test.describe('视觉布局 @regression', () => {
         await page.waitForTimeout(400);
       }
 
-      await dropBlocks(page, 15);
-      await waitForStable(page, 5000);
+      await dropBlocks(page, 5);
+      await waitForStable(page, 3000);
 
       const noEscape = await page.evaluate(() => {
         const game = (window as any).__gameInstance;

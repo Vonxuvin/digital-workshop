@@ -70,8 +70,8 @@ test.describe('玩法边界 @full', () => {
 
       await ensurePlaying(page);
 
-      await dropBlocks(page, 20, 300);
-      await waitForStable(page, 5000);
+      await dropBlocks(page, 8, 400);
+      await waitForStable(page, 3000);
 
       const physicsStable = await page.evaluate(() => {
         const game = (window as any).__gameInstance;

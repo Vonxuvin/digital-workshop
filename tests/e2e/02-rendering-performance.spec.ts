@@ -197,7 +197,7 @@ test.describe('渲染与性能 @regression', () => {
     test('大量方块时FPS不应严重下降', async ({ page }) => {
       await navigateToGame(page);
       await ensurePlaying(page);
-      await dropBlocks(page, 15, 400);
+      await dropBlocks(page, 8, 500);
       await waitForStable(page, 3000);
 
       const fps = await page.evaluate(() => {

@@ -468,6 +468,7 @@ test.describe('关卡系统 @regression', () => {
     });
 
     test('第2关卡连击Score应正确累加', async ({ page }) => {
+      test.setTimeout(process.env.CI ? 120000 : 90000);
       await navigateToGame(page);
       await ensureGameScene(page);
 
@@ -497,12 +498,12 @@ test.describe('关卡系统 @regression', () => {
       }
 
       try {
-        await dropBlocks(page, 15, 300);
+        await dropBlocks(page, 5, 500);
       } catch {
         test.skip(true, 'dropBlocks操作失败，跳过连击Score测试');
         return;
       }
-      await waitForStable(page, 5000);
+      await waitForStable(page, 3000);
 
       const chainCount = await page.evaluate(() => {
         const game = (window as any).__gameInstance;

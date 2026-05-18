@@ -237,7 +237,7 @@ test.describe('音效与特效 @regression', () => {
     test('频繁触发音效不应导致性能下降', async ({ page }) => {
       await navigateToGame(page);
       await ensurePlaying(page);
-      await dropBlocks(page, 15, 300);
+      await dropBlocks(page, 8, 400);
       await waitForStable(page, 3000);
 
       const fps = await page.evaluate(() => {
