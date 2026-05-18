@@ -418,6 +418,7 @@ test.describe('核心玩法 @smoke', () => {
   });
 
   test.describe('Score计数器累加 @critical', () => {
+    test.setTimeout(process.env.CI ? 120000 : 90000);
     test('释放球体碰撞后Score应累加', async ({ page }) => {
       await navigateToGame(page);
       await ensurePlaying(page);

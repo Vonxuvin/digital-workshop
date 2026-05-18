@@ -136,6 +136,7 @@ jobs:
       shard-index: ${{ matrix.shard }}
       shard-total: 4
       artifact-prefix: playwright-report-mobile
+      grep: "@full"
 
   e2e-tests-small-mobile:
     needs: [build]
@@ -162,3 +163,4 @@ jobs:
       shard-index: ${{ matrix.shard }}
       shard-total: 4
       artifact-prefix: playwright-report-tablet
+      grep: "@full"

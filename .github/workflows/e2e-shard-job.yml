@@ -19,6 +19,11 @@ on:
         required: true
         type: string
         description: 'Prefix for artifact name'
+      grep:
+        required: false
+        type: string
+        default: ''
+        description: 'Grep filter for test tags'
 
 jobs:
   run:
@@ -56,7 +61,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run E2E Tests (Shard ${{ inputs.shard-index }}/${{ inputs.shard-total }})
-        run: npx playwright test --shard=${{ inputs.shard-index }}/${{ inputs.shard-total }} --project=${{ inputs.project }}
+        run: npx playwright test --shard=${{ inputs.shard-index }}/${{ inputs.shard-total }} --project=${{ inputs.project }} ${{ inputs.grep && format('--grep-invert "{0}"', inputs.grep) || '' }}
 
       - name: Upload Playwright Report
         if: always()

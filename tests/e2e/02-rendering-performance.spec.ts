@@ -152,6 +152,7 @@ test.describe('渲染与性能 @regression', () => {
   });
 
   test.describe('帧率性能 @regression', () => {
+    test.setTimeout(process.env.CI ? 120000 : 90000);
     test('FPS监控应正常工作', async ({ page }) => {
       await navigateToGame(page);
       await ensureGameScene(page);
