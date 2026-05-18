@@ -45,10 +45,12 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3000,
       host: true,
+      allowedHosts: ['automatic-august-factual.ngrok-free.dev'],  // 允许所有主机名访问
     },
     preview: {
       port: 3000,
       host: true,
+      allowedHosts: ['automatic-august-factual.ngrok-free.dev'],  // 允许所有主机名访问
     },
     test: {
       globals: true,
