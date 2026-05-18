@@ -193,7 +193,7 @@ test.describe('音效与特效 @regression', () => {
       await navigateToGame(page);
       await ensurePlaying(page);
       await dropBlocks(page, 5, 500);
-      await waitForStable(page, 2000);
+      await waitForStable(page);
 
       const hasEffectManager = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -215,7 +215,7 @@ test.describe('音效与特效 @regression', () => {
       await navigateToGame(page);
       await ensurePlaying(page);
       await dropBlocks(page, 5, 500);
-      await waitForStable(page, 2000);
+      await waitForStable(page);
 
       const hasComboDisplay = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -238,7 +238,7 @@ test.describe('音效与特效 @regression', () => {
       await navigateToGame(page);
       await ensurePlaying(page);
       await dropBlocks(page, 8, 400);
-      await waitForStable(page, 3000);
+      await waitForStable(page);
 
       const fps = await page.evaluate(() => {
         const game = (window as any).__gameInstance;

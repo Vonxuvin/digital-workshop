@@ -13,7 +13,7 @@ test.describe('玩法边界 @full', () => {
         await page.waitForTimeout(100);
       }
 
-      await waitForStable(page, 3000);
+      await waitForStable(page);
 
       const noCrash = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -71,7 +71,7 @@ test.describe('玩法边界 @full', () => {
       await ensurePlaying(page);
 
       await dropBlocks(page, 8, 400);
-      await waitForStable(page, 3000);
+      await waitForStable(page);
 
       const physicsStable = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -104,7 +104,7 @@ test.describe('玩法边界 @full', () => {
         } catch {}
       });
 
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(300);
 
       const isPaused = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -129,7 +129,7 @@ test.describe('玩法边界 @full', () => {
         } catch {}
       });
 
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(300);
 
       const isResumed = await page.evaluate(() => {
         const game = (window as any).__gameInstance;

@@ -200,7 +200,7 @@ test.describe('UI界面 @regression', () => {
       await ensureGameScene(page);
       await ensurePlaying(page);
       await dropBlocks(page, 5);
-      await waitForStable(page, 3000);
+      await waitForStable(page);
 
       const score = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -248,7 +248,7 @@ test.describe('UI界面 @regression', () => {
         } catch {}
       });
 
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(300);
 
       const isPaused = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -285,7 +285,7 @@ test.describe('UI界面 @regression', () => {
         } catch {}
       });
 
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(300);
 
       const hasRestartButton = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -324,7 +324,7 @@ test.describe('UI界面 @regression', () => {
         } catch {}
       });
 
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(300);
 
       const hasMenuButton = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -355,7 +355,7 @@ test.describe('UI界面 @regression', () => {
         } catch {}
       });
 
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(300);
 
       const isPaused = await page.evaluate(() => {
         const game = (window as any).__gameInstance;

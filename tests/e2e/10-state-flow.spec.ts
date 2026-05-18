@@ -70,7 +70,7 @@ test.describe('状态流转 @smoke', () => {
         } catch {}
       });
 
-      await page.waitForTimeout(1000);
+      await page.waitForTimeout(600);
 
       const currentState = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -99,7 +99,7 @@ test.describe('状态流转 @smoke', () => {
         } catch {}
       });
 
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(300);
 
       const currentState = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -128,7 +128,7 @@ test.describe('状态流转 @smoke', () => {
         } catch {}
       });
 
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(300);
 
       await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -139,7 +139,7 @@ test.describe('状态流转 @smoke', () => {
         } catch {}
       });
 
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(300);
 
       const currentState = await page.evaluate(() => {
         const game = (window as any).__gameInstance;

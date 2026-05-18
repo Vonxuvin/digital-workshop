@@ -420,7 +420,7 @@ test.describe('视觉布局 @regression', () => {
       const portraitBox = await page.locator('#game-canvas').boundingBox();
 
       await page.setViewportSize({ width: 812, height: 375 });
-      await page.waitForTimeout(1000);
+      await page.waitForTimeout(600);
 
       const landscapeBox = await page.locator('#game-canvas').boundingBox();
 
@@ -893,7 +893,7 @@ test.describe('视觉布局 @regression', () => {
       const leftClickX = canvasBox.x + offsetX * scaleX + 2;
       await page.mouse.click(leftClickX, canvasBox.y + canvasBox.height * 0.3);
 
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(300);
 
       const previewInside = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -951,7 +951,7 @@ test.describe('视觉布局 @regression', () => {
       const rightClickX = canvasBox.x + (offsetX + width) * scaleX - 2;
       await page.mouse.click(rightClickX, canvasBox.y + canvasBox.height * 0.3);
 
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(300);
 
       const previewInside = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -1034,7 +1034,7 @@ test.describe('视觉布局 @regression', () => {
       await navigateToGame(page);
       await ensurePlaying(page);
       await dropBlocks(page, 8);
-      await waitForStable(page, 3000);
+      await waitForStable(page, 2000);
 
       const allAboveGround = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -1066,7 +1066,7 @@ test.describe('视觉布局 @regression', () => {
       await ensurePlaying(page);
 
       await dropBlocks(page, 5);
-      await waitForStable(page, 3000);
+      await waitForStable(page, 2000);
 
       const allInsideContainer = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -1100,12 +1100,12 @@ test.describe('视觉布局 @regression', () => {
       await ensurePlaying(page);
 
       await clickCanvasAt(page, 0.05, 0.3);
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(300);
       await clickCanvasAt(page, 0.95, 0.3);
-      await page.waitForTimeout(1000);
+      await page.waitForTimeout(600);
 
       await dropBlocks(page, 8);
-      await waitForStable(page, 5000);
+      await waitForStable(page, 3000);
 
       const wallsCorrect = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -1145,13 +1145,13 @@ test.describe('视觉布局 @regression', () => {
 
       for (let i = 0; i < 5; i++) {
         await clickCanvasAt(page, 0.15 + i * 0.02, 0.3);
-        await page.waitForTimeout(400);
+        await page.waitForTimeout(250);
         await clickCanvasAt(page, 0.85 - i * 0.02, 0.3);
-        await page.waitForTimeout(400);
+        await page.waitForTimeout(250);
       }
 
       await dropBlocks(page, 5);
-      await waitForStable(page, 3000);
+      await waitForStable(page, 2000);
 
       const noEscape = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -1185,16 +1185,16 @@ test.describe('视觉布局 @regression', () => {
       await ensurePlaying(page);
 
       await clickCanvasAt(page, 0.02, 0.3);
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(250);
       await clickCanvasAt(page, 0.98, 0.3);
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(250);
       await clickCanvasAt(page, 0.02, 0.6);
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(250);
       await clickCanvasAt(page, 0.98, 0.6);
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(250);
 
       await dropBlocks(page, 5);
-      await waitForStable(page, 3000);
+      await waitForStable(page, 2000);
 
       const noCrash = await page.evaluate(() => {
         const game = (window as any).__gameInstance;

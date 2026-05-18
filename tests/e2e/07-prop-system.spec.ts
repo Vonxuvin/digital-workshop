@@ -246,7 +246,7 @@ test.describe('道具系统 @regression', () => {
       await navigateToGame(page);
       await ensurePlaying(page);
       await dropBlocks(page, 5, 500);
-      await waitForStable(page, 2000);
+      await waitForStable(page);
 
       const noPhysicsError = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -1066,7 +1066,7 @@ test.describe('道具系统 @regression', () => {
       await navigateToGame(page);
       await ensurePlaying(page);
       await dropBlocks(page, 5);
-      await waitForStable(page, 1500);
+      await waitForStable(page);
 
       const result = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -1245,7 +1245,7 @@ test.describe('道具系统 @regression', () => {
       await navigateToGame(page);
       await ensurePlaying(page);
       await dropBlocks(page, 3);
-      await waitForStable(page, process.env.CI ? 4000 : 2000);
+      await waitForStable(page);
 
       const result = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -1329,7 +1329,7 @@ test.describe('道具系统 @regression', () => {
       await navigateToGame(page);
       await ensurePlaying(page);
       await dropBlocks(page, 3);
-      await waitForStable(page, process.env.CI ? 4000 : 2000);
+      await waitForStable(page);
 
       const result = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -1396,7 +1396,7 @@ test.describe('道具系统 @regression', () => {
       await navigateToGame(page);
       await ensurePlaying(page);
       await dropBlocks(page, 5);
-      await waitForStable(page, 2000);
+      await waitForStable(page);
 
       const result = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -1497,7 +1497,7 @@ test.describe('道具系统 @regression', () => {
       await navigateToGame(page);
       await ensurePlaying(page);
       await dropBlocks(page, 3);
-      await waitForStable(page, process.env.CI ? 4000 : 2000);
+      await waitForStable(page);
 
       const result = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -1569,7 +1569,7 @@ test.describe('道具系统 @regression', () => {
       await navigateToGame(page);
       await ensurePlaying(page);
       await dropBlocks(page, 3);
-      await waitForStable(page, process.env.CI ? 4000 : 2000);
+      await waitForStable(page);
 
       const result = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
