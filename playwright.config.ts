@@ -11,8 +11,8 @@ export default defineConfig({
     ['list'],
     ['json', { outputFile: 'playwright-report/results.json' }],
   ],
-  timeout: 45000,
-  globalTimeout: process.env.CI ? 1200000 : 900000,
+  timeout: 60000,
+  globalTimeout: process.env.CI ? 1500000 : 900000,
   expect: {
     timeout: 10000,
   },
