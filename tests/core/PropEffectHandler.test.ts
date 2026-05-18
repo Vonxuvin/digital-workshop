@@ -830,5 +830,254 @@ describe('PropEffectHandler', () => {
       const actualBottom = body.position.y + newRadius;
       expect(actualBottom).toBeCloseTo(originalBottom, 1);
     });
+  describe('resolveBlockOverlaps - 球体重叠消解', () => {
+    it('should not crash with empty body list', () => {
+      expect(() => {
+        (handler as any).resolveBlockOverlaps([]);
+      }).not.toThrow();
+    });
+
+    it('should not crash with single body', () => {
+      const body = Matter.Bodies.circle(200, 300, 20);
+      expect(() => {
+        (handler as any).resolveBlockOverlaps([body]);
+      }).not.toThrow();
+    });
+
+    it('should separate two overlapping balls by pushing upper one upward', () => {
+      const groundY = 590;
+      handler.setGroundY(groundY);
+      const body1 = Matter.Bodies.circle(200, 300, 20);
+      const body2 = Matter.Bodies.circle(200, 310, 20);
+
+      (handler as any).resolveBlockOverlaps([body1, body2]);
+
+      const dx = body2.position.x - body1.position.x;
+      const dy = body2.position.y - body1.position.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const minDist = (body1.circleRadius || 0) + (body2.circleRadius || 0);
+      expect(distance).toBeGreaterThanOrEqual(minDist - 0.5);
+    });
+
+    it('should not move already separated balls', () => {
+      const body1 = Matter.Bodies.circle(100, 200, 20);
+      const body2 = Matter.Bodies.circle(200, 200, 20);
+      const origY1 = body1.position.y;
+      const origY2 = body2.position.y;
+
+      (handler as any).resolveBlockOverlaps([body1, body2]);
+
+      expect(body1.position.y).toBeCloseTo(origY1, 5);
+      expect(body2.position.y).toBeCloseTo(origY2, 5);
+    });
+
+    it('should prevent ball from sinking into ground', () => {
+      const groundY = 500;
+      handler.setGroundY(groundY);
+      const body = Matter.Bodies.circle(200, groundY - 5, 20);
+
+      (handler as any).resolveBlockOverlaps([body]);
+
+      const radius = body.circleRadius || 0;
+      const bottom = body.position.y + radius;
+      expect(bottom).toBeLessThanOrEqual(groundY + 0.5);
+    });
+
+    it('should handle multiple overlapping balls in a stack', () => {
+      const groundY = 590;
+      handler.setGroundY(groundY);
+      const body1 = Matter.Bodies.circle(200, groundY - 10, 20);
+      const body2 = Matter.Bodies.circle(200, groundY - 5, 20);
+      const body3 = Matter.Bodies.circle(200, groundY, 20);
+
+      (handler as any).resolveBlockOverlaps([body1, body2, body3]);
+
+      const r1 = body1.circleRadius || 0;
+      const r2 = body2.circleRadius || 0;
+      const r3 = body3.circleRadius || 0;
+
+      expect(body1.position.y + r1).toBeLessThanOrEqual(groundY + 0.5);
+      expect(body2.position.y + r2).toBeLessThanOrEqual(groundY + 0.5);
+
+      const dist12 = Math.abs(body1.position.y - body2.position.y);
+      expect(dist12).toBeGreaterThanOrEqual((r1 + r2) - 0.5);
+
+      const dist23 = Math.abs(body2.position.y - body3.position.y);
+      expect(dist23).toBeGreaterThanOrEqual((r2 + r3) - 0.5);
+    });
+
+    it('should handle overlapping balls with different radii', () => {
+      const body1 = Matter.Bodies.circle(200, 300, 30);
+      const body2 = Matter.Bodies.circle(200, 310, 20);
+
+      (handler as any).resolveBlockOverlaps([body1, body2]);
+
+      const dx = body2.position.x - body1.position.x;
+      const dy = body2.position.y - body1.position.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const minDist = (body1.circleRadius || 0) + (body2.circleRadius || 0);
+      expect(distance).toBeGreaterThanOrEqual(minDist - 0.5);
+    });
+
+    it('should not move balls that are exactly touching', () => {
+      const body1 = Matter.Bodies.circle(200, 300, 20);
+      const body2 = Matter.Bodies.circle(200, 340, 20);
+      const origY1 = body1.position.y;
+      const origY2 = body2.position.y;
+
+      (handler as any).resolveBlockOverlaps([body1, body2]);
+
+      expect(body1.position.y).toBeCloseTo(origY1, 5);
+      expect(body2.position.y).toBeCloseTo(origY2, 5);
+    });
+  });
+
+  describe('handleShrinkDeactivate - 栈叠球体重叠消解', () => {
+    it('should separate stacked balls that overlap after restoring size', () => {
+      const groundY = 590;
+      handler.setGroundY(groundY);
+      const radius = 40;
+      const body1 = Matter.Bodies.circle(200, groundY - radius, radius);
+      const block1 = new Block(body1, 8);
+      const body2 = Matter.Bodies.circle(200, groundY - radius * 2, radius);
+      const block2 = new Block(body2, 8);
+      blockSpawner.getBlocks.mockReturnValue([block1, block2]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+      handler.handleShrinkDeactivate();
+
+      expect(handler.isShrinkActive()).toBe(false);
+    });
+
+    it('should ensure no overlapping after full shrink-restore cycle with stacked balls', () => {
+      const groundY = 590;
+      handler.setGroundY(groundY);
+      const body1 = Matter.Bodies.circle(200, groundY - 20, 20);
+      const block1 = new Block(body1, 1);
+      const body2 = Matter.Bodies.circle(200, groundY - 60, 30);
+      const block2 = new Block(body2, 4);
+      const body3 = Matter.Bodies.circle(200, groundY - 110, 40);
+      const block3 = new Block(body3, 8);
+      blockSpawner.getBlocks.mockReturnValue([block1, block2, block3]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+      handler.handleShrinkDeactivate();
+
+      const r1 = body1.circleRadius || 0;
+      const r2 = body2.circleRadius || 0;
+      const r3 = body3.circleRadius || 0;
+
+      const dist12 = Math.sqrt(
+        (body1.position.x - body2.position.x) ** 2 +
+        (body1.position.y - body2.position.y) ** 2
+      );
+      const dist23 = Math.sqrt(
+        (body2.position.x - body3.position.x) ** 2 +
+        (body2.position.y - body3.position.y) ** 2
+      );
+
+      expect(dist12).toBeGreaterThanOrEqual((r1 + r2) - 0.5);
+      expect(dist23).toBeGreaterThanOrEqual((r2 + r3) - 0.5);
+    });
+
+    it('should keep bottom ball on ground after deactivate with stacked balls', () => {
+      const groundY = 590;
+      handler.setGroundY(groundY);
+      const body1 = Matter.Bodies.circle(200, groundY - 20, 20);
+      const block1 = new Block(body1, 1);
+      const body2 = Matter.Bodies.circle(200, groundY - 60, 30);
+      const block2 = new Block(body2, 4);
+      blockSpawner.getBlocks.mockReturnValue([block1, block2]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+      handler.handleShrinkDeactivate();
+
+      const r1 = body1.circleRadius || 0;
+      const bottom1 = body1.position.y + r1;
+      expect(Math.abs(bottom1 - groundY)).toBeLessThan(1);
+    });
+  });
+
+  describe('handleShrinkActivate - 缩小重叠消解', () => {
+    it('should resolve overlaps after shrinking multiple balls', () => {
+      const groundY = 590;
+      handler.setGroundY(groundY);
+      const body1 = Matter.Bodies.circle(200, groundY - 20, 20);
+      const block1 = new Block(body1, 1);
+      const body2 = Matter.Bodies.circle(200, groundY - 60, 40);
+      const block2 = new Block(body2, 8);
+      blockSpawner.getBlocks.mockReturnValue([block1, block2]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      const r1 = body1.circleRadius || 0;
+      const r2 = body2.circleRadius || 0;
+      const dist12 = Math.sqrt(
+        (body1.position.x - body2.position.x) ** 2 +
+        (body1.position.y - body2.position.y) ** 2
+      );
+      expect(dist12).toBeGreaterThanOrEqual((r1 + r2) - 0.5);
+    });
+
+    it('should keep bottom ball on ground after shrink with stacked balls', () => {
+      const groundY = 590;
+      handler.setGroundY(groundY);
+      const body1 = Matter.Bodies.circle(200, groundY - 20, 20);
+      const block1 = new Block(body1, 1);
+      const body2 = Matter.Bodies.circle(200, groundY - 60, 30);
+      const block2 = new Block(body2, 4);
+      blockSpawner.getBlocks.mockReturnValue([block1, block2]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      const r1 = body1.circleRadius || 0;
+      const bottom1 = body1.position.y + r1;
+      expect(Math.abs(bottom1 - groundY)).toBeLessThan(1);
+    });
+  });
+
+  describe('applyShrinkToBlock - 新球体缩小重叠消解', () => {
+    it('should not overlap with existing shrunk blocks when new block is shrunk', () => {
+      const groundY = 590;
+      handler.setGroundY(groundY);
+      const body1 = Matter.Bodies.circle(200, groundY - 20, 20);
+      const block1 = new Block(body1, 1);
+      blockSpawner.getBlocks.mockReturnValue([block1]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      const body2 = Matter.Bodies.circle(200, groundY - 15, 30);
+      const block2 = new Block(body2, 4);
+
+      handler.applyShrinkToBlock(block2);
+
+      const r1 = body1.circleRadius || 0;
+      const r2 = body2.circleRadius || 0;
+      const dist = Math.sqrt(
+        (body1.position.x - body2.position.x) ** 2 +
+        (body1.position.y - body2.position.y) ** 2
+      );
+      expect(dist).toBeGreaterThanOrEqual((r1 + r2) - 0.5);
+    });
+
+    it('should not push new shrunk block into ground', () => {
+      const groundY = 590;
+      handler.setGroundY(groundY);
+      const body1 = Matter.Bodies.circle(200, groundY - 20, 20);
+      const block1 = new Block(body1, 1);
+      blockSpawner.getBlocks.mockReturnValue([block1]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      const body2 = Matter.Bodies.circle(200, groundY - 10, 30);
+      const block2 = new Block(body2, 4);
+
+      handler.applyShrinkToBlock(block2);
+
+      const r2 = body2.circleRadius || 0;
+      const bottom2 = body2.position.y + r2;
+      expect(bottom2).toBeLessThanOrEqual(groundY + 0.5);
+    });
+  });
   });
 });
