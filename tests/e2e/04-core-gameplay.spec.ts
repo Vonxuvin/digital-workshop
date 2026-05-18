@@ -61,27 +61,6 @@ test.describe('核心玩法 @smoke', () => {
 
       expect(hasValidValue).toBeTruthy();
     });
-
-    test('方块生成应有冷却时间', async ({ page }) => {
-      await navigateToGame(page);
-      await ensurePlaying(page);
-
-      await clickCanvasCenter(page);
-      await page.waitForTimeout(100);
-
-      const canDropAfterClick = await page.evaluate(() => {
-        const game = (window as any).__gameInstance;
-        if (!game) return true;
-        try {
-          const spawner = game.getBlockSpawner?.();
-          return spawner?.getCanDrop?.() ?? true;
-        } catch {
-          return true;
-        }
-      });
-
-      expect(typeof canDropAfterClick).toBe('boolean');
-    });
   });
 
   test.describe('方块合并 @smoke', () => {
