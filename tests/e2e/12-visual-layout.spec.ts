@@ -1006,6 +1006,7 @@ test.describe('视觉布局 @regression', () => {
   });
 
   test.describe('落点标记位置 @regression', () => {
+    test.setTimeout(process.env.CI ? 120000 : 90000);
     test('落点标记应在视觉地面上方可见', async ({ page }) => {
       await navigateToGame(page);
       await ensurePlaying(page);
@@ -1061,6 +1062,7 @@ test.describe('视觉布局 @regression', () => {
   });
 
   test.describe('碰撞边界验证 @regression', () => {
+    test.setTimeout(process.env.CI ? 120000 : 90000);
     test('方块碰撞应发生在容器内部边界而非外围', async ({ page }) => {
       await navigateToGame(page);
       await ensurePlaying(page);

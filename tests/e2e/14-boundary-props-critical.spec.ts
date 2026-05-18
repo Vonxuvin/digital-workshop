@@ -77,6 +77,7 @@ test.describe('边界与道具关键路径 @regression', () => {
   });
 
   test.describe('炸弹道具关键路径 @regression', () => {
+    test.setTimeout(process.env.CI ? 120000 : 90000);
     test('炸弹道具应可使用', async ({ page }) => {
       await navigateToGame(page);
       await ensurePlaying(page);

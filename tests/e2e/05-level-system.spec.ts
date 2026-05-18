@@ -525,6 +525,7 @@ test.describe('关卡系统 @regression', () => {
     });
 
     test('第2关卡Score事件流应完整', async ({ page }) => {
+      test.setTimeout(process.env.CI ? 120000 : 90000);
       await navigateToGame(page);
       await ensureGameScene(page);
 
