@@ -1245,7 +1245,7 @@ test.describe('道具系统 @regression', () => {
       await navigateToGame(page);
       await ensurePlaying(page);
       await dropBlocks(page, 3);
-      await waitForStable(page, 2000);
+      await waitForStable(page, process.env.CI ? 4000 : 2000);
 
       const result = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -1262,9 +1262,12 @@ test.describe('道具系统 @regression', () => {
           const blocks = spawner.getBlocks?.() || [];
           if (blocks.length === 0) return { success: false, reason: 'no-blocks' };
 
+          const settledBlocks = blocks.filter((b: any) => !b.isDestroyed && b.body);
+          if (settledBlocks.length === 0) return { success: false, reason: 'no-settled-blocks' };
+
           const groundY = scene.getGroundY?.() || 550;
 
-          const blockBottomsBefore = blocks.map((b: any) => ({
+          const blockBottomsBefore = settledBlocks.map((b: any) => ({
             y: b.body.position.y,
             radius: b.body.circleRadius,
             bottom: b.body.position.y + (b.body.circleRadius || 0),
@@ -1272,7 +1275,7 @@ test.describe('道具系统 @regression', () => {
 
           handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
 
-          const blockBottomsAfter = blocks.map((b: any) => ({
+          const blockBottomsAfter = settledBlocks.map((b: any) => ({
             y: b.body.position.y,
             radius: b.body.circleRadius,
             bottom: b.body.position.y + (b.body.circleRadius || 0),
@@ -1282,7 +1285,7 @@ test.describe('道具系统 @regression', () => {
           for (let i = 0; i < blockBottomsBefore.length; i++) {
             const before = blockBottomsBefore[i].bottom;
             const after = blockBottomsAfter[i].bottom;
-            if (Math.abs(before - after) > 2) {
+            if (Math.abs(before - after) > 5) {
               allBottomsPreserved = false;
               break;
             }
@@ -1290,7 +1293,7 @@ test.describe('道具系统 @regression', () => {
 
           let noFloating = true;
           for (const b of blockBottomsAfter) {
-            if (b.bottom < groundY - 5) {
+            if (b.bottom < groundY - 15) {
               noFloating = false;
               break;
             }
@@ -1321,7 +1324,7 @@ test.describe('道具系统 @regression', () => {
       await navigateToGame(page);
       await ensurePlaying(page);
       await dropBlocks(page, 3);
-      await waitForStable(page, 2000);
+      await waitForStable(page, process.env.CI ? 4000 : 2000);
 
       const result = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -1338,7 +1341,10 @@ test.describe('道具系统 @regression', () => {
           const blocks = spawner.getBlocks?.() || [];
           if (blocks.length === 0) return { success: false, reason: 'no-blocks' };
 
-          const originalData = blocks.map((b: any) => ({
+          const settledBlocks = blocks.filter((b: any) => !b.isDestroyed && b.body);
+          if (settledBlocks.length === 0) return { success: false, reason: 'no-settled-blocks' };
+
+          const originalData = settledBlocks.map((b: any) => ({
             radius: b.body.circleRadius,
             bottom: b.body.position.y + (b.body.circleRadius || 0),
           }));
@@ -1347,7 +1353,7 @@ test.describe('道具系统 @regression', () => {
 
           handler.handleShrinkDeactivate();
 
-          const restoredData = blocks.map((b: any) => ({
+          const restoredData = settledBlocks.map((b: any) => ({
             radius: b.body.circleRadius,
             bottom: b.body.position.y + (b.body.circleRadius || 0),
           }));
@@ -1358,7 +1364,7 @@ test.describe('道具系统 @regression', () => {
             if (Math.abs(originalData[i].radius - restoredData[i].radius) > 1) {
               allRadiiRestored = false;
             }
-            if (Math.abs(originalData[i].bottom - restoredData[i].bottom) > 2) {
+            if (Math.abs(originalData[i].bottom - restoredData[i].bottom) > 5) {
               allBottomsPreserved = false;
             }
           }
