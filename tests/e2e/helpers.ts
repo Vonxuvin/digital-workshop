@@ -206,10 +206,10 @@ export async function dropBlocks(page: Page, count: number, intervalMs = 800) {
           }
         },
         blockCountBefore,
-        { timeout: Math.max(intervalMs, 3000) }
+        { timeout: Math.max(intervalMs, 2000) }
       );
     } catch {
-      await page.waitForTimeout(intervalMs);
+      await page.waitForTimeout(Math.min(intervalMs, 500));
     }
   }
 }
