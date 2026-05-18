@@ -1805,3 +1805,149 @@ describe('ShrinkProp sound name fix', () => {
     am.destroy();
   });
 });
+
+describe('PropEffectHandler ground snapping', () => {
+  let physics: PhysicsManager;
+  let blockSpawner: ReturnType<typeof createMockBlockSpawner>;
+  let mergeSystem: ReturnType<typeof createMockMergeSystem>;
+  let effectManager: ReturnType<typeof createMockEffectManager>;
+  let propSystem: PropSystem;
+  let gameHUD: ReturnType<typeof createMockGameHUD>;
+  let preview: ReturnType<typeof createMockPreview>;
+  let handler: PropEffectHandler;
+
+  beforeEach(async () => {
+    physics = new PhysicsManager();
+    blockSpawner = createMockBlockSpawner();
+    mergeSystem = createMockMergeSystem();
+    effectManager = createMockEffectManager();
+    propSystem = new PropSystem();
+    gameHUD = createMockGameHUD();
+    preview = createMockPreview();
+
+    await propSystem.loadConfig(defaultPropConfigs);
+    propSystem.initialize([
+      { type: PropType.BOMB, count: 3 },
+      { type: PropType.RAINBOW, count: 3 },
+      { type: PropType.FREEZE, count: 3 },
+      { type: PropType.SHRINK, count: 2 },
+      { type: PropType.LUCKY, count: 2 },
+    ]);
+
+    handler = new PropEffectHandler(
+      blockSpawner as any,
+      mergeSystem as any,
+      physics as any,
+      effectManager as any,
+      propSystem,
+      gameHUD as any,
+      preview as any,
+    );
+  });
+
+  it('should snap block resting on ground to exact groundY after shrink', () => {
+    const groundY = 500;
+    handler.setGroundY(groundY);
+    const radius = 25;
+    if (!physics.isRunning()) physics.start();
+    const body = physics.createCircle(200, groundY - radius, radius);
+    const block = new Block(body, 4);
+    (blockSpawner.getBlocks as any).mockReturnValue([block]);
+
+    handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+    const newRadius = body.circleRadius!;
+    const bottom = body.position.y + newRadius;
+    expect(Math.abs(bottom - groundY)).toBeLessThan(2);
+  });
+
+  it('should snap block slightly above ground (Matter.js slop gap) to exact groundY after shrink', () => {
+    const groundY = 500;
+    handler.setGroundY(groundY);
+    const radius = 25;
+    if (!physics.isRunning()) physics.start();
+    const body = physics.createCircle(200, groundY - radius + 1, radius);
+    const block = new Block(body, 4);
+    (blockSpawner.getBlocks as any).mockReturnValue([block]);
+
+    handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+    const newRadius = body.circleRadius!;
+    const bottom = body.position.y + newRadius;
+    expect(Math.abs(bottom - groundY)).toBeLessThan(2);
+  });
+
+  it('should preserve exact bottom for mid-air block after shrink with groundY set', () => {
+    const groundY = 500;
+    handler.setGroundY(groundY);
+    const radius = 25;
+    const midAirCenter = 250;
+    if (!physics.isRunning()) physics.start();
+    const body = physics.createCircle(200, midAirCenter, radius);
+    const block = new Block(body, 4);
+    const originalBottom = midAirCenter + radius;
+    (blockSpawner.getBlocks as any).mockReturnValue([block]);
+
+    handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+    const newRadius = body.circleRadius!;
+    const bottom = body.position.y + newRadius;
+    expect(Math.abs(bottom - originalBottom)).toBeLessThan(2);
+  });
+
+  it('should not cause center to move after shrink-activate-deactivate cycle on ground', () => {
+    const groundY = 500;
+    handler.setGroundY(groundY);
+    const radius = 25;
+    if (!physics.isRunning()) physics.start();
+    const body = physics.createCircle(200, groundY - radius, radius);
+    const block = new Block(body, 4);
+    const originalX = body.position.x;
+    (blockSpawner.getBlocks as any).mockReturnValue([block]);
+
+    handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+    handler.handleShrinkDeactivate();
+
+    expect(body.position.x).toBeCloseTo(originalX, 1);
+    expect(handler.isShrinkActive()).toBe(false);
+  });
+
+  it('should not float after shrink when groundY matches actual ground level', () => {
+    const groundY = 500;
+    handler.setGroundY(groundY);
+    const radius = 30;
+    if (!physics.isRunning()) physics.start();
+    const body = physics.createCircle(200, groundY - radius, radius);
+    const block = new Block(body, 8);
+    (blockSpawner.getBlocks as any).mockReturnValue([block]);
+
+    handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+    const newRadius = body.circleRadius!;
+    const bottom = body.position.y + newRadius;
+    const floatingGap = groundY - bottom;
+    expect(floatingGap).toBeLessThan(2);
+    expect(floatingGap).toBeGreaterThanOrEqual(0);
+  });
+
+  it('should handle multiple blocks with mixed ground/mid-air positions', () => {
+    const groundY = 500;
+    handler.setGroundY(groundY);
+    if (!physics.isRunning()) physics.start();
+    const radius1 = 20;
+    const radius2 = 30;
+    const body1 = physics.createCircle(150, groundY - radius1, radius1);
+    const block1 = new Block(body1, 1);
+    const body2 = physics.createCircle(250, 200, radius2);
+    const block2 = new Block(body2, 4);
+    const originalBottom2 = 200 + radius2;
+    (blockSpawner.getBlocks as any).mockReturnValue([block1, block2]);
+
+    handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+    const bottom1 = body1.position.y + body1.circleRadius!;
+    const bottom2 = body2.position.y + body2.circleRadius!;
+    expect(Math.abs(bottom1 - groundY)).toBeLessThan(2);
+    expect(Math.abs(bottom2 - originalBottom2)).toBeLessThan(2);
+  });
+});

@@ -690,4 +690,145 @@ describe('PropEffectHandler', () => {
       handler.resume();
     });
   });
+
+  describe('setGroundY and ground snapping', () => {
+    it('should set groundY via setGroundY', () => {
+      handler.setGroundY(550);
+      const body = Matter.Bodies.circle(200, 550 - 30, 30);
+      const block = new Block(body, 4);
+      blockSpawner.getBlocks.mockReturnValue([block]);
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+      expect(handler.isShrinkActive()).toBe(true);
+    });
+
+    it('should snap block to ground when within threshold after shrink', () => {
+      const groundY = 550;
+      handler.setGroundY(groundY);
+      const radius = 30;
+      const body = Matter.Bodies.circle(200, groundY - radius, radius);
+      const block = new Block(body, 4);
+      blockSpawner.getBlocks.mockReturnValue([block]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      const newRadius = body.circleRadius!;
+      const actualBottom = body.position.y + newRadius;
+      expect(actualBottom).toBeCloseTo(groundY, 0);
+    });
+
+    it('should snap block to ground when slightly above ground (within 5px)', () => {
+      const groundY = 550;
+      handler.setGroundY(groundY);
+      const radius = 30;
+      const body = Matter.Bodies.circle(200, groundY - radius + 3, radius);
+      const block = new Block(body, 4);
+      blockSpawner.getBlocks.mockReturnValue([block]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      const newRadius = body.circleRadius!;
+      const actualBottom = body.position.y + newRadius;
+      expect(actualBottom).toBeCloseTo(groundY, 0);
+    });
+
+    it('should NOT snap block to ground when more than 5px above ground', () => {
+      const groundY = 550;
+      handler.setGroundY(groundY);
+      const radius = 30;
+      const offsetAbove = 10;
+      const body = Matter.Bodies.circle(200, groundY - radius - offsetAbove, radius);
+      const block = new Block(body, 4);
+      const originalBottom = body.position.y + radius;
+      blockSpawner.getBlocks.mockReturnValue([block]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      const newRadius = body.circleRadius!;
+      const actualBottom = body.position.y + newRadius;
+      expect(actualBottom).toBeCloseTo(originalBottom, 1);
+      expect(actualBottom).toBeLessThan(groundY - 4);
+    });
+
+    it('should snap block to ground during deactivate when near ground', () => {
+      const groundY = 550;
+      handler.setGroundY(groundY);
+      const radius = 30;
+      const body = Matter.Bodies.circle(200, groundY - radius, radius);
+      const block = new Block(body, 4);
+      blockSpawner.getBlocks.mockReturnValue([block]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+      handler.handleShrinkDeactivate();
+
+      const restoredRadius = body.circleRadius!;
+      const actualBottom = body.position.y + restoredRadius;
+      expect(actualBottom).toBeCloseTo(groundY, 0);
+    });
+
+    it('should snap block during full shrink-restore cycle to ground', () => {
+      const groundY = 550;
+      handler.setGroundY(groundY);
+      const radius = 30;
+      const body = Matter.Bodies.circle(200, groundY - radius, radius);
+      const block = new Block(body, 4);
+      blockSpawner.getBlocks.mockReturnValue([block]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+      handler.handleShrinkDeactivate();
+
+      const restoredRadius = body.circleRadius!;
+      const finalBottom = body.position.y + restoredRadius;
+      expect(finalBottom).toBeCloseTo(groundY, 0);
+      expect(restoredRadius).toBeCloseTo(radius, 0);
+    });
+
+    it('should snap multiple blocks to ground simultaneously', () => {
+      const groundY = 550;
+      handler.setGroundY(groundY);
+      const body1 = Matter.Bodies.circle(150, groundY - 20, 20);
+      const block1 = new Block(body1, 1);
+      const body2 = Matter.Bodies.circle(250, groundY - 30, 30);
+      const block2 = new Block(body2, 4);
+      blockSpawner.getBlocks.mockReturnValue([block1, block2]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      const bottom1 = body1.position.y + body1.circleRadius!;
+      const bottom2 = body2.position.y + body2.circleRadius!;
+      expect(bottom1).toBeCloseTo(groundY, 0);
+      expect(bottom2).toBeCloseTo(groundY, 0);
+    });
+
+    it('should not snap block when groundY is 0 (default)', () => {
+      const groundY = 550;
+      const radius = 30;
+      const body = Matter.Bodies.circle(200, groundY - radius, radius);
+      const block = new Block(body, 4);
+      const originalBottom = body.position.y + radius;
+      blockSpawner.getBlocks.mockReturnValue([block]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      const newRadius = body.circleRadius!;
+      const actualBottom = body.position.y + newRadius;
+      expect(actualBottom).toBeCloseTo(originalBottom, 1);
+    });
+
+    it('should maintain bottom position for non-ground block with groundY set', () => {
+      const groundY = 550;
+      handler.setGroundY(groundY);
+      const radius = 30;
+      const midAirY = 300;
+      const body = Matter.Bodies.circle(200, midAirY, radius);
+      const block = new Block(body, 4);
+      const originalBottom = body.position.y + radius;
+      blockSpawner.getBlocks.mockReturnValue([block]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      const newRadius = body.circleRadius!;
+      const actualBottom = body.position.y + newRadius;
+      expect(actualBottom).toBeCloseTo(originalBottom, 1);
+    });
+  });
 });

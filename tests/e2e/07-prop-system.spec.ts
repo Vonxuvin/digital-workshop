@@ -1293,7 +1293,7 @@ test.describe('道具系统 @regression', () => {
 
           let noFloating = true;
           for (const b of blockBottomsAfter) {
-            if (b.bottom < groundY - 15) {
+            if (b.bottom < groundY - 5) {
               noFloating = false;
               break;
             }
@@ -1485,6 +1485,133 @@ test.describe('道具系统 @regression', () => {
       expect(result.success).toBeTruthy();
       if (result.success) {
         expect(result.noFloating).toBeTruthy();
+      }
+    });
+
+    test('缩小道具地面吸附：缩小时靠地方块应精确位于地面', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+      await dropBlocks(page, 3);
+      await waitForStable(page, process.env.CI ? 4000 : 2000);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false, reason: 'no-game' };
+        try {
+          const scene = game.getGameScene?.();
+          if (!scene) return { success: false, reason: 'no-scene' };
+          const handler = scene.getPropEffectHandler?.();
+          if (!handler) return { success: false, reason: 'no-handler' };
+
+          const spawner = game.getBlockSpawner?.();
+          if (!spawner) return { success: false, reason: 'no-spawner' };
+
+          const blocks = spawner.getBlocks?.() || [];
+          if (blocks.length === 0) return { success: false, reason: 'no-blocks' };
+
+          const settledBlocks = blocks.filter((b: any) => !b.isDestroyed && b.body);
+          if (settledBlocks.length === 0) return { success: false, reason: 'no-settled-blocks' };
+
+          const groundY = scene.getGroundY?.() || 550;
+
+          handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+          let allOnGround = true;
+          let maxGap = 0;
+          for (const b of settledBlocks) {
+            const radius = b.body.circleRadius || 0;
+            const bottom = b.body.position.y + radius;
+            const gap = Math.abs(bottom - groundY);
+            maxGap = Math.max(maxGap, gap);
+            if (gap > 2) {
+              allOnGround = false;
+            }
+          }
+
+          handler.handleShrinkDeactivate();
+
+          return {
+            success: true,
+            allOnGround,
+            maxGap: Math.round(maxGap * 100) / 100,
+            blockCount: settledBlocks.length,
+            groundY,
+          };
+        } catch (e: any) {
+          return { success: false, reason: e?.message ?? 'error' };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      if (result.success) {
+        expect(result.allOnGround).toBeTruthy();
+        expect(result.maxGap).toBeLessThanOrEqual(2);
+      }
+    });
+
+    test('缩小道具地面吸附：完整缩放-恢复周期后方块应精确位于地面', async ({ page }) => {
+      await navigateToGame(page);
+      await ensurePlaying(page);
+      await dropBlocks(page, 3);
+      await waitForStable(page, process.env.CI ? 4000 : 2000);
+
+      const result = await page.evaluate(() => {
+        const game = (window as any).__gameInstance;
+        if (!game) return { success: false, reason: 'no-game' };
+        try {
+          const scene = game.getGameScene?.();
+          if (!scene) return { success: false, reason: 'no-scene' };
+          const handler = scene.getPropEffectHandler?.();
+          if (!handler) return { success: false, reason: 'no-handler' };
+
+          const spawner = game.getBlockSpawner?.();
+          if (!spawner) return { success: false, reason: 'no-spawner' };
+
+          const blocks = spawner.getBlocks?.() || [];
+          if (blocks.length === 0) return { success: false, reason: 'no-blocks' };
+
+          const settledBlocks = blocks.filter((b: any) => !b.isDestroyed && b.body);
+          if (settledBlocks.length === 0) return { success: false, reason: 'no-settled-blocks' };
+
+          const groundY = scene.getGroundY?.() || 550;
+
+          handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+          handler.handleShrinkDeactivate();
+
+          let allOnGround = true;
+          let allRadiiRestored = true;
+          let maxGap = 0;
+          for (const b of settledBlocks) {
+            const radius = b.body.circleRadius || 0;
+            const bottom = b.body.position.y + radius;
+            const gap = Math.abs(bottom - groundY);
+            maxGap = Math.max(maxGap, gap);
+            if (gap > 2) {
+              allOnGround = false;
+            }
+            if (b.scale.x !== 1) {
+              allRadiiRestored = false;
+            }
+          }
+
+          return {
+            success: true,
+            allOnGround,
+            allRadiiRestored,
+            maxGap: Math.round(maxGap * 100) / 100,
+            blockCount: settledBlocks.length,
+            groundY,
+          };
+        } catch (e: any) {
+          return { success: false, reason: e?.message ?? 'error' };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      if (result.success) {
+        expect(result.allOnGround).toBeTruthy();
+        expect(result.allRadiiRestored).toBeTruthy();
+        expect(result.maxGap).toBeLessThanOrEqual(2);
       }
     });
   });

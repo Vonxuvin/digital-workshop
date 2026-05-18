@@ -29,6 +29,7 @@ export class PropEffectHandler {
   private shrinkFactor = 1;
   private containerOffsetX: number = 0;
   private containerWidth: number = 800;
+  private groundY: number = 0;
   private originalBodyData: Map<string, { originalCircleRadius: number | undefined; currentScale: number }> = new Map();
 
   constructor(
@@ -64,6 +65,10 @@ export class PropEffectHandler {
   setContainerBounds(offsetX: number, width: number): void {
     this.containerOffsetX = offsetX;
     this.containerWidth = width;
+  }
+
+  setGroundY(groundY: number): void {
+    this.groundY = groundY;
   }
 
   handleBombExplode(data: { x: number; y: number; radius: number }): void {
@@ -130,9 +135,10 @@ export class PropEffectHandler {
       block.scale.set(data.factor);
       Matter.Body.scale(block.body, data.factor, data.factor);
       const newRadius = block.body.circleRadius || 0;
+      const snappedY = this.snapToGroundIfNear(bottomY, newRadius);
       Matter.Body.setPosition(block.body, {
         x: block.body.position.x,
-        y: bottomY - newRadius,
+        y: snappedY,
       });
       Matter.Sleeping.set(block.body, false);
     }
@@ -158,9 +164,10 @@ export class PropEffectHandler {
         Matter.Body.scale(block.body, inverseScale, inverseScale);
       }
       const newRadius = block.body.circleRadius || 0;
+      const snappedY = this.snapToGroundIfNear(bottomY, newRadius);
       Matter.Body.setPosition(block.body, {
         x: block.body.position.x,
-        y: bottomY - newRadius,
+        y: snappedY,
       });
       Matter.Sleeping.set(block.body, false);
       block.scale.set(1);
@@ -256,15 +263,29 @@ export class PropEffectHandler {
     block.scale.set(factor);
     Matter.Body.scale(block.body, factor, factor);
     const newRadius = block.body.circleRadius || 0;
+    const snappedY = this.snapToGroundIfNear(bottomY, newRadius);
     Matter.Body.setPosition(block.body, {
       x: block.body.position.x,
-      y: bottomY - newRadius,
+      y: snappedY,
     });
     Matter.Sleeping.set(block.body, false);
   }
 
   clearBombTargetMode(): void {
     this.bombTargetMode = false;
+  }
+
+  private readonly GROUND_SNAP_THRESHOLD = 5;
+
+  private snapToGroundIfNear(bottomY: number, radius: number): number {
+    if (this.groundY <= 0) {
+      return bottomY - radius;
+    }
+    const distanceToGround = Math.abs(bottomY - this.groundY);
+    if (distanceToGround < this.GROUND_SNAP_THRESHOLD) {
+      return this.groundY - radius;
+    }
+    return bottomY - radius;
   }
 
   reset(): void {
