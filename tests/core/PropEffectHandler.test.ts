@@ -716,11 +716,11 @@ describe('PropEffectHandler', () => {
       expect(actualBottom).toBeCloseTo(groundY, 0);
     });
 
-    it('should snap block to ground when slightly above ground (within 5px)', () => {
+    it('should snap block to ground when slightly above ground (within 15px)', () => {
       const groundY = 550;
       handler.setGroundY(groundY);
       const radius = 30;
-      const body = Matter.Bodies.circle(200, groundY - radius + 3, radius);
+      const body = Matter.Bodies.circle(200, groundY - radius + 10, radius);
       const block = new Block(body, 4);
       blockSpawner.getBlocks.mockReturnValue([block]);
 
@@ -731,11 +731,11 @@ describe('PropEffectHandler', () => {
       expect(actualBottom).toBeCloseTo(groundY, 0);
     });
 
-    it('should NOT snap block to ground when more than 5px above ground', () => {
+    it('should NOT snap block to ground when more than 15px above ground', () => {
       const groundY = 550;
       handler.setGroundY(groundY);
       const radius = 30;
-      const offsetAbove = 10;
+      const offsetAbove = 20;
       const body = Matter.Bodies.circle(200, groundY - radius - offsetAbove, radius);
       const block = new Block(body, 4);
       const originalBottom = body.position.y + radius;
@@ -746,7 +746,7 @@ describe('PropEffectHandler', () => {
       const newRadius = body.circleRadius!;
       const actualBottom = body.position.y + newRadius;
       expect(actualBottom).toBeCloseTo(originalBottom, 1);
-      expect(actualBottom).toBeLessThan(groundY - 4);
+      expect(actualBottom).toBeLessThan(groundY - 5);
     });
 
     it('should snap block to ground during deactivate when near ground', () => {

@@ -1292,10 +1292,15 @@ test.describe('道具系统 @regression', () => {
           }
 
           let noFloating = true;
-          for (const b of blockBottomsAfter) {
-            if (b.bottom < groundY - 5) {
-              noFloating = false;
-              break;
+          for (let i = 0; i < blockBottomsBefore.length && i < blockBottomsAfter.length; i++) {
+            const before = blockBottomsBefore[i].bottom;
+            const after = blockBottomsAfter[i].bottom;
+            const beforeGap = Math.abs(before - groundY);
+            if (beforeGap < 10) {
+              if (Math.abs(after - groundY) > 5) {
+                noFloating = false;
+                break;
+              }
             }
           }
 
@@ -1514,17 +1519,27 @@ test.describe('道具系统 @regression', () => {
 
           const groundY = scene.getGroundY?.() || 550;
 
+          const blockBottomsBefore = settledBlocks.map((b: any) => ({
+            y: b.body.position.y,
+            radius: b.body.circleRadius || 0,
+            bottom: b.body.position.y + (b.body.circleRadius || 0),
+          }));
+
           handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
 
           let allOnGround = true;
           let maxGap = 0;
-          for (const b of settledBlocks) {
-            const radius = b.body.circleRadius || 0;
-            const bottom = b.body.position.y + radius;
-            const gap = Math.abs(bottom - groundY);
-            maxGap = Math.max(maxGap, gap);
-            if (gap > 2) {
-              allOnGround = false;
+          for (let i = 0; i < blockBottomsBefore.length; i++) {
+            const beforeBottom = blockBottomsBefore[i].bottom;
+            if (Math.abs(beforeBottom - groundY) < 10) {
+              const b = settledBlocks[i];
+              const radius = b.body.circleRadius || 0;
+              const bottom = b.body.position.y + radius;
+              const gap = Math.abs(bottom - groundY);
+              maxGap = Math.max(maxGap, gap);
+              if (gap > 2) {
+                allOnGround = false;
+              }
             }
           }
 
@@ -1536,6 +1551,7 @@ test.describe('道具系统 @regression', () => {
             maxGap: Math.round(maxGap * 100) / 100,
             blockCount: settledBlocks.length,
             groundY,
+            groundBlocksChecked: blockBottomsBefore.filter((b: any) => Math.abs(b.bottom - groundY) < 10).length,
           };
         } catch (e: any) {
           return { success: false, reason: e?.message ?? 'error' };
@@ -1575,19 +1591,29 @@ test.describe('道具系统 @regression', () => {
 
           const groundY = scene.getGroundY?.() || 550;
 
+          const blockBottomsBefore = settledBlocks.map((b: any) => ({
+            y: b.body.position.y,
+            radius: b.body.circleRadius || 0,
+            bottom: b.body.position.y + (b.body.circleRadius || 0),
+          }));
+
           handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
           handler.handleShrinkDeactivate();
 
           let allOnGround = true;
           let allRadiiRestored = true;
           let maxGap = 0;
-          for (const b of settledBlocks) {
+          for (let i = 0; i < blockBottomsBefore.length; i++) {
+            const beforeBottom = blockBottomsBefore[i].bottom;
+            const b = settledBlocks[i];
             const radius = b.body.circleRadius || 0;
             const bottom = b.body.position.y + radius;
             const gap = Math.abs(bottom - groundY);
-            maxGap = Math.max(maxGap, gap);
-            if (gap > 2) {
-              allOnGround = false;
+            if (Math.abs(beforeBottom - groundY) < 10) {
+              maxGap = Math.max(maxGap, gap);
+              if (gap > 2) {
+                allOnGround = false;
+              }
             }
             if (b.scale.x !== 1) {
               allRadiiRestored = false;

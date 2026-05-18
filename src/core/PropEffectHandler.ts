@@ -275,7 +275,7 @@ export class PropEffectHandler {
     this.bombTargetMode = false;
   }
 
-  private readonly GROUND_SNAP_THRESHOLD = 5;
+  private readonly GROUND_SNAP_THRESHOLD = 15;
 
   private snapToGroundIfNear(bottomY: number, radius: number): number {
     if (this.groundY <= 0) {
