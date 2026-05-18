@@ -1812,4 +1812,433 @@ test.describe('道具系统 @regression', () => {
       }
     });
   });
+
+  test.describe('缩小特效物理引擎修复 @critical', () => {
+    test('缩小期间球体之间不应出现重叠', async ({ page }) => {
+      await navigateToGame(page);
+      await ensureGameScene(page);
+
+      const result = await page.evaluate(() => {
+        try {
+          const game = (window as any).__gameInstance;
+          if (!game) return { success: false, reason: 'no game instance' };
+
+          const tests = (window as any).__testModules;
+          if (!tests) return { success: false, reason: 'no test modules' };
+
+          const PropEffectHandler = tests.PropEffectHandler?.default;
+          const Block = tests.Block?.default;
+          if (!PropEffectHandler || !Block) {
+            return { success: false, reason: 'missing test modules' };
+          }
+
+          const Matter = (window as any).Matter;
+          if (!Matter) return { success: false, reason: 'Matter not found' };
+
+          const mockBlockSpawner = { getBlocks: () => [] };
+          const handler = new PropEffectHandler(
+            mockBlockSpawner as any,
+            { unregisterBlock: () => {} } as any,
+            { removeBody: () => {} } as any,
+            { addExplosionEffect: () => {}, removeFreezeEffect: () => {} } as any,
+            { getProp: () => null } as any,
+            {} as any,
+            {} as any,
+          );
+
+          const groundY = 590;
+          handler.setGroundY(groundY);
+
+          const radius = 20;
+          const body1 = Matter.Bodies.circle(200, groundY - radius, radius);
+          const block1 = new Block(body1, 1);
+          const body2 = Matter.Bodies.circle(200, groundY - radius * 3, radius);
+          const block2 = new Block(body2, 2);
+          (mockBlockSpawner as any).getBlocks = () => [block1, block2];
+
+          handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+          const r1 = body1.circleRadius || 0;
+          const r2 = body2.circleRadius || 0;
+          const dist = Math.sqrt(
+            (body1.position.x - body2.position.x) ** 2 +
+            (body1.position.y - body2.position.y) ** 2,
+          );
+
+          return {
+            success: true,
+            noOverlap: dist >= r1 + r2 - 2,
+            dist: Math.round(dist * 100) / 100,
+            sumRadii: Math.round((r1 + r2) * 100) / 100,
+          };
+        } catch (e: any) {
+          return { success: false, reason: e?.message ?? 'error' };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      if (result.success) {
+        expect(result.noOverlap).toBeTruthy();
+      }
+    });
+
+    test('特效消失后球体不应悬浮在空中', async ({ page }) => {
+      await navigateToGame(page);
+      await ensureGameScene(page);
+
+      const result = await page.evaluate(() => {
+        try {
+          const game = (window as any).__gameInstance;
+          if (!game) return { success: false, reason: 'no game instance' };
+
+          const tests = (window as any).__testModules;
+          if (!tests) return { success: false, reason: 'no test modules' };
+
+          const PropEffectHandler = tests.PropEffectHandler?.default;
+          const Block = tests.Block?.default;
+          if (!PropEffectHandler || !Block) {
+            return { success: false, reason: 'missing test modules' };
+          }
+
+          const Matter = (window as any).Matter;
+          if (!Matter) return { success: false, reason: 'Matter not found' };
+
+          const mockBlockSpawner = { getBlocks: () => [] };
+          const handler = new PropEffectHandler(
+            mockBlockSpawner as any,
+            { unregisterBlock: () => {} } as any,
+            { removeBody: () => {} } as any,
+            { addExplosionEffect: () => {}, removeFreezeEffect: () => {} } as any,
+            { getProp: () => null } as any,
+            {} as any,
+            {} as any,
+          );
+
+          const groundY = 590;
+          handler.setGroundY(groundY);
+
+          const radius = 20;
+          const body1 = Matter.Bodies.circle(200, groundY - radius, radius);
+          const block1 = new Block(body1, 1);
+          const body2 = Matter.Bodies.circle(200, groundY - radius * 3, radius);
+          const block2 = new Block(body2, 2);
+          (mockBlockSpawner as any).getBlocks = () => [block1, block2];
+
+          handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+          handler.handleShrinkDeactivate();
+
+          const r1 = body1.circleRadius || 0;
+          const r2 = body2.circleRadius || 0;
+          const bottomBallOnGround = Math.abs(body1.position.y + r1 - groundY) < 2;
+          const dist = Math.sqrt(
+            (body1.position.x - body2.position.x) ** 2 +
+            (body1.position.y - body2.position.y) ** 2,
+          );
+          const noOverlap = dist >= r1 + r2 - 2;
+
+          return {
+            success: true,
+            bottomBallOnGround,
+            noOverlap,
+            allRadiiRestored: block1.scale.x === 1 && block2.scale.x === 1,
+          };
+        } catch (e: any) {
+          return { success: false, reason: e?.message ?? 'error' };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      if (result.success) {
+        expect(result.bottomBallOnGround).toBeTruthy();
+        expect(result.noOverlap).toBeTruthy();
+        expect(result.allRadiiRestored).toBeTruthy();
+      }
+    });
+
+    test('三个堆叠球体完整缩放周期后不应重叠或悬浮', async ({ page }) => {
+      await navigateToGame(page);
+      await ensureGameScene(page);
+
+      const result = await page.evaluate(() => {
+        try {
+          const game = (window as any).__gameInstance;
+          if (!game) return { success: false, reason: 'no game instance' };
+
+          const tests = (window as any).__testModules;
+          if (!tests) return { success: false, reason: 'no test modules' };
+
+          const PropEffectHandler = tests.PropEffectHandler?.default;
+          const Block = tests.Block?.default;
+          if (!PropEffectHandler || !Block) {
+            return { success: false, reason: 'missing test modules' };
+          }
+
+          const Matter = (window as any).Matter;
+          if (!Matter) return { success: false, reason: 'Matter not found' };
+
+          const mockBlockSpawner = { getBlocks: () => [] };
+          const handler = new PropEffectHandler(
+            mockBlockSpawner as any,
+            { unregisterBlock: () => {} } as any,
+            { removeBody: () => {} } as any,
+            { addExplosionEffect: () => {}, removeFreezeEffect: () => {} } as any,
+            { getProp: () => null } as any,
+            {} as any,
+            {} as any,
+          );
+
+          const groundY = 590;
+          handler.setGroundY(groundY);
+
+          const radius = 20;
+          const body1 = Matter.Bodies.circle(200, groundY - radius, radius);
+          const block1 = new Block(body1, 1);
+          const body2 = Matter.Bodies.circle(200, groundY - radius * 3, radius);
+          const block2 = new Block(body2, 2);
+          const body3 = Matter.Bodies.circle(200, groundY - radius * 5, radius);
+          const block3 = new Block(body3, 4);
+          (mockBlockSpawner as any).getBlocks = () => [block1, block2, block3];
+
+          handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+          handler.handleShrinkDeactivate();
+
+          const r1 = body1.circleRadius || 0;
+          const r2 = body2.circleRadius || 0;
+          const r3 = body3.circleRadius || 0;
+
+          const dist12 = Math.sqrt(
+            (body1.position.x - body2.position.x) ** 2 +
+            (body1.position.y - body2.position.y) ** 2,
+          );
+          const dist23 = Math.sqrt(
+            (body2.position.x - body3.position.x) ** 2 +
+            (body2.position.y - body3.position.y) ** 2,
+          );
+
+          return {
+            success: true,
+            noOverlap12: dist12 >= r1 + r2 - 2,
+            noOverlap23: dist23 >= r2 + r3 - 2,
+            bottomOnGround: Math.abs(body1.position.y + r1 - groundY) < 2,
+            allRadiiRestored: block1.scale.x === 1 && block2.scale.x === 1 && block3.scale.x === 1,
+          };
+        } catch (e: any) {
+          return { success: false, reason: e?.message ?? 'error' };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      if (result.success) {
+        expect(result.noOverlap12).toBeTruthy();
+        expect(result.noOverlap23).toBeTruthy();
+        expect(result.bottomOnGround).toBeTruthy();
+        expect(result.allRadiiRestored).toBeTruthy();
+      }
+    });
+
+    test('缩小特效期间球体速度应重置为零', async ({ page }) => {
+      await navigateToGame(page);
+      await ensureGameScene(page);
+
+      const result = await page.evaluate(() => {
+        try {
+          const game = (window as any).__gameInstance;
+          if (!game) return { success: false, reason: 'no game instance' };
+
+          const tests = (window as any).__testModules;
+          if (!tests) return { success: false, reason: 'no test modules' };
+
+          const PropEffectHandler = tests.PropEffectHandler?.default;
+          const Block = tests.Block?.default;
+          if (!PropEffectHandler || !Block) {
+            return { success: false, reason: 'missing test modules' };
+          }
+
+          const Matter = (window as any).Matter;
+          if (!Matter) return { success: false, reason: 'Matter not found' };
+
+          const mockBlockSpawner = { getBlocks: () => [] };
+          const handler = new PropEffectHandler(
+            mockBlockSpawner as any,
+            { unregisterBlock: () => {} } as any,
+            { removeBody: () => {} } as any,
+            { addExplosionEffect: () => {}, removeFreezeEffect: () => {} } as any,
+            { getProp: () => null } as any,
+            {} as any,
+            {} as any,
+          );
+
+          const groundY = 590;
+          handler.setGroundY(groundY);
+
+          const body = Matter.Bodies.circle(200, groundY - 30, 30);
+          Matter.Body.setVelocity(body, { x: 10, y: 20 });
+          const block = new Block(body, 4);
+          (mockBlockSpawner as any).getBlocks = () => [block];
+
+          handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+          const velocityReset = Math.abs(body.velocity.x) < 0.5 && Math.abs(body.velocity.y) < 0.5;
+
+          Matter.Body.setVelocity(body, { x: 5, y: 10 });
+          handler.handleShrinkDeactivate();
+
+          const velocityResetAfterDeactivate = Math.abs(body.velocity.x) < 0.5 && Math.abs(body.velocity.y) < 0.5;
+
+          return {
+            success: true,
+            velocityReset,
+            velocityResetAfterDeactivate,
+          };
+        } catch (e: any) {
+          return { success: false, reason: e?.message ?? 'error' };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      if (result.success) {
+        expect(result.velocityReset).toBeTruthy();
+        expect(result.velocityResetAfterDeactivate).toBeTruthy();
+      }
+    });
+
+    test('不同大小球体堆叠时缩小特效不应产生穿透', async ({ page }) => {
+      await navigateToGame(page);
+      await ensureGameScene(page);
+
+      const result = await page.evaluate(() => {
+        try {
+          const game = (window as any).__gameInstance;
+          if (!game) return { success: false, reason: 'no game instance' };
+
+          const tests = (window as any).__testModules;
+          if (!tests) return { success: false, reason: 'no test modules' };
+
+          const PropEffectHandler = tests.PropEffectHandler?.default;
+          const Block = tests.Block?.default;
+          if (!PropEffectHandler || !Block) {
+            return { success: false, reason: 'missing test modules' };
+          }
+
+          const Matter = (window as any).Matter;
+          if (!Matter) return { success: false, reason: 'Matter not found' };
+
+          const mockBlockSpawner = { getBlocks: () => [] };
+          const handler = new PropEffectHandler(
+            mockBlockSpawner as any,
+            { unregisterBlock: () => {} } as any,
+            { removeBody: () => {} } as any,
+            { addExplosionEffect: () => {}, removeFreezeEffect: () => {} } as any,
+            { getProp: () => null } as any,
+            {} as any,
+            {} as any,
+          );
+
+          const groundY = 590;
+          handler.setGroundY(groundY);
+
+          const r1 = 20;
+          const r2 = 30;
+          const body1 = Matter.Bodies.circle(200, groundY - r1, r1);
+          const block1 = new Block(body1, 1);
+          const body2 = Matter.Bodies.circle(200, groundY - r1 * 2 - r2, r2);
+          const block2 = new Block(body2, 4);
+          (mockBlockSpawner as any).getBlocks = () => [block1, block2];
+
+          handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+          const newR1 = body1.circleRadius || 0;
+          const newR2 = body2.circleRadius || 0;
+          const dist = Math.sqrt(
+            (body1.position.x - body2.position.x) ** 2 +
+            (body1.position.y - body2.position.y) ** 2,
+          );
+
+          return {
+            success: true,
+            noOverlap: dist >= newR1 + newR2 - 2,
+            bottomOnGround: Math.abs(body1.position.y + newR1 - groundY) < 2,
+          };
+        } catch (e: any) {
+          return { success: false, reason: e?.message ?? 'error' };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      if (result.success) {
+        expect(result.noOverlap).toBeTruthy();
+        expect(result.bottomOnGround).toBeTruthy();
+      }
+    });
+
+    test('applyShrinkToBlock新球体应正确处理重叠', async ({ page }) => {
+      await navigateToGame(page);
+      await ensureGameScene(page);
+
+      const result = await page.evaluate(() => {
+        try {
+          const game = (window as any).__gameInstance;
+          if (!game) return { success: false, reason: 'no game instance' };
+
+          const tests = (window as any).__testModules;
+          if (!tests) return { success: false, reason: 'no test modules' };
+
+          const PropEffectHandler = tests.PropEffectHandler?.default;
+          const Block = tests.Block?.default;
+          if (!PropEffectHandler || !Block) {
+            return { success: false, reason: 'missing test modules' };
+          }
+
+          const Matter = (window as any).Matter;
+          if (!Matter) return { success: false, reason: 'Matter not found' };
+
+          const mockBlockSpawner = { getBlocks: () => [] };
+          const handler = new PropEffectHandler(
+            mockBlockSpawner as any,
+            { unregisterBlock: () => {} } as any,
+            { removeBody: () => {} } as any,
+            { addExplosionEffect: () => {}, removeFreezeEffect: () => {} } as any,
+            { getProp: () => null } as any,
+            {} as any,
+            {} as any,
+          );
+
+          const groundY = 590;
+          handler.setGroundY(groundY);
+
+          const radius = 20;
+          const body1 = Matter.Bodies.circle(200, groundY - radius, radius);
+          const block1 = new Block(body1, 1);
+          (mockBlockSpawner as any).getBlocks = () => [block1];
+
+          handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+          const body2 = Matter.Bodies.circle(200, groundY - radius * 2, radius);
+          const block2 = new Block(body2, 2);
+          (mockBlockSpawner as any).getBlocks = () => [block1, block2];
+
+          handler.applyShrinkToBlock(block2);
+
+          const r1 = body1.circleRadius || 0;
+          const r2 = body2.circleRadius || 0;
+          const dist = Math.sqrt(
+            (body1.position.x - body2.position.x) ** 2 +
+            (body1.position.y - body2.position.y) ** 2,
+          );
+
+          return {
+            success: true,
+            noOverlap: dist >= r1 + r2 - 2,
+          };
+        } catch (e: any) {
+          return { success: false, reason: e?.message ?? 'error' };
+        }
+      });
+
+      expect(result.success).toBeTruthy();
+      if (result.success) {
+        expect(result.noOverlap).toBeTruthy();
+      }
+    });
+  });
 });

@@ -140,8 +140,13 @@ export class PropEffectHandler {
         x: block.body.position.x,
         y: snappedY,
       });
+      Matter.Body.setVelocity(block.body, { x: 0, y: 0 });
       Matter.Sleeping.set(block.body, false);
     }
+    const allBodies = blocks
+      .filter(b => !b.isDestroyed && b.body)
+      .map(b => b.body);
+    this.resolveBlockOverlaps(allBodies);
   }
 
   handleShrinkDeactivate(): void {
@@ -169,9 +174,14 @@ export class PropEffectHandler {
         x: block.body.position.x,
         y: snappedY,
       });
+      Matter.Body.setVelocity(block.body, { x: 0, y: 0 });
       Matter.Sleeping.set(block.body, false);
       block.scale.set(1);
     }
+    const allBodies = blocks
+      .filter(b => !b.isDestroyed && b.body)
+      .map(b => b.body);
+    this.resolveBlockOverlaps(allBodies);
     this.originalBodyData.clear();
     this.shrinkFactor = 1;
   }
@@ -268,7 +278,13 @@ export class PropEffectHandler {
       x: block.body.position.x,
       y: snappedY,
     });
+    Matter.Body.setVelocity(block.body, { x: 0, y: 0 });
     Matter.Sleeping.set(block.body, false);
+    const allBlocks = this.blockSpawner.getBlocks();
+    const allBodies = allBlocks
+      .filter(b => !b.isDestroyed && b.body)
+      .map(b => b.body);
+    this.resolveBlockOverlaps(allBodies);
   }
 
   clearBombTargetMode(): void {
@@ -301,13 +317,13 @@ export class PropEffectHandler {
       y: b.position.y,
     }));
 
-    for (let iter = 0; iter < 10; iter++) {
+    for (let iter = 0; iter < 15; iter++) {
       let changed = false;
 
       if (this.groundY > 0) {
         for (const item of items) {
           const bottom = item.y + item.radius;
-          if (bottom > this.groundY) {
+          if (bottom > this.groundY + 0.1) {
             item.y = this.groundY - item.radius;
             changed = true;
           }
@@ -325,11 +341,57 @@ export class PropEffectHandler {
 
           if (distance < minDistance) {
             const overlap = minDistance - distance;
-            if (a.y < b.y) {
-              a.y -= overlap;
+            if (distance > 0.001) {
+              const nx = dx / distance;
+              const ny = dy / distance;
+              if (a.y <= b.y) {
+                a.x += nx * overlap;
+                a.y += ny * overlap;
+              } else {
+                b.x -= nx * overlap;
+                b.y -= ny * overlap;
+              }
             } else {
-              b.y -= overlap;
+              if (a.y <= b.y) {
+                a.y -= overlap;
+              } else {
+                b.y -= overlap;
+              }
             }
+            changed = true;
+          }
+        }
+      }
+
+      items.sort((a, b) => b.y - a.y);
+      for (const item of items) {
+        if (this.groundY <= 0) continue;
+        let supportY = -Infinity;
+        let hasBallSupport = false;
+        let nearestBelowDist = Infinity;
+        for (const other of items) {
+          if (other === item) continue;
+          if (other.y <= item.y) continue;
+          const hDist = Math.abs(item.x - other.x);
+          const maxHDist = item.radius + other.radius;
+          if (hDist < maxHDist) {
+            const dy = other.y - item.y;
+            if (dy < nearestBelowDist) {
+              nearestBelowDist = dy;
+              const verticalOffset = Math.sqrt(maxHDist * maxHDist - hDist * hDist);
+              supportY = other.y - verticalOffset;
+              hasBallSupport = true;
+            }
+          }
+        }
+        if (hasBallSupport && item.y < supportY - 0.5) {
+          item.y = supportY;
+          changed = true;
+        } else if (!hasBallSupport && this.groundY > 0) {
+          const bottomY = item.y + item.radius;
+          const distanceToGround = this.groundY - bottomY;
+          if (distanceToGround >= 0 && distanceToGround < this.GROUND_SNAP_THRESHOLD) {
+            item.y = this.groundY - item.radius;
             changed = true;
           }
         }
@@ -339,8 +401,11 @@ export class PropEffectHandler {
     }
 
     for (const item of items) {
-      if (Math.abs(item.y - item.body.position.y) > 0.01) {
+      const dx = item.x - item.body.position.x;
+      const dy = item.y - item.body.position.y;
+      if (Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) {
         Matter.Body.setPosition(item.body, { x: item.x, y: item.y });
+        Matter.Body.setVelocity(item.body, { x: 0, y: 0 });
       }
     }
   }

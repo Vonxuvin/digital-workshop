@@ -2065,3 +2065,259 @@ describe('PropEffectHandler ground snapping', () => {
     expect(Math.abs(bottom2 - originalBottom2)).toBeLessThan(2);
   });
 });
+
+describe('Shrink physics fix integration', () => {
+  let physics: PhysicsManager;
+  let blockSpawner: ReturnType<typeof createMockBlockSpawner>;
+  let mergeSystem: ReturnType<typeof createMockMergeSystem>;
+  let effectManager: ReturnType<typeof createMockEffectManager>;
+  let propSystem: PropSystem;
+  let gameHUD: ReturnType<typeof createMockGameHUD>;
+  let preview: ReturnType<typeof createMockPreview>;
+  let handler: PropEffectHandler;
+
+  beforeEach(async () => {
+    physics = new PhysicsManager();
+    blockSpawner = createMockBlockSpawner();
+    mergeSystem = createMockMergeSystem();
+    effectManager = createMockEffectManager();
+    propSystem = new PropSystem();
+    gameHUD = createMockGameHUD();
+    preview = createMockPreview();
+
+    await propSystem.loadConfig(defaultPropConfigs);
+    propSystem.initialize([
+      { type: PropType.BOMB, count: 3 },
+      { type: PropType.RAINBOW, count: 3 },
+      { type: PropType.FREEZE, count: 3 },
+      { type: PropType.SHRINK, count: 2 },
+      { type: PropType.LUCKY, count: 2 },
+    ]);
+
+    handler = new PropEffectHandler(
+      blockSpawner as any,
+      mergeSystem as any,
+      physics as any,
+      effectManager as any,
+      propSystem,
+      gameHUD as any,
+      preview as any,
+    );
+  });
+
+  afterEach(() => {
+    physics.stop();
+    physics.destroy();
+  });
+
+  describe('resolveBlockOverlaps integration', () => {
+    it('should resolve two stacked balls overlap after shrink activate', () => {
+      const groundY = 590;
+      handler.setGroundY(groundY);
+      const radius = 20;
+      const body1 = Matter.Bodies.circle(200, groundY - radius, radius);
+      const block1 = new Block(body1, 1);
+      const body2 = Matter.Bodies.circle(200, groundY - radius * 3, radius);
+      const block2 = new Block(body2, 2);
+      blockSpawner.getBlocks.mockReturnValue([block1, block2]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      const r1 = body1.circleRadius!;
+      const r2 = body2.circleRadius!;
+      const dist = Math.sqrt(
+        (body1.position.x - body2.position.x) ** 2 +
+        (body1.position.y - body2.position.y) ** 2,
+      );
+      expect(dist).toBeGreaterThanOrEqual(r1 + r2 - 2);
+      expect(body1.position.y + r1).toBeLessThanOrEqual(groundY + 2);
+    });
+
+    it('should resolve stacked balls after full shrink-restore cycle', () => {
+      const groundY = 590;
+      handler.setGroundY(groundY);
+      const radius = 20;
+      const body1 = Matter.Bodies.circle(200, groundY - radius, radius);
+      const block1 = new Block(body1, 1);
+      const body2 = Matter.Bodies.circle(200, groundY - radius * 3, radius);
+      const block2 = new Block(body2, 2);
+      blockSpawner.getBlocks.mockReturnValue([block1, block2]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+      handler.handleShrinkDeactivate();
+
+      const r1 = body1.circleRadius!;
+      const r2 = body2.circleRadius!;
+      const dist = Math.sqrt(
+        (body1.position.x - body2.position.x) ** 2 +
+        (body1.position.y - body2.position.y) ** 2,
+      );
+      expect(dist).toBeGreaterThanOrEqual(r1 + r2 - 2);
+      expect(body1.position.y + r1).toBeLessThanOrEqual(groundY + 2);
+    });
+
+    it('should not sink ball into ground during shrink with real physics', () => {
+      physics.start();
+      const groundY = 590;
+      const ground = physics.createRectangle(200, groundY + 25, 400, 50);
+      ground.label = 'ground';
+
+      const radius = 30;
+      const body = physics.createCircle(200, groundY - radius, radius);
+      const block = new Block(body, 4);
+      blockSpawner.getBlocks.mockReturnValue([block]);
+
+      for (let i = 0; i < 120; i++) {
+        physics.step(1000 / 60);
+      }
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      const bottom = body.position.y + body.circleRadius!;
+      expect(bottom).toBeLessThanOrEqual(groundY + 2);
+    });
+
+    it('should not float after deactivate with stacked balls and real physics', () => {
+      physics.start();
+      const groundY = 590;
+      const ground = physics.createRectangle(200, groundY + 25, 400, 50);
+      ground.label = 'ground';
+      ground.isStatic = true;
+
+      const radius = 20;
+      const body1 = physics.createCircle(200, groundY - radius, radius);
+      const block1 = new Block(body1, 1);
+      const body2 = physics.createCircle(200, groundY - radius * 2 - 1, radius);
+      const block2 = new Block(body2, 2);
+      blockSpawner.getBlocks.mockReturnValue([block1, block2]);
+
+      for (let i = 0; i < 120; i++) {
+        physics.step(1000 / 60);
+      }
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      for (let i = 0; i < 30; i++) {
+        physics.step(1000 / 60);
+      }
+
+      handler.handleShrinkDeactivate();
+
+      for (let i = 0; i < 60; i++) {
+        physics.step(1000 / 60);
+      }
+
+      const r1 = body1.circleRadius || 0;
+      const r2 = body2.circleRadius || 0;
+      expect(body1.position.y + r1).toBeLessThanOrEqual(groundY + 2);
+
+      const dist = Math.sqrt(
+        (body1.position.x - body2.position.x) ** 2 +
+        (body1.position.y - body2.position.y) ** 2,
+      );
+      expect(dist).toBeGreaterThanOrEqual(r1 + r2 - 2);
+    });
+
+    it('should reset velocity after shrink activate to prevent drift', () => {
+      const groundY = 590;
+      handler.setGroundY(groundY);
+      const body = Matter.Bodies.circle(200, groundY - 30, 30);
+      Matter.Body.setVelocity(body, { x: 10, y: 20 });
+      const block = new Block(body, 4);
+      blockSpawner.getBlocks.mockReturnValue([block]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      expect(body.velocity.x).toBeCloseTo(0, 1);
+      expect(body.velocity.y).toBeCloseTo(0, 1);
+    });
+
+    it('should reset velocity after shrink deactivate to prevent drift', () => {
+      const groundY = 590;
+      handler.setGroundY(groundY);
+      const body = Matter.Bodies.circle(200, groundY - 30, 30);
+      const block = new Block(body, 4);
+      blockSpawner.getBlocks.mockReturnValue([block]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+      Matter.Body.setVelocity(body, { x: 5, y: 10 });
+      handler.handleShrinkDeactivate();
+
+      expect(body.velocity.x).toBeCloseTo(0, 1);
+      expect(body.velocity.y).toBeCloseTo(0, 1);
+    });
+
+    it('should handle three stacked balls through full shrink-restore cycle', () => {
+      const groundY = 590;
+      handler.setGroundY(groundY);
+      const radius = 20;
+      const body1 = Matter.Bodies.circle(200, groundY - radius, radius);
+      const block1 = new Block(body1, 1);
+      const body2 = Matter.Bodies.circle(200, groundY - radius * 3, radius);
+      const block2 = new Block(body2, 2);
+      const body3 = Matter.Bodies.circle(200, groundY - radius * 5, radius);
+      const block3 = new Block(body3, 4);
+      blockSpawner.getBlocks.mockReturnValue([block1, block2, block3]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+      handler.handleShrinkDeactivate();
+
+      const r1 = body1.circleRadius!;
+      const r2 = body2.circleRadius!;
+      const r3 = body3.circleRadius!;
+      const dist12 = Math.sqrt(
+        (body1.position.x - body2.position.x) ** 2 +
+        (body1.position.y - body2.position.y) ** 2,
+      );
+      const dist23 = Math.sqrt(
+        (body2.position.x - body3.position.x) ** 2 +
+        (body2.position.y - body3.position.y) ** 2,
+      );
+      expect(dist12).toBeGreaterThanOrEqual(r1 + r2 - 2);
+      expect(dist23).toBeGreaterThanOrEqual(r2 + r3 - 2);
+      expect(body1.position.y + r1).toBeLessThanOrEqual(groundY + 2);
+    });
+
+    it('should handle applyShrinkToBlock with overlap resolution', () => {
+      const groundY = 590;
+      handler.setGroundY(groundY);
+      const radius = 20;
+      const body1 = Matter.Bodies.circle(200, groundY - radius, radius);
+      const block1 = new Block(body1, 1);
+      blockSpawner.getBlocks.mockReturnValue([block1]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+
+      const body2 = Matter.Bodies.circle(200, groundY - radius * 2, radius);
+      const block2 = new Block(body2, 2);
+      blockSpawner.getBlocks.mockReturnValue([block1, block2]);
+
+      handler.applyShrinkToBlock(block2);
+
+      const r1 = body1.circleRadius!;
+      const r2 = body2.circleRadius!;
+      const dist = Math.sqrt(
+        (body1.position.x - body2.position.x) ** 2 +
+        (body1.position.y - body2.position.y) ** 2,
+      );
+      expect(dist).toBeGreaterThanOrEqual(r1 + r2 - 2);
+    });
+
+    it('should maintain ground contact for bottom ball in stack after deactivate', () => {
+      const groundY = 590;
+      handler.setGroundY(groundY);
+      const radius = 25;
+      const body1 = Matter.Bodies.circle(200, groundY - radius, radius);
+      const block1 = new Block(body1, 1);
+      const body2 = Matter.Bodies.circle(200, groundY - radius * 3, radius);
+      const block2 = new Block(body2, 2);
+      blockSpawner.getBlocks.mockReturnValue([block1, block2]);
+
+      handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
+      handler.handleShrinkDeactivate();
+
+      const bottomBallBottom = body1.position.y + body1.circleRadius!;
+      expect(Math.abs(bottomBallBottom - groundY)).toBeLessThanOrEqual(2);
+    });
+  });
+});
