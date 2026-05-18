@@ -83,6 +83,7 @@ test.describe('UI界面 @regression', () => {
   test.describe('游戏HUD @smoke', () => {
     test('HUD应显示当前分数', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasScoreDisplay = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -101,6 +102,7 @@ test.describe('UI界面 @regression', () => {
 
     test('HUD应显示当前关卡信息', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasLevelDisplay = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -119,6 +121,7 @@ test.describe('UI界面 @regression', () => {
 
     test('HUD应包含暂停按钮', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasPauseButton = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -137,6 +140,7 @@ test.describe('UI界面 @regression', () => {
 
     test('HUD应包含道具栏', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasPropsBar = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -155,6 +159,7 @@ test.describe('UI界面 @regression', () => {
 
     test('HUD应包含目标进度条', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasObjectiveBar = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -162,7 +167,7 @@ test.describe('UI界面 @regression', () => {
         try {
           const hud = game.getGameHUD?.();
           if (!hud) return false;
-          return hud.objectiveBar !== null && hud.objectiveBar !== undefined;
+          return hud.objectiveDisplay !== null && hud.objectiveDisplay !== undefined;
         } catch {
           return false;
         }
@@ -173,6 +178,7 @@ test.describe('UI界面 @regression', () => {
 
     test('连击显示应正确触发', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasComboDisplay = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -191,6 +197,8 @@ test.describe('UI界面 @regression', () => {
 
     test('分数变化时HUD应实时更新', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
+      await ensurePlaying(page);
       await dropBlocks(page, 5);
       await waitForStable(page, 3000);
 
@@ -557,6 +565,7 @@ test.describe('UI界面 @regression', () => {
 
     test('UIProgressBar应正确显示进度', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasProgressBar = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -564,7 +573,7 @@ test.describe('UI界面 @regression', () => {
         try {
           const hud = game.getGameHUD?.();
           if (!hud) return false;
-          return hud.getObjectiveBar?.() !== null && hud.getObjectiveBar?.() !== undefined;
+          return hud.objectiveDisplay !== null && hud.objectiveDisplay !== undefined;
         } catch {
           return false;
         }
@@ -678,6 +687,7 @@ test.describe('UI界面 @regression', () => {
 
     test('ObjectiveDisplay 应包含进度条', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasProgressBar = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -718,6 +728,7 @@ test.describe('UI界面 @regression', () => {
   test.describe('ObjectiveDisplay界面布局整合 @regression', () => {
     test('ObjectiveDisplay 应位于统一位置', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const correctPosition = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -763,6 +774,7 @@ test.describe('UI界面 @regression', () => {
   test.describe('通关条件固定显示优化 @regression', () => {
     test('ObjectiveDisplay 应具有背景面板', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasBackgroundPanel = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -783,6 +795,7 @@ test.describe('UI界面 @regression', () => {
 
     test('ObjectiveDisplay 应默认为始终可见模式', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const isAlwaysVisible = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -803,6 +816,7 @@ test.describe('UI界面 @regression', () => {
 
     test('ObjectiveDisplay 应使用280px宽度', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasCorrectWidth = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -823,6 +837,7 @@ test.describe('UI界面 @regression', () => {
 
     test('ObjectiveDisplay 应位于屏幕顶部居中位置', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const isTopCentered = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -845,6 +860,7 @@ test.describe('UI界面 @regression', () => {
   test.describe('进度条强制刷新机制 @regression', () => {
     test('UIProgressBar 应支持 forceSetProgress 方法', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasForceSetProgress = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -867,6 +883,7 @@ test.describe('UI界面 @regression', () => {
 
     test('UIProgressBar 应支持 displayProgressValue getter', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasDisplayProgressValue = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -889,6 +906,7 @@ test.describe('UI界面 @regression', () => {
 
     test('GameHUD 应支持 forceUpdateObjectiveProgress 方法', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasForceUpdate = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -907,6 +925,7 @@ test.describe('UI界面 @regression', () => {
 
     test('ObjectiveDisplay 应支持 forceUpdateProgress 方法', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasForceUpdateProgress = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -974,6 +993,7 @@ test.describe('UI界面 @regression', () => {
 
     test('ObjectiveDisplay 在不同屏幕尺寸下应保持居中', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const isResponsive = await page.evaluate(() => {
         const game = (window as any).__gameInstance;

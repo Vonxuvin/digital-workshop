@@ -341,6 +341,7 @@ test.describe('玩法边界 @full', () => {
   test.describe('十字准星 @full', () => {
     test('十字准星应支持显示/隐藏/更新', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasCrosshair = await page.evaluate(() => {
         const game = (window as any).__gameInstance;

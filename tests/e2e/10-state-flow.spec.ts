@@ -384,6 +384,7 @@ test.describe('状态流转 @smoke', () => {
     test('复活后LevelSystem应存在resumeTimer方法', async ({ page }) => {
       await navigateToGame(page);
       await ensurePlaying(page);
+      await ensureGameScene(page);
 
       const result = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -413,6 +414,7 @@ test.describe('状态流转 @smoke', () => {
     test('复活流程中handleRevive应调用resumeTimer和applyTimerPenalty', async ({ page }) => {
       await navigateToGame(page);
       await ensurePlaying(page);
+      await ensureGameScene(page);
 
       const result = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -441,6 +443,7 @@ test.describe('状态流转 @smoke', () => {
     test('stopTimer后resumeTimer应恢复计时器', async ({ page }) => {
       await navigateToGame(page);
       await ensurePlaying(page);
+      await ensureGameScene(page);
 
       const result = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -499,6 +502,7 @@ test.describe('状态流转 @smoke', () => {
 
     test('resetGameTimeline应重置时间线暂停状态', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const result = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -531,6 +535,7 @@ test.describe('状态流转 @smoke', () => {
     test('WarningLine应存在visible属性控制', async ({ page }) => {
       await navigateToGame(page);
       await ensurePlaying(page);
+      await ensureGameScene(page);
 
       const result = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -560,6 +565,7 @@ test.describe('状态流转 @smoke', () => {
     test('setWarningLineVisible方法应存在', async ({ page }) => {
       await navigateToGame(page);
       await ensurePlaying(page);
+      await ensureGameScene(page);
 
       const result = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -585,6 +591,7 @@ test.describe('状态流转 @smoke', () => {
     test('游戏状态转换为playing时WarningLine应可见', async ({ page }) => {
       await navigateToGame(page);
       await ensurePlaying(page);
+      await ensureGameScene(page);
       await dropBlocks(page, 2);
       await waitForStable(page);
 
@@ -614,6 +621,7 @@ test.describe('状态流转 @smoke', () => {
     test('restartLevel方法应存在且包含警告线可见性设置', async ({ page }) => {
       await navigateToGame(page);
       await ensurePlaying(page);
+      await ensureGameScene(page);
 
       const result = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -667,6 +675,7 @@ test.describe('状态流转 @smoke', () => {
     test('setWarningLineVisible(true)后WarningLine.visible应为true', async ({ page }) => {
       await navigateToGame(page);
       await ensurePlaying(page);
+      await ensureGameScene(page);
 
       const result = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -692,6 +701,7 @@ test.describe('状态流转 @smoke', () => {
     test('setWarningLineVisible(false)后WarningLine.visible应为false', async ({ page }) => {
       await navigateToGame(page);
       await ensurePlaying(page);
+      await ensureGameScene(page);
 
       const result = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -717,6 +727,7 @@ test.describe('状态流转 @smoke', () => {
     test('重新开始后WarningLine应可见', async ({ page }) => {
       await navigateToGame(page);
       await ensurePlaying(page);
+      await ensureGameScene(page);
 
       const result = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -742,6 +753,7 @@ test.describe('状态流转 @smoke', () => {
     test('startLevel中应调用setWarningLineVisible(true)', async ({ page }) => {
       await navigateToGame(page);
       await ensurePlaying(page);
+      await ensureGameScene(page);
 
       const result = await page.evaluate(() => {
         const game = (window as any).__gameInstance;

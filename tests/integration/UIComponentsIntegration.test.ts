@@ -337,6 +337,176 @@ describe('UI Components (Button/ProgressBar/Panel)', () => {
   });
 });
 
+describe('UIButton detailed', () => {
+  it('should not fire onClick when disabled on pointerdown', () => {
+    let clicked = false;
+    const btn = new UIButton({ label: 'Test', onClick: () => { clicked = true; } });
+    btn.setDisabled(true);
+    btn.emit('pointerdown' as any);
+    btn.emit('pointerup' as any);
+    expect(clicked).toBe(false);
+    expect(btn.disabled).toBe(true);
+    btn.destroy();
+  });
+
+  it('should not fire onClick when in cooldown', () => {
+    let clickCount = 0;
+    const btn = new UIButton({ label: 'Test', onClick: () => { clickCount++; } });
+    btn.emit('pointerdown' as any);
+    btn.emit('pointerup' as any);
+    expect(clickCount).toBe(1);
+    btn.emit('pointerdown' as any);
+    btn.emit('pointerup' as any);
+    expect(clickCount).toBe(1);
+    btn.destroy();
+  });
+
+  it('should not fire onClick when pointerup without pointerdown', () => {
+    let clicked = false;
+    const btn = new UIButton({ label: 'Test', onClick: () => { clicked = true; } });
+    btn.emit('pointerup' as any);
+    expect(clicked).toBe(false);
+    btn.destroy();
+  });
+
+  it('should reset pressed state on pointerupoutside', () => {
+    const btn = new UIButton({ label: 'Test' });
+    btn.emit('pointerdown' as any);
+    expect((btn as any)._pressed).toBe(true);
+    btn.emit('pointerupoutside' as any);
+    expect((btn as any)._pressed).toBe(false);
+    expect(btn.scale.x).toBe(1);
+    btn.destroy();
+  });
+
+  it('should set cursor to default when disabled and pointer when enabled', () => {
+    const btn = new UIButton({ label: 'Test' });
+    btn.setDisabled(true);
+    expect(btn.cursor).toBe('default');
+    btn.setDisabled(false);
+    expect(btn.cursor).toBe('pointer');
+    btn.destroy();
+  });
+
+  it('should use default option values', () => {
+    const btn = new UIButton({ label: 'Test' });
+    expect((btn as any).options.width).toBe(200);
+    expect((btn as any).options.height).toBe(50);
+    expect((btn as any).options.color).toBe(0x4ECDC4);
+    expect((btn as any).options.disabledColor).toBe(0x666666);
+    expect((btn as any).options.fontSize).toBe(18);
+    expect((btn as any).options.borderRadius).toBe(10);
+    btn.destroy();
+  });
+
+  it('should use custom option values', () => {
+    const btn = new UIButton({
+      label: 'Custom',
+      width: 300,
+      height: 60,
+      color: 0xff0000,
+      disabledColor: 0x333333,
+      fontSize: 24,
+      borderRadius: 15,
+      onClick: () => {},
+    });
+    expect((btn as any).options.width).toBe(300);
+    expect((btn as any).options.height).toBe(60);
+    expect((btn as any).options.color).toBe(0xff0000);
+    expect((btn as any).options.disabledColor).toBe(0x333333);
+    expect((btn as any).options.fontSize).toBe(24);
+    expect((btn as any).options.borderRadius).toBe(15);
+    btn.destroy();
+  });
+
+  it('should clear cooldown timer on destroy', () => {
+    vi.useFakeTimers();
+    const btn = new UIButton({ label: 'Test' });
+    btn.emit('pointerdown' as any);
+    btn.emit('pointerup' as any);
+    expect((btn as any).cooldownTimerId).not.toBeNull();
+    btn.destroy();
+    expect((btn as any).cooldownTimerId).toBeNull();
+    vi.useRealTimers();
+  });
+
+  it('should draw disabled color background when disabled', () => {
+    const btn = new UIButton({ label: 'Test', disabledColor: 0x999999 });
+    btn.setDisabled(true);
+    expect((btn as any)._disabled).toBe(true);
+    btn.destroy();
+  });
+});
+
+describe('UIPanel detailed', () => {
+  it('should set title text', () => {
+    const panel = new UIPanel();
+    panel.setTitle('Test Title');
+    expect((panel as any).titleText.text).toBe('Test Title');
+    panel.destroy();
+  });
+
+  it('should return content area container', () => {
+    const panel = new UIPanel();
+    const contentArea = panel.getContentArea();
+    expect(contentArea).toBeDefined();
+    expect(contentArea.y).toBe(50);
+    panel.destroy();
+  });
+
+  it('should be hidden initially', () => {
+    const panel = new UIPanel();
+    expect(panel.visible).toBe(false);
+    panel.destroy();
+  });
+
+  it('should be visible after show', () => {
+    const panel = new UIPanel();
+    panel.show();
+    expect(panel.visible).toBe(true);
+    panel.destroy();
+  });
+
+  it('should use custom dimensions', () => {
+    const panel = new UIPanel(500, 600);
+    expect((panel as any).panelWidth).toBe(500);
+    expect((panel as any).panelHeight).toBe(600);
+    panel.destroy();
+  });
+
+  it('should kill panel tween on destroy', () => {
+    const panel = new UIPanel();
+    panel.show();
+    panel.destroy();
+    expect((panel as any).panelTween).toBeNull();
+  });
+
+  it('should kill existing tween when showing', () => {
+    const panel = new UIPanel();
+    panel.y = 100;
+    panel.show();
+    panel.show();
+    panel.destroy();
+  });
+
+  it('should hide panel and set visible to false on complete', () => {
+    const panel = new UIPanel();
+    panel.y = 100;
+    panel.show();
+    panel.hide();
+    expect((panel as any).panelTween).not.toBeNull();
+    panel.destroy();
+  });
+
+  it('should position close button at top right', () => {
+    const panel = new UIPanel(400, 500);
+    const closeButton = (panel as any).closeButton;
+    expect(closeButton.x).toBe(375);
+    expect(closeButton.y).toBe(25);
+    panel.destroy();
+  });
+});
+
 describe('PropButton states', () => {
   it('should maintain selected state across pointer interactions', () => {
     const btn = new PropButton({

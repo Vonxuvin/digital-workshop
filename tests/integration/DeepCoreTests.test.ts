@@ -614,4 +614,177 @@ describe('PerformanceMonitor', () => {
       expect(monitor.getAverageFrameTime()).toBeCloseTo(16.67, 1);
     });
   });
+
+  describe('quality level degradation', () => {
+    it('should degrade to medium quality with sustained low FPS', () => {
+      const originalNow = performance.now;
+      let currentTime = 0;
+      performance.now = () => currentTime;
+
+      currentTime = 0;
+      monitor.start();
+
+      for (let i = 0; i < 35; i++) {
+        currentTime += 40;
+        monitor.tick();
+      }
+
+      expect(monitor.getQualityLevel()).toBe('medium');
+
+      performance.now = originalNow;
+    });
+
+    it('should degrade to low quality with very low FPS', () => {
+      const originalNow = performance.now;
+      let currentTime = 0;
+      performance.now = () => currentTime;
+
+      currentTime = 0;
+      monitor.start();
+
+      for (let i = 0; i < 65; i++) {
+        currentTime += 50;
+        monitor.tick();
+      }
+
+      expect(monitor.getQualityLevel()).toBe('low');
+
+      performance.now = originalNow;
+    });
+
+    it('should recover to high quality with good FPS', () => {
+      const originalNow = performance.now;
+      let currentTime = 0;
+      performance.now = () => currentTime;
+
+      currentTime = 0;
+      monitor.start();
+
+      for (let i = 0; i < 35; i++) {
+        currentTime += 40;
+        monitor.tick();
+      }
+      expect(monitor.getQualityLevel()).toBe('medium');
+
+      for (let i = 0; i < 70; i++) {
+        currentTime += 16;
+        monitor.tick();
+      }
+      expect(monitor.getQualityLevel()).toBe('high');
+
+      performance.now = originalNow;
+    });
+  });
+
+  describe('getParticleMultiplier', () => {
+    it('should return 1.0 for high quality', () => {
+      expect(monitor.getParticleMultiplier()).toBe(1.0);
+    });
+
+    it('should return 0.6 for medium quality', () => {
+      const originalNow = performance.now;
+      let currentTime = 0;
+      performance.now = () => currentTime;
+
+      currentTime = 0;
+      monitor.start();
+      for (let i = 0; i < 35; i++) {
+        currentTime += 40;
+        monitor.tick();
+      }
+
+      expect(monitor.getParticleMultiplier()).toBe(0.6);
+
+      performance.now = originalNow;
+    });
+
+    it('should return 0.3 for low quality', () => {
+      const originalNow = performance.now;
+      let currentTime = 0;
+      performance.now = () => currentTime;
+
+      currentTime = 0;
+      monitor.start();
+      for (let i = 0; i < 65; i++) {
+        currentTime += 50;
+        monitor.tick();
+      }
+
+      expect(monitor.getParticleMultiplier()).toBe(0.3);
+
+      performance.now = originalNow;
+    });
+  });
+
+  describe('shouldReduceEffects', () => {
+    it('should return false for high quality', () => {
+      expect(monitor.shouldReduceEffects()).toBe(false);
+    });
+
+    it('should return true for medium quality', () => {
+      const originalNow = performance.now;
+      let currentTime = 0;
+      performance.now = () => currentTime;
+
+      currentTime = 0;
+      monitor.start();
+      for (let i = 0; i < 35; i++) {
+        currentTime += 40;
+        monitor.tick();
+      }
+
+      expect(monitor.shouldReduceEffects()).toBe(true);
+
+      performance.now = originalNow;
+    });
+  });
+
+  describe('shouldPauseNonEssentialAnimations', () => {
+    it('should return false for high quality', () => {
+      expect(monitor.shouldPauseNonEssentialAnimations()).toBe(false);
+    });
+
+    it('should return false for medium quality', () => {
+      const originalNow = performance.now;
+      let currentTime = 0;
+      performance.now = () => currentTime;
+
+      currentTime = 0;
+      monitor.start();
+      for (let i = 0; i < 35; i++) {
+        currentTime += 40;
+        monitor.tick();
+      }
+
+      expect(monitor.shouldPauseNonEssentialAnimations()).toBe(false);
+
+      performance.now = originalNow;
+    });
+
+    it('should return true for low quality', () => {
+      const originalNow = performance.now;
+      let currentTime = 0;
+      performance.now = () => currentTime;
+
+      currentTime = 0;
+      monitor.start();
+      for (let i = 0; i < 65; i++) {
+        currentTime += 50;
+        monitor.tick();
+      }
+
+      expect(monitor.shouldPauseNonEssentialAnimations()).toBe(true);
+
+      performance.now = originalNow;
+    });
+  });
+
+  describe('getAverageFPS', () => {
+    it('should return same value as getFPS', () => {
+      for (let i = 0; i < 5; i++) {
+        monitor.tick();
+      }
+      expect(monitor.getAverageFPS()).toBe(monitor.getFPS());
+    });
+  });
 });

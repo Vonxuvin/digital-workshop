@@ -91,6 +91,7 @@ test.describe('输入与交互 @smoke', () => {
   test.describe('拖拽输入 @regression', () => {
     test('拖拽方块应改变位置', async ({ page }) => {
       await navigateToGame(page);
+      await ensurePlaying(page);
 
       const canvas = page.locator('#game-canvas');
       const box = await canvas.boundingBox();
@@ -112,6 +113,7 @@ test.describe('输入与交互 @smoke', () => {
 
     test('拖拽超出边界应被限制', async ({ page }) => {
       await navigateToGame(page);
+      await ensurePlaying(page);
 
       const canvas = page.locator('#game-canvas');
       const box = await canvas.boundingBox();

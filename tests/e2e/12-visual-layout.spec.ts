@@ -81,6 +81,7 @@ test.describe('视觉布局 @regression', () => {
   test.describe('HUD布局 @regression', () => {
     test('分数文本应在顶部', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasScoreText = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -99,6 +100,7 @@ test.describe('视觉布局 @regression', () => {
 
     test('关卡文本应在顶部', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasLevelText = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -117,6 +119,7 @@ test.describe('视觉布局 @regression', () => {
 
     test('暂停按钮应在右上角', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasPauseButton = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -135,6 +138,7 @@ test.describe('视觉布局 @regression', () => {
 
     test('道具栏应在底部', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasPropsContainer = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -153,6 +157,7 @@ test.describe('视觉布局 @regression', () => {
 
     test('目标进度条应在顶部', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasObjectiveBar = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -160,7 +165,7 @@ test.describe('视觉布局 @regression', () => {
         try {
           const hud = game.getGameHUD?.();
           if (!hud) return false;
-          return hud.objectiveBar !== null && hud.objectiveBar !== undefined;
+          return hud.objectiveDisplay !== null && hud.objectiveDisplay !== undefined;
         } catch {
           return false;
         }
@@ -171,6 +176,7 @@ test.describe('视觉布局 @regression', () => {
 
     test('连击显示应在正确位置', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasComboDisplay = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -424,6 +430,7 @@ test.describe('视觉布局 @regression', () => {
 
     test('HUD布局方法应可用', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasLayout = await page.evaluate(() => {
         const game = (window as any).__gameInstance;

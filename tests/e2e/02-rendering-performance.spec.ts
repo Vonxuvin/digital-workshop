@@ -5,6 +5,7 @@ test.describe('渲染与性能 @regression', () => {
   test.describe('基础渲染 @smoke', () => {
     test('游戏画面应正确渲染非空白内容', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const screenshot = await page.screenshot();
       expect(screenshot.length).toBeGreaterThan(1000);
@@ -12,6 +13,7 @@ test.describe('渲染与性能 @regression', () => {
 
     test('Canvas渲染不应出现黑屏', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const isBlackScreen = await page.evaluate(async () => {
         const gameCanvas = document.getElementById('game-canvas') as HTMLCanvasElement;
@@ -152,6 +154,7 @@ test.describe('渲染与性能 @regression', () => {
   test.describe('帧率性能 @regression', () => {
     test('FPS监控应正常工作', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const hasFPSMonitor = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -169,6 +172,7 @@ test.describe('渲染与性能 @regression', () => {
 
     test('空闲状态下FPS应保持稳定', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
       await waitForStable(page, 3000);
 
       const fps = await page.evaluate(() => {
@@ -294,6 +298,7 @@ test.describe('渲染与性能 @regression', () => {
   test.describe('渲染层级 @regression', () => {
     test('UIManager应包含5个渲染层级', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const layers = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
@@ -321,6 +326,7 @@ test.describe('渲染与性能 @regression', () => {
 
     test('游戏层应在UI层之下', async ({ page }) => {
       await navigateToGame(page);
+      await ensureGameScene(page);
 
       const layerOrder = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
