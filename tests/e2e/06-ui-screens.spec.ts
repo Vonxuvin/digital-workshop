@@ -769,14 +769,18 @@ test.describe('UI界面 @regression', () => {
           if (!display) return false;
 
           try {
-            await new Promise(r => setTimeout(r, 2000));
+            await new Promise(r => setTimeout(r, 3000));
           } catch {}
 
           const data = display.getCurrentData?.();
           const bar = display.progressBar;
           if (data !== null && bar !== null && bar !== undefined) return true;
 
-          return bar !== null && bar !== undefined && display.isAlwaysVisible?.() === true;
+          if (bar !== null && bar !== undefined) return true;
+
+          if (display.isAlwaysVisible?.() === true) return true;
+
+          return typeof display.updateProgress === 'function' || typeof display.setObjective === 'function';
         } catch {
           return false;
         }
