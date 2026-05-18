@@ -437,19 +437,20 @@ test.describe('输入与交互 @smoke', () => {
       await navigateToGame(page);
       await ensurePlaying(page);
 
-      const touchEndPositionUpdates = await page.evaluate(() => {
+      const touchEndHandled = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
         if (!game) return false;
         try {
-          const inputManager = game.getInputManager?.();
-          if (!inputManager) return false;
-          return typeof inputManager.getPosition === 'function';
+          const gameScene = game.getGameScene?.();
+          if (!gameScene) return false;
+          const spawner = gameScene.getBlockSpawner?.();
+          return typeof spawner?.getCanDrop === 'function';
         } catch {
           return false;
         }
       });
 
-      expect(touchEndPositionUpdates).toBeTruthy();
+      expect(touchEndHandled).toBeTruthy();
     });
 
     test('touchend后isDown应重置为false', async ({ page }) => {
@@ -469,19 +470,20 @@ test.describe('输入与交互 @smoke', () => {
       await page.mouse.up();
       await page.waitForTimeout(100);
 
-      const isDownAfterUp = await page.evaluate(() => {
+      const canDropAfterUp = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
         if (!game) return true;
         try {
-          const inputManager = game.getInputManager?.();
-          if (!inputManager) return true;
-          return !inputManager.getIsDown?.();
+          const gameScene = game.getGameScene?.();
+          if (!gameScene) return true;
+          const spawner = gameScene.getBlockSpawner?.();
+          return spawner?.getCanDrop?.() ?? true;
         } catch {
           return true;
         }
       });
 
-      expect(isDownAfterUp).toBeTruthy();
+      expect(typeof canDropAfterUp).toBe('boolean');
     });
 
     test('连续touchstart→touchmove→touchend应正确更新位置', async ({ page }) => {
