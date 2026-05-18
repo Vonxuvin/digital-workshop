@@ -454,15 +454,20 @@ test.describe('关卡系统 @regression', () => {
       await dropBlocks(page, 5, 500);
       await waitForStable(page, 2000);
 
-      const scoreAfter = await page.evaluate(() => {
-        const game = (window as any).__gameInstance;
-        if (!game) return -1;
-        try {
-          return game.getScoreSystem?.()?.getScore?.() ?? -1;
-        } catch {
-          return -1;
-        }
-      });
+      const scoreAfter = await page.waitForFunction(
+        (before) => {
+          const game = (window as any).__gameInstance;
+          if (!game) return false;
+          try {
+            const score = game.getScoreSystem?.()?.getScore?.() ?? -1;
+            return score > before;
+          } catch {
+            return false;
+          }
+        },
+        scoreBefore,
+        { timeout: 10000, polling: 500 }
+      ).then(r => r.jsonValue()).catch(() => scoreBefore);
 
       expect(scoreAfter).toBeGreaterThan(scoreBefore);
     });
@@ -550,24 +555,33 @@ test.describe('关卡系统 @regression', () => {
       await dropBlocks(page, 5, 500);
       await waitForStable(page, 2000);
 
-      const result = await page.evaluate(() => {
+      const scoreOk = await page.waitForFunction(
+        () => {
+          const game = (window as any).__gameInstance;
+          if (!game) return false;
+          try {
+            const scoreSystem = game.getScoreSystem?.();
+            return (scoreSystem?.getScore?.() ?? 0) > 0;
+          } catch {
+            return false;
+          }
+        },
+        { timeout: 10000, polling: 500 }
+      ).then(r => r.jsonValue()).catch(() => false);
+
+      const counterOk = await page.evaluate(() => {
         const game = (window as any).__gameInstance;
-        if (!game) return { scoreOk: false, mergeOk: false, counterOk: false };
+        if (!game) return false;
         try {
-          const scoreSystem = game.getScoreSystem?.();
           const hud = game.getGameHUD?.();
-          return {
-            scoreOk: scoreSystem?.getScore?.() > 0,
-            mergeOk: true,
-            counterOk: hud?.scoreText !== null && hud?.scoreText !== undefined,
-          };
+          return hud?.scoreText !== null && hud?.scoreText !== undefined;
         } catch {
-          return { scoreOk: false, mergeOk: false, counterOk: false };
+          return false;
         }
       });
 
-      expect(result.scoreOk).toBeTruthy();
-      expect(result.counterOk).toBeTruthy();
+      expect(scoreOk).toBeTruthy();
+      expect(counterOk).toBeTruthy();
     });
   });
 

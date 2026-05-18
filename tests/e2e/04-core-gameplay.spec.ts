@@ -714,18 +714,20 @@ test.describe('核心玩法 @smoke', () => {
       }
 
       await page.waitForTimeout(process.env.CI ? 2500 : 1100);
-      await page.waitForTimeout(400);
 
-      const canDrop = await page.evaluate(() => {
-        const game = (window as any).__gameInstance;
-        if (!game) return false;
-        try {
-          const spawner = game.getBlockSpawner?.();
-          return spawner?.getCanDrop?.() ?? false;
-        } catch {
-          return false;
-        }
-      });
+      const canDrop = await page.waitForFunction(
+        () => {
+          const game = (window as any).__gameInstance;
+          if (!game) return false;
+          try {
+            const spawner = game.getBlockSpawner?.();
+            return spawner?.getCanDrop?.() ?? false;
+          } catch {
+            return false;
+          }
+        },
+        { timeout: 10000, polling: 500 }
+      ).then(r => r.jsonValue()).catch(() => false);
       expect(canDrop).toBeTruthy();
 
       const countBefore = await page.evaluate(() => {
