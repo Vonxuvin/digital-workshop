@@ -1270,6 +1270,7 @@ test.describe('道具系统 @regression', () => {
           handler.handleShrinkActivate({ factor: 0.5, duration: 5000 });
 
           const blockData = settledBlocks.map((b: any) => ({
+            x: b.body.position.x,
             y: b.body.position.y,
             radius: b.body.circleRadius,
             bottom: b.body.position.y + (b.body.circleRadius || 0),
@@ -1321,8 +1322,9 @@ test.describe('道具系统 @regression', () => {
             for (let j = i + 1; j < blockData.length; j++) {
               const a = blockData[i];
               const b = blockData[j];
-              const dx = a.y === b.y && Math.abs(a.bottom - b.bottom) < 1 ? 0 : 1;
-              const dist = Math.sqrt(dx * dx + (a.y - b.y) ** 2);
+              const dx = a.x - b.x;
+              const dy = a.y - b.y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
               const minDist = (a.radius || 0) + (b.radius || 0);
               if (dist < minDist - 2) {
                 noOverlap = false;
@@ -1396,6 +1398,8 @@ test.describe('道具系统 @regression', () => {
           const groundY = scene.getGroundY?.() || 550;
 
           const originalData = settledBlocks.map((b: any) => ({
+            x: b.body.position.x,
+            y: b.body.position.y,
             radius: b.body.circleRadius,
             bottom: b.body.position.y + (b.body.circleRadius || 0),
           }));
@@ -1404,6 +1408,8 @@ test.describe('道具系统 @regression', () => {
           handler.handleShrinkDeactivate();
 
           const restoredData = settledBlocks.map((b: any) => ({
+            x: b.body.position.x,
+            y: b.body.position.y,
             radius: b.body.circleRadius,
             bottom: b.body.position.y + (b.body.circleRadius || 0),
           }));
@@ -1429,7 +1435,9 @@ test.describe('道具系统 @regression', () => {
             for (let j = i + 1; j < restoredData.length; j++) {
               const a = restoredData[i];
               const b = restoredData[j];
-              const dist = Math.sqrt((a.bottom - b.bottom) ** 2);
+              const dx = a.x - b.x;
+              const dy = a.y - b.y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
               const minDist = (a.radius || 0) + (b.radius || 0);
               if (dist < minDist - 2) {
                 noOverlap = false;
